@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOC 対応フロー（プロトタイプ）</title>
+<style>
+:root{
+  --bg:#0a0c11; --panel:#12161e; --panel2:#181d27; --panel3:#1f2531;
+  --line:#2b3242; --line-soft:#212734;
+
+  /* 本文コントラストを上げる（暗所・長時間閲覧向け） */
+  --fg:#f0f3f8; --dim:#aab4c6; --faint:#7d8798;
+
+  --cur:#ffc93c;  --cur-bg:rgba(255,201,60,.13);  --cur-line:#ffc93c;
+  --ok:#3ddc97;   --ok-bg:rgba(61,220,151,.13);
+  --skip:#6b7383;
+  --s1:#ff6b6b;   --s2:#ffb02e;   --s3:#5ad1e6;
+
+  --c1:#ff5c8a; --c2:#4aa8ff; --c3:#a97bff; --c4:#ffb02e; --c5:#2ee6a8; --c6:#5ad1e6;
+  --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+  --sans:"Meiryo UI","Hiragino Sans","Helvetica Neue","Noto Sans JP","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.7;
+  -webkit-font-smoothing:antialiased}
+
+/* ================= header (固定) ================= */
+.top{position:sticky;top:0;z-index:20;background:rgba(10,12,17,.96);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+  padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap}
+.top h1{margin:0;font-size:18px;font-weight:700;white-space:nowrap}
+.top h1 b{color:var(--cur)}
+.now{flex:1;min-width:240px;font-size:14px;color:var(--dim)}
+.now b{color:var(--fg)}
+.meters{display:flex;gap:26px;align-items:center}
+.meter .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.meter .v{font-family:var(--mono);font-size:23px;line-height:1.25;font-weight:700}
+.bar{height:7px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px;width:170px}
+.bar i{display:block;height:100%;background:var(--ok);width:0%;transition:width .3s}
+
+/* ================= layout ================= */
+.main{display:grid;grid-template-columns:310px minmax(0,1fr);gap:18px;padding:18px 28px 0;align-items:start}
+@media(max-width:1150px){.main{grid-template-columns:1fr}}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+.card>h3{margin:0 0 11px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--faint);font-weight:700}
+
+/* ---- 事象リスト（左） ---- */
+.ev{width:100%;text-align:left;background:var(--panel2);color:inherit;border:1px solid var(--line);
+  border-radius:9px;padding:11px 12px;margin-bottom:8px;cursor:pointer;font-family:var(--sans);
+  display:flex;gap:10px;align-items:flex-start;transition:border-color .16s,background .16s}
+.ev:hover{border-color:#404a5e;background:var(--panel3)}
+.ev.on{border-color:var(--cur);background:var(--cur-bg)}
+.ev .sev{flex:none;font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;
+  border-radius:4px;margin-top:2px;letter-spacing:.03em}
+.sev.S1{background:rgba(255,107,107,.16);color:var(--s1);border:1px solid var(--s1)}
+.sev.S2{background:rgba(255,176,46,.16);color:var(--s2);border:1px solid var(--s2)}
+.sev.S3{background:rgba(90,209,230,.16);color:var(--s3);border:1px solid var(--s3)}
+.ev b{display:block;font-size:14px;font-weight:700;line-height:1.5}
+.ev span{display:block;font-size:12px;color:var(--dim);line-height:1.55;margin-top:2px}
+.ev.on b{color:var(--cur)}
+
+/* ---- キャンバス（右） ---- */
+.stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px 22px;overflow-x:auto}
+/* 列間・ボックス間の余白を広げ、迂回路のぶん下に空きを作る */
+.grid{position:relative;display:flex;gap:46px;min-width:1330px;padding-bottom:104px}
+.col{flex:1 1 0;min-width:178px;display:flex;flex-direction:column;gap:18px}
+.col>h2{margin:0 0 6px;font-size:11px;letter-spacing:.13em;color:var(--faint);font-weight:700;white-space:nowrap}
+
+.node{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--nc,var(--line));
+  border-radius:8px;padding:10px 12px;cursor:pointer;position:relative;
+  transition:opacity .18s,border-color .18s,background .18s}
+.node .n{font-size:13.5px;display:block;line-height:1.5;font-weight:600}
+.node .t{font-size:11px;color:var(--faint);display:block;line-height:1.45;margin-top:2px}
+.node .mk{position:absolute;top:8px;right:9px;font-family:var(--mono);font-size:12px;font-weight:700;display:none}
+.node:hover{background:var(--panel3)}
+
+body.sel .node{opacity:.16}
+body.sel .node.on{opacity:1;border-color:var(--line);border-left-color:var(--cur);background:var(--panel2)}
+body.sel .node.done{opacity:1;border-color:var(--ok);border-left-color:var(--ok);background:var(--ok-bg)}
+body.sel .node.done .mk{display:block;color:var(--ok)}
+body.sel .node.cur{opacity:1;border-color:var(--cur);border-left-color:var(--cur);
+  background:var(--cur-bg);box-shadow:0 0 0 3px rgba(255,201,60,.18)}
+body.sel .node.cur .mk{display:block;color:var(--cur)}
+body.sel .node.skip{opacity:.3;border-style:dashed;background:transparent}
+body.sel .node.skip .mk{display:block;color:var(--skip)}
+body.sel .col>h2{opacity:.45}
+
+#wires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#wires path.w{fill:none;stroke:var(--cur);stroke-width:2;opacity:.85;stroke-linecap:round}
+#wires path.w.done{stroke:var(--ok)}
+#wires circle{fill:var(--bg);stroke:var(--cur);stroke-width:1.6}
+#wires circle.done{stroke:var(--ok)}
+#wires text{fill:var(--cur);font-family:var(--mono);font-size:11px;font-weight:700;
+  text-anchor:middle;dominant-baseline:central}
+#wires text.done{fill:var(--ok)}
+
+/* ================= 手順（下） ================= */
+.steps{margin:18px 28px 60px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:18px 22px 22px}
+.steps>header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.steps h2{margin:0;font-size:18px}
+.steps h2 small{display:block;font-size:13px;color:var(--dim);font-weight:400;margin-top:3px}
+.acts{display:flex;gap:9px}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
+  padding:8px 15px;font-size:13px;cursor:pointer;font-family:var(--sans)}
+.btn:hover{border-color:#404a5e;background:var(--panel3)}
+.btn.p{border-color:var(--ok);color:var(--ok)}
+
+.s{display:flex;gap:14px;padding:15px 12px;border-top:1px solid var(--line-soft);
+  border-radius:9px;transition:background .18s}
+.s:first-of-type{border-top:none}
+.s.current{background:var(--cur-bg);border-top-color:transparent;
+  box-shadow:inset 4px 0 0 var(--cur-line)}
+.s .chk{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--line);
+  background:var(--panel2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:13px;font-weight:700;color:var(--faint);margin-top:2px}
+.s .chk:hover{border-color:var(--cur);color:var(--cur)}
+.s.current .chk{border-color:var(--cur);color:var(--cur)}
+.s.done .chk{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.s .bd{flex:1;min-width:0}
+.s .ttl{font-size:15.5px;font-weight:700;line-height:1.6}
+.s.current .ttl{color:var(--cur)}
+.s.done .ttl{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--faint)}
+.s .path{font-size:12px;color:var(--faint);margin:2px 0 7px}
+.s .dsc{font-size:13.5px;color:var(--dim);line-height:1.85}
+.s .dsc code{font-family:var(--mono);font-size:12.5px;background:var(--panel3);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--fg)}
+.s.skipped{opacity:.34}
+.s.skipped .ttl{text-decoration:line-through}
+
+.tag{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;
+  margin-left:8px;vertical-align:middle;white-space:nowrap}
+.tag.now{background:var(--cur);color:#1a1405;border:1px solid var(--cur)}
+.tag.sla{background:var(--panel3);color:var(--dim);border:1px solid var(--line);font-family:var(--mono)}
+.tag.esc{background:rgba(255,107,107,.16);color:var(--s1);border:1px solid var(--s1)}
+.tag.cond{background:rgba(169,123,255,.16);color:#bfa0ff;border:1px solid #a97bff}
+
+.godone{margin-top:12px;background:var(--cur);border:none;color:#1a1405;border-radius:8px;
+  padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans)}
+.godone:hover{filter:brightness(1.08)}
+
+.ask{margin-top:12px;padding:14px 16px;background:var(--panel2);border:2px solid #a97bff;border-radius:9px}
+.ask p{margin:0 0 10px;font-size:14.5px;font-weight:700}
+.ask .opts{display:flex;gap:10px;flex-wrap:wrap}
+.ask button{background:var(--panel3);border:2px solid var(--line);color:var(--fg);border-radius:8px;
+  padding:9px 18px;font-size:14px;cursor:pointer;font-family:var(--sans)}
+.ask button:hover{border-color:#a97bff}
+.ask button.on{border-color:#a97bff;background:rgba(169,123,255,.22);color:#d5bfff;font-weight:700}
+
+.empty{color:var(--faint);font-size:14px;margin:18px 0 6px}
+.note{margin:18px 0 0;font-size:12.5px;color:var(--faint);line-height:1.75}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--dim)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{font-family:var(--mono);font-weight:700;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>SOC <b>対応フロー</b></h1>
+  <div class="now" id="now">左の一覧から、発生した事象を選択してください。</div>
+  <div class="meters">
+    <div class="meter"><div class="k">経過時間</div><div class="v" id="elapsed">--:--</div></div>
+    <div class="meter"><div class="k">進捗</div><div class="v" id="prog">0 / 0</div>
+      <div class="bar"><i id="progbar"></i></div></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="card">
+    <h3>発生した事象</h3>
+    <div id="events"></div>
+    <div class="legend">
+      <span><i style="color:var(--cur)">▶</i>現在</span>
+      <span><i style="color:var(--ok)">✓</i>完了</span>
+      <span><i style="color:var(--skip)">—</i>対象外</span>
+    </div>
+  </div>
+  <div class="stage"><div class="grid" id="grid"><svg id="wires"></svg></div></div>
+</div>
+
+<div class="steps">
+  <header>
+    <h2 id="stitle">対応手順<small id="ssub">事象を選択してください</small></h2>
+    <div class="acts">
+      <button class="btn p" id="copy">作業ログをコピー</button>
+      <button class="btn" id="reset">リセット</button>
+    </div>
+  </header>
+  <div id="slist"><p class="empty">左の「発生した事象」から、対応するものを選んでください。</p></div>
+  <p class="note">
+    プロトタイプです。内容はダミーで、実運用の手順ではありません。
+    進捗はこのブラウザにのみ保存され、外部には送信されません。
+  </p>
+</div>
+
+<script>
+/* ==================================================================
+   データ定義 — ここだけ差し替えれば別のフローになる
+   ================================================================== */
+const PHASES=[
+  {id:"recv",  name:"受信・確認", color:"var(--c1)"},
+  {id:"triage",name:"情報収集",   color:"var(--c2)"},
+  {id:"judge", name:"判断",       color:"var(--c3)"},
+  {id:"cont",  name:"封じ込め",   color:"var(--c4)"},
+  {id:"rec",   name:"復旧",       color:"var(--c5)"},
+  {id:"rep",   name:"記録・報告", color:"var(--c6)"}
+];
+const T=(id,phase,label,note)=>({id,phase,label,note});
+const TASKS=[
+  T("ack","recv","アラート受領","SIEM で担当者アサイン"),
+  T("dup","recv","重複確認","既存チケットの有無"),
+  T("scope","recv","影響範囲の初期把握","対象ホスト・アカウント数"),
+  T("host","triage","端末情報の収集","OS / 利用者 / 設置場所"),
+  T("logs","triage","ログの収集","EDR / プロキシ / 認証ログ"),
+  T("ioc","triage","IOC の照合","ハッシュ・IP・ドメイン"),
+  T("user","triage","利用者への聞き取り","心当たりの確認"),
+  T("tp","judge","真陽性/誤検知の判定","判定根拠を残す"),
+  T("sev","judge","重大度の確定","S1 / S2 / S3"),
+  T("esc","judge","エスカレーション判断","CSIRT・経営への連絡要否"),
+  T("iso","cont","端末のネットワーク隔離","EDR から実行"),
+  T("acct","cont","アカウントの無効化","AD / IdP"),
+  T("block","cont","通信のブロック","Proxy / FW に IOC 追加"),
+  T("pwd","cont","認証情報のリセット","本人確認のうえ実施"),
+  T("scan","rec","再スキャン","クリーン確認"),
+  T("restore","rec","復旧作業","再イメージ or 隔離解除"),
+  T("verify","rec","復旧確認","業務影響の解消確認"),
+  T("ticket","rep","チケット更新","時系列で記録"),
+  T("report","rep","報告書作成","一次報告・最終報告"),
+  T("lesson","rep","再発防止の起票","検知ルール・教育")
+];
+
+const EVENTS=[
+  {id:"ransom", sev:"S1", title:"ランサムウェアの疑い",
+   sub:"大量のファイル暗号化・拡張子変更を検知",
+   steps:[
+    {task:"ack",t:"アラートを受領し、即座に上位へ一報する",sla:"即時",esc:1,
+     d:"<code>調査の完了を待たない</code>。S1 は第一報を優先する。"},
+    {task:"iso",t:"対象端末を隔離する",sla:"即時",esc:1,
+     d:"判定を待たずに隔離する。誤検知のコストより拡散のコストが桁違いに大きい。"},
+    {task:"scope",t:"影響範囲を把握する",sla:"15分",
+     d:"共有フォルダ・バックアップ領域への到達有無を最優先で確認する。"},
+    {task:"esc",t:"CSIRT と経営に報告する",sla:"30分",esc:1,
+     d:"広報・法務にも同時に連絡する。公表判断が必要になる可能性がある。"},
+    {task:"block",t:"横展開を遮断する",
+     d:"該当セグメントの通信制限、管理者アカウントの棚卸しを行う。"},
+    {task:"logs",t:"侵入経路を特定する",
+     d:"初期侵入から暗号化までの経路を再構成する。同じ経路が他にも開いている可能性が高い。"},
+    {task:"restore",t:"バックアップの健全性を確認する",
+     d:"<code>復旧前に、バックアップ自体が汚染されていないか検証する</code>。",
+     ask:{key:"bk",label:"健全なバックアップは存在しますか？",
+          opts:[{v:"yes",l:"存在する"},{v:"no",l:"存在しない／汚染"}]}},
+    {task:"esc",t:"外部の専門機関へ支援を要請する",when:"bk=no",esc:1,
+     d:"復旧手段が無い場合は、自組織だけで判断しない。契約している IR 事業者へ連絡する。"},
+    {task:"restore",t:"バックアップから復旧する",when:"bk=yes",
+     d:"復旧対象を業務優先度順に並べ、上から実施する。"},
+    {task:"verify",t:"復旧を確認する",when:"bk=yes",
+     d:"業務部門による確認をもって完了とする。SOC の判断だけで完了にしない。"},
+    {task:"report",t:"最終報告を作成する",d:"時系列・影響・原因・再発防止をセットで。"},
+    {task:"lesson",t:"再発防止策を起票する",
+     d:"検知の遅れがあった箇所を特定し、ルールとバックアップ運用の両方を見直す。"}
+   ]},
+
+  {id:"edr", sev:"S2", title:"EDR がマルウェアを検知",
+   sub:"端末で不審な実行ファイルが検出された",
+   steps:[
+    {task:"ack",t:"アラートを受領し担当を確定する",sla:"5分",
+     d:"SIEM でチケットを起票し、自分をアサインする。<code>担当者未設定のまま調査を始めない</code>。"},
+    {task:"dup",t:"重複アラートを確認する",
+     d:"同一ホスト・同一ハッシュの未解決チケットがあれば統合し、以降はそちらで対応する。"},
+    {task:"host",t:"端末と利用者を特定する",
+     d:"資産管理台帳でホスト名から利用者・部署・設置場所を引く。VIP 端末なら重大度を 1 段上げる。"},
+    {task:"ioc",t:"検体ハッシュを脅威インテルで照合する",
+     d:"既知マルウェアなら family 名と挙動を記録。未知なら重大度を上げて次へ。"},
+    {task:"tp",t:"真陽性か誤検知かを判定する",sla:"30分",
+     d:"実行された痕跡（プロセス生成・永続化・外部通信）が 1 つでもあれば真陽性として扱う。",
+     ask:{key:"tp",label:"判定結果はどちらですか？",
+          opts:[{v:"yes",l:"真陽性（実害あり／疑い）"},{v:"no",l:"誤検知"}]}},
+    {task:"iso",t:"端末をネットワークから隔離する",sla:"15分",when:"tp=yes",esc:1,
+     d:"EDR コンソールから隔離を実行。<code>利用者に必ず事前連絡する</code>（業務停止を伴うため）。"},
+    {task:"acct",t:"利用者アカウントを一時無効化する",when:"tp=yes",
+     d:"横展開の兆候（他ホストへの認証試行）がある場合のみ。無い場合はこの手順は不要。"},
+    {task:"block",t:"C2 通信先をブロックする",when:"tp=yes",
+     d:"プロキシと FW に IOC を登録する。登録した IOC は必ずチケットに記載する。"},
+    {task:"esc",t:"CSIRT にエスカレーションする",when:"tp=yes",esc:1,
+     d:"ランサムウェアの兆候、または 3 台以上への感染拡大が見られる場合は<code>即時</code>。それ以外は 1 時間以内。"},
+    {task:"scan",t:"フルスキャンを実行する",when:"tp=yes",
+     d:"隔離状態のまま実施。検出ゼロを 2 回連続で確認する。"},
+    {task:"restore",t:"端末を復旧する",when:"tp=yes",
+     d:"永続化の痕跡があった場合は再イメージ。無ければ隔離解除で可。判断根拠を残す。"},
+    {task:"lesson",t:"検知ルールの調整を起票する",when:"tp=no",
+     d:"誤検知の場合はここへ。除外条件を検知チームに連携し、同じアラートが再発しないようにする。"},
+    {task:"ticket",t:"時系列を記録する",
+     d:"検知時刻・着手時刻・隔離時刻・復旧時刻を分単位で残す。報告書の骨格になる。"},
+    {task:"report",t:"一次報告を提出する",sla:"4時間",
+     d:"確定していない事項は「調査中」と明記する。推測を断定形で書かない。"}
+   ]},
+
+  {id:"login", sev:"S2", title:"不審なログイン（地理的に不可能な移動）",
+   sub:"短時間に離れた拠点から同一アカウントで認証",
+   steps:[
+    {task:"ack",t:"アラートを受領する",sla:"5分",
+     d:"対象アカウントと 2 地点のログイン時刻・IP を記録する。"},
+    {task:"logs",t:"認証ログを時系列で並べる",
+     d:"直近 24 時間の全認証イベントを抽出する。成功・失敗の両方を含める。"},
+    {task:"ioc",t:"接続元 IP を評価する",
+     d:"VPN・プロキシ・Tor 出口ノードかを確認。会社支給の VPN であれば誤検知の可能性が高い。"},
+    {task:"user",t:"利用者本人に確認する",sla:"30分",
+     d:"<code>メールではなく電話で</code>連絡する。侵害されている場合、メールは攻撃者に読まれている。",
+     ask:{key:"own",label:"本人による操作でしたか？",
+          opts:[{v:"yes",l:"本人の操作"},{v:"no",l:"心当たりなし"},{v:"na",l:"連絡がつかない"}]}},
+    {task:"acct",t:"アカウントを無効化する",sla:"15分",when:"own=no",esc:1,
+     d:"セッションも合わせて全て失効させる。無効化しただけでは既存セッションは切れない。"},
+    {task:"acct",t:"アカウントを一時停止する",when:"own=na",
+     d:"連絡がつかない間は保守的に停止する。誤って止めた場合の解除手順を添えて通知する。"},
+    {task:"pwd",t:"認証情報をリセットする",when:"own=no",
+     d:"本人確認のうえ実施。MFA の再登録も必須。<code>旧デバイスの MFA は必ず削除する</code>。"},
+    {task:"logs",t:"攻撃者の操作範囲を洗い出す",when:"own=no",esc:1,
+     d:"侵害されたアカウントでのメール送信・ファイルアクセス・権限変更を全て確認する。"},
+    {task:"esc",t:"CSIRT にエスカレーションする",when:"own=no",
+     d:"管理者アカウント、または機密データへのアクセスがあった場合は即時。"},
+    {task:"lesson",t:"検知ルールの除外を検討する",when:"own=yes",
+     d:"正規の VPN 利用による誤検知が続く場合、拠点 IP を除外リストに追加する。"},
+    {task:"ticket",t:"対応内容を記録する",d:"連絡手段（電話）と応答者名を必ず残す。"},
+    {task:"report",t:"報告する",sla:"4時間",
+     d:"アカウント侵害は個人情報の観点で報告義務が生じることがある。法務の判断を仰ぐ。"}
+   ]},
+
+  {id:"dlp", sev:"S2", title:"大量データ送信を検知（DLP）",
+   sub:"外部への異常なデータ転送量",
+   steps:[
+    {task:"ack",t:"アラートを受領する",sla:"15分",d:"送信元・宛先・データ量・時刻を記録する。"},
+    {task:"logs",t:"転送内容を確認する",d:"DLP のポリシー違反区分（個人情報・機密指定など）を確認する。"},
+    {task:"user",t:"業務上の正当性を確認する",sla:"1時間",
+     d:"上長経由で確認する。本人に直接聞くと、内部不正の場合に証拠隠滅を招く。",
+     ask:{key:"legit",label:"業務上の正当な送信でしたか？",
+          opts:[{v:"yes",l:"正当な業務"},{v:"no",l:"正当性が確認できない"}]}},
+    {task:"esc",t:"人事・法務へエスカレーションする",when:"legit=no",esc:1,
+     d:"内部不正の可能性がある場合、SOC 単独で本人に接触しない。手順を人事に引き継ぐ。"},
+    {task:"acct",t:"アクセス権を制限する",when:"legit=no",
+     d:"法務の指示に従う。証拠保全の観点から、独断でログを削除・変更しない。"},
+    {task:"lesson",t:"ポリシーの調整を起票する",when:"legit=yes",
+     d:"正当な業務が毎回アラートになるなら、例外承認のフローを整える。"},
+    {task:"ticket",t:"記録する",d:"内部不正の疑いがある案件は、閲覧権限を絞って記録する。"},
+    {task:"report",t:"報告する",sla:"1営業日",
+     d:"個人情報を含む場合は報告義務の有無を法務に確認する。"}
+   ]},
+
+  {id:"phish", sev:"S3", title:"フィッシングメールの報告",
+   sub:"利用者から不審メールの報告があった",
+   steps:[
+    {task:"ack",t:"報告を受領する",sla:"30分",
+     d:"報告者・受信時刻・件名を記録する。報告してくれたことへの謝意を必ず返す。"},
+    {task:"logs",t:"同報範囲を特定する",
+     d:"メールログで同一送信元・同一件名の配信先を全て洗い出す。1 通で終わることは少ない。"},
+    {task:"ioc",t:"リンクと添付を解析する",
+     d:"サンドボックスで実行する。<code>本番端末でリンクを開かない</code>。"},
+    {task:"tp",t:"フィッシングか判定する",
+     d:"正規のメールを誤報告するケースも多い。送信ドメイン認証（SPF/DKIM/DMARC）の結果を根拠にする。",
+     ask:{key:"ph",label:"判定結果はどちらですか？",
+          opts:[{v:"yes",l:"フィッシング"},{v:"no",l:"正規メール"}]}},
+    {task:"block",t:"送信元とリンク先をブロックする",when:"ph=yes",
+     d:"メールゲートウェイとプロキシの両方に登録する。"},
+    {task:"logs",t:"クリック・入力の有無を確認する",when:"ph=yes",esc:1,
+     d:"プロキシログでリンク先へのアクセスを確認する。<code>クリックした利用者がいれば、不審ログインのフローへ移行する</code>。"},
+    {task:"acct",t:"認証情報を入力した利用者を対処する",when:"ph=yes",
+     d:"該当者がいる場合のみ。パスワードリセットと MFA 再登録を実施する。"},
+    {task:"user",t:"同報者へ注意喚起する",when:"ph=yes",
+     d:"開封・クリックしないよう周知。既にクリックした場合の申告窓口を明記する。"},
+    {task:"user",t:"報告者へ結果を返す",
+     d:"正規メールだった場合も、判断根拠を添えて丁寧に返す。次回の報告をためらわせない。"},
+    {task:"ticket",t:"記録する",d:"同種の報告件数は、教育施策の効果測定に使う。"},
+    {task:"lesson",t:"教育コンテンツへ反映する",when:"ph=yes",
+     d:"実際に来た検体は最良の教材になる。匿名化して訓練メールに転用する。"}
+   ]}
+];
+
+/* ================== 描画 ================== */
+const grid=document.getElementById("grid"), wires=document.getElementById("wires");
+const byId={}, taskById={};
+TASKS.forEach(t=>taskById[t.id]=t);
+
+PHASES.forEach(p=>{
+  const col=document.createElement("div");
+  col.className="col"; col.innerHTML=`<h2>${p.name}</h2>`;
+  TASKS.filter(t=>t.phase===p.id).forEach(t=>{
+    const el=document.createElement("div");
+    el.className="node"; el.dataset.id=t.id;
+    el.style.setProperty("--nc",p.color);
+    el.innerHTML=`<span class="mk"></span><span class="n">${t.label}</span><span class="t">${t.note}</span>`;
+    el.addEventListener("click",e=>{e.stopPropagation();jumpToTask(t.id);});
+    col.appendChild(el); byId[t.id]=el;
+  });
+  grid.appendChild(col);
+});
+
+const evBox=document.getElementById("events");
+EVENTS.forEach(e=>{
+  const b=document.createElement("button");
+  b.className="ev"; b.dataset.id=e.id;
+  b.innerHTML=`<span class="sev ${e.sev}">${e.sev}</span><span><b>${e.title}</b><span>${e.sub}</span></span>`;
+  b.addEventListener("click",()=>selectEvent(e.id));
+  evBox.appendChild(b);
+});
+
+/* ================== 状態 ================== */
+let cur=null, answers={}, done={}, startedAt=null, timer=null;
+const KEY="soc-flow-state";
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({cur,answers,done,startedAt}))}catch(e){}};
+
+function visible(step){
+  if(!step.when) return true;
+  const [k,v]=step.when.split("=");
+  if(answers[k]===undefined) return null;
+  return answers[k]===v;
+}
+/* 現在のステップ＝表示対象かつ未完了の先頭 */
+function currentIndex(ev){
+  for(let i=0;i<ev.steps.length;i++){
+    if(visible(ev.steps[i])!==false && !done[i]) return i;
+  }
+  return -1;
+}
+
+function selectEvent(id,restore){
+  if(cur===id&&!restore){clearAll();return;}
+  if(cur!==id){answers={};done={};startedAt=Date.now();}
+  cur=id;
+  document.body.classList.add("sel");
+  document.querySelectorAll(".ev.on").forEach(n=>n.classList.remove("on"));
+  document.querySelector(`.ev[data-id="${id}"]`).classList.add("on");
+  if(!startedAt) startedAt=Date.now();
+  if(!timer) timer=setInterval(tick,1000);
+  render(); save(); tick();
+}
+
+function clearAll(){
+  cur=null;answers={};done={};startedAt=null;
+  clearInterval(timer);timer=null;
+  document.body.classList.remove("sel");
+  document.querySelectorAll(".ev.on").forEach(n=>n.classList.remove("on"));
+  document.querySelectorAll(".node").forEach(n=>{n.className="node";n.querySelector(".mk").textContent="";});
+  wires.innerHTML="";
+  document.getElementById("now").textContent="左の一覧から、発生した事象を選択してください。";
+  document.getElementById("stitle").innerHTML='対応手順<small>事象を選択してください</small>';
+  document.getElementById("slist").innerHTML='<p class="empty">左の「発生した事象」から、対応するものを選んでください。</p>';
+  document.getElementById("elapsed").textContent="--:--";
+  document.getElementById("prog").textContent="0 / 0";
+  document.getElementById("progbar").style.width="0%";
+  save();
+}
+function tick(){
+  if(!startedAt)return;
+  const s=Math.floor((Date.now()-startedAt)/1000);
+  document.getElementById("elapsed").textContent=
+    `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+}
+
+function render(){
+  const ev=EVENTS.find(e=>e.id===cur);
+  const ci=currentIndex(ev);
+  document.getElementById("stitle").innerHTML=
+    `${ev.title}<small>${ev.sub}　—　重大度 ${ev.sev}</small>`;
+  document.getElementById("now").innerHTML = ci>=0
+    ? `次にやること: <b>${ev.steps[ci].t}</b>`
+    : `<b>全ての手順が完了しました。</b>作業ログをコピーして記録してください。`;
+
+  const list=document.getElementById("slist");
+  list.innerHTML="";
+  let n=0,total=0,doneCount=0;
+
+  ev.steps.forEach((st,i)=>{
+    const vis=visible(st), isCur=(i===ci);
+    const row=document.createElement("div");
+    row.className="s"+(done[i]?" done":"")+(vis===false?" skipped":"")+(isCur?" current":"");
+    if(vis!==false){n++;total++;if(done[i])doneCount++;}
+    const mark = vis===false?"—":(done[i]?"✓":n);
+    const tags=[
+      isCur?`<span class="tag now">▶ 現在</span>`:"",
+      st.sla?`<span class="tag sla">SLA ${st.sla}</span>`:"",
+      st.esc?`<span class="tag esc">エスカレーション判断</span>`:"",
+      st.when?`<span class="tag cond">条件: ${condLabel(ev,st.when)}</span>`:""
+    ].join("");
+    row.innerHTML=`
+      <div class="chk" data-i="${i}">${mark}</div>
+      <div class="bd">
+        <div class="ttl">${st.t}${tags}</div>
+        <div class="path">${taskById[st.task]?taskById[st.task].label:st.task}</div>
+        <div class="dsc">${st.d}</div>
+      </div>`;
+    if(st.ask){
+      const ask=document.createElement("div");
+      ask.className="ask";
+      ask.innerHTML=`<p>${st.ask.label}</p><div class="opts">`+
+        st.ask.opts.map(o=>`<button data-k="${st.ask.key}" data-v="${o.v}"
+          class="${answers[st.ask.key]===o.v?"on":""}">${o.l}</button>`).join("")+`</div>`;
+      row.querySelector(".bd").appendChild(ask);
+    }
+    if(isCur && !st.ask){
+      const b=document.createElement("button");
+      b.className="godone"; b.textContent="この手順を完了にする"; b.dataset.i=i;
+      row.querySelector(".bd").appendChild(b);
+    }
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll(".chk").forEach(c=>c.addEventListener("click",()=>toggle(c.dataset.i)));
+  list.querySelectorAll(".godone").forEach(b=>b.addEventListener("click",()=>toggle(b.dataset.i,true)));
+  list.querySelectorAll(".ask button").forEach(b=>b.addEventListener("click",()=>{
+    answers[b.dataset.k]=b.dataset.v; render(); save();
+  }));
+
+  document.getElementById("prog").textContent=`${doneCount} / ${total}`;
+  document.getElementById("progbar").style.width=total?`${doneCount/total*100}%`:"0%";
+  paint(ev,ci);
+}
+
+function toggle(i,scroll){
+  done[i]=!done[i]; render(); save();
+  if(scroll){
+    const row=document.querySelector("#slist .s.current");
+    if(row) row.scrollIntoView({behavior:"smooth",block:"center"});
+  }
+}
+
+function condLabel(ev,when){
+  const [k,v]=when.split("=");
+  for(const st of ev.steps) if(st.ask&&st.ask.key===k){
+    const o=st.ask.opts.find(o=>o.v===v); if(o) return o.l;
+  }
+  return when;
+}
+
+/* 同じ列の 2 つのノードの間に、線を通せるすき間があればその y を返す。
+   間に別のノードが挟まっている場合は null（＝下の迂回路を使う）。 */
+function gapLane(a,b,box){
+  const ra=a.getBoundingClientRect(), rb=b.getBoundingClientRect();
+  if(Math.abs(ra.left-rb.left)>2) return null;            // 同じ列ではない
+  const up = ra.top<rb.top?ra:rb, low = ra.top<rb.top?rb:ra;
+  const gap = low.top-up.bottom;
+  if(gap<12) return null;
+  const y = up.bottom+gap/2-box.top;
+  for(const el of Object.values(byId)){
+    if(el===a||el===b) continue;
+    const r=el.getBoundingClientRect();
+    if(Math.abs(r.left-ra.left)>2) continue;              // 別の列は通らない
+    if(r.top-box.top<y && r.bottom-box.top>y) return null; // すき間を塞いでいる
+  }
+  return y;
+}
+
+/* 直角の折れ線を、角を丸めたパスに変換する */
+function ortho(pts,r){
+  let d=`M ${pts[0][0]} ${pts[0][1]}`;
+  for(let i=1;i<pts.length-1;i++){
+    const [px,py]=pts[i-1],[cx,cy]=pts[i],[nx,ny]=pts[i+1];
+    const v1x=cx-px, v1y=cy-py, v2x=nx-cx, v2y=ny-cy;
+    const l1=Math.hypot(v1x,v1y)||1, l2=Math.hypot(v2x,v2y)||1;
+    const rr=Math.min(r,l1/2,l2/2);
+    d+=` L ${cx-v1x/l1*rr} ${cy-v1y/l1*rr}`;
+    d+=` Q ${cx} ${cy} ${cx+v2x/l2*rr} ${cy+v2y/l2*rr}`;
+  }
+  const last=pts[pts.length-1];
+  return d+` L ${last[0]} ${last[1]}`;
+}
+
+function paint(ev,ci){
+  document.querySelectorAll(".node").forEach(n=>{
+    n.className="node"; n.querySelector(".mk").textContent="";
+  });
+  const box=grid.getBoundingClientRect();
+  wires.setAttribute("viewBox",`0 0 ${grid.clientWidth} ${grid.clientHeight}`);
+
+  const seq=[];
+  ev.steps.forEach((st,i)=>{
+    const vis=visible(st), el=byId[st.task];
+    if(!el) return;
+    const mk=el.querySelector(".mk");
+    if(vis===false){
+      if(!el.classList.contains("on")&&!el.classList.contains("done")&&!el.classList.contains("cur")){
+        el.classList.add("skip"); mk.textContent="—";
+      }
+      return;
+    }
+    el.classList.remove("skip");
+    if(done[i]){ el.classList.remove("on","cur"); el.classList.add("done"); mk.textContent="✓"; }
+    else if(i===ci){ el.classList.remove("on"); el.classList.add("cur"); mk.textContent="▶"; }
+    else if(!el.classList.contains("done")&&!el.classList.contains("cur")){ el.classList.add("on"); }
+    seq.push({i,task:st.task,done:!!done[i]});
+  });
+
+  // 迂回路（バス）を通す高さ。全ノードより下に取る。
+  let maxBottom=0;
+  Object.values(byId).forEach(el=>{
+    const r=el.getBoundingClientRect();
+    maxBottom=Math.max(maxBottom, r.bottom-box.top);
+  });
+
+  const HEAD=7;      // 矢印の長さぶん手前で止める
+  const OUT=26;      // 右へ出てから曲がるまで
+  const IN=26;       // 左から入る手前で曲がる位置
+  let back=0;        // 迂回した本数（重ならないよう段をずらす）
+
+  let out=`<defs>
+    <marker id="ah" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6"
+      orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--cur)"/></marker>
+    <marker id="ahd" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6"
+      orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--ok)"/></marker>
+  </defs>`;
+
+  for(let k=0;k<seq.length-1;k++){
+    const a=byId[seq[k].task], b=byId[seq[k+1].task];
+    if(!a||!b) continue;
+    const ra=a.getBoundingClientRect(), rb=b.getBoundingClientRect();
+
+    // 規則: 必ず「右から出て、左から入る」
+    const x1=ra.right-box.left,            y1=ra.top-box.top+ra.height/2;
+    const x2=rb.left -box.left-HEAD,       y2=rb.top -box.top+rb.height/2;
+
+    let d;
+    if(x2 > x1+10){
+      // 前進：右へ出て左へ入る、素直な曲線
+      const dx=Math.max(26,(x2-x1)*0.45);
+      d=`M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
+    }else{
+      // 後戻り・同じ列：右へ出て回り込み、必ず左端から入る。
+      const gx=Math.min(grid.clientWidth-6, x1+OUT);
+      const hx=Math.max(-12, x2-IN);
+      const gy=gapLane(a,b,box);
+      if(gy!==null){
+        // 同じ列で間が空いている → そのすき間を通す短い折返し
+        d=ortho([[x1,y1],[gx,y1],[gx,gy],[hx,gy],[hx,y2],[x2,y2]],9);
+      }else{
+        // それ以外 → 全ノードの下に確保した迂回路を通す
+        const ch=maxBottom+22+back*13; back++;
+        d=ortho([[x1,y1],[gx,y1],[gx,ch],[hx,ch],[hx,y2],[x2,y2]],11);
+      }
+    }
+
+    const isDone=seq[k].done&&seq[k+1].done;
+    const cls=isDone?"w done":"w";
+    out+=`<path class="${cls}" d="${d}" marker-end="url(#${isDone?"ahd":"ah"})" />`;
+
+    const probe=document.createElementNS("http://www.w3.org/2000/svg","path");
+    probe.setAttribute("d",d); wires.appendChild(probe);
+    const pt=probe.getPointAtLength(probe.getTotalLength()/2);
+    wires.removeChild(probe);
+    out+=`<circle class="${isDone?"done":""}" cx="${pt.x}" cy="${pt.y}" r="10" />`+
+         `<text class="${isDone?"done":""}" x="${pt.x}" y="${pt.y}">${k+2}</text>`;
+  }
+  wires.innerHTML=out;
+}
+
+function jumpToTask(id){
+  if(!cur) return;
+  const ev=EVENTS.find(e=>e.id===cur);
+  const idx=ev.steps.findIndex(s=>s.task===id&&visible(s)!==false);
+  if(idx<0) return;
+  const rows=document.querySelectorAll("#slist .s");
+  if(rows[idx]) rows[idx].scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+document.getElementById("copy").addEventListener("click",()=>{
+  if(!cur) return;
+  const ev=EVENTS.find(e=>e.id===cur);
+  const lines=[`■ ${ev.title}（重大度 ${ev.sev}）`,
+               `開始: ${new Date(startedAt).toLocaleString("ja-JP")}`,
+               `経過: ${document.getElementById("elapsed").textContent}`,""];
+  Object.entries(answers).forEach(([k,v])=>{
+    for(const st of ev.steps) if(st.ask&&st.ask.key===k){
+      const o=st.ask.opts.find(o=>o.v===v);
+      lines.push(`判断: ${st.ask.label} → ${o?o.l:v}`);
+    }
+  });
+  lines.push("");
+  let n=0;
+  ev.steps.forEach((st,i)=>{
+    if(visible(st)===false){lines.push(`  --  ${st.t}（条件不一致のためスキップ）`);return;}
+    n++;
+    lines.push(`  ${done[i]?"[x]":"[ ]"} ${n}. ${st.t}${st.sla?`（SLA ${st.sla}）`:""}`);
+  });
+  navigator.clipboard.writeText(lines.join("\n")).then(()=>{
+    const b=document.getElementById("copy"), o=b.textContent;
+    b.textContent="コピーしました"; setTimeout(()=>b.textContent=o,1600);
+  }).catch(()=>{});
+});
+document.getElementById("reset").addEventListener("click",clearAll);
+window.addEventListener("resize",()=>{if(cur){const e=EVENTS.find(x=>x.id===cur);paint(e,currentIndex(e));}});
+new ResizeObserver(()=>{if(cur){const e=EVENTS.find(x=>x.id===cur);paint(e,currentIndex(e));}}).observe(grid);
+
+try{
+  const s=JSON.parse(localStorage.getItem(KEY)||"null");
+  if(s&&s.cur&&EVENTS.some(e=>e.id===s.cur)){
+    answers=s.answers||{};done=s.done||{};startedAt=s.startedAt||null;
+    selectEvent(s.cur,true);
+  }
+}catch(e){}
+</script>
+</body>
+</html>

@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOC Workflow — エディタ（提案用モック）</title>
+
+<!-- ==================================================================
+     viewerCss — 「書き出される単一HTML」が使うスタイル。
+     このモック自身の試走モードでも同じものを使い、
+     エクスポート時は textContent を取り出してそのまま埋め込む。
+     ================================================================== -->
+<style id="viewerCss">
+:root{
+  --bg:#0a0c11; --panel:#12161e; --panel2:#181d27; --panel3:#1f2531;
+  --line:#2b3242; --line-soft:#212734;
+  --fg:#f0f3f8; --dim:#aab4c6; --faint:#7d8798;
+
+  --cur:#ffc93c;  --cur-bg:rgba(255,201,60,.13);
+  --ok:#3ddc97;   --ok-bg:rgba(61,220,151,.13);
+  --skip:#6b7383;
+  --s1:#ff6b6b;   --s2:#ffb02e;   --s3:#5ad1e6;
+  --dec:#a97bff;
+
+  /* フェーズ（カテゴリ）の色 — 列・ボックス・パレット・レーンで一貫して使う */
+  --c1:#ff5c8a; --c2:#4aa8ff; --c3:#a97bff; --c4:#ffb02e; --c5:#2ee6a8; --c6:#5ad1e6;
+
+  --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+  --sans:"Meiryo UI","Hiragino Sans","Helvetica Neue","Noto Sans JP","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.7;
+  -webkit-font-smoothing:antialiased}
+
+.v-top{position:sticky;top:0;z-index:20;background:rgba(10,12,17,.96);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;
+  justify-content:space-between;gap:26px;flex-wrap:wrap}
+.v-top h1{margin:0;font-size:18px;font-weight:700;white-space:nowrap}
+.v-top h1 b{color:var(--cur)}
+.v-now{flex:1;min-width:240px;font-size:14px;color:var(--dim)}
+.v-now b{color:var(--fg)}
+.v-meters{display:flex;gap:26px;align-items:center}
+.v-meter .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.v-meter .val{font-family:var(--mono);font-size:23px;line-height:1.25;font-weight:700}
+.v-bar{height:7px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px;width:170px}
+.v-bar i{display:block;height:100%;background:var(--ok);width:0%;transition:width .3s}
+
+.v-main{display:grid;grid-template-columns:310px minmax(0,1fr);gap:18px;padding:18px 28px 0;align-items:start}
+.v-main.solo{grid-template-columns:minmax(0,1fr)}
+.v-main.solo .v-evs{display:none}
+@media(max-width:1150px){.v-main{grid-template-columns:1fr}}
+
+.v-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+.v-card>h3{margin:0 0 11px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--faint);font-weight:700}
+
+.v-ev{width:100%;text-align:left;background:var(--panel2);color:inherit;border:1px solid var(--line);
+  border-radius:9px;padding:11px 12px;margin-bottom:8px;cursor:pointer;font-family:var(--sans);
+  display:flex;gap:10px;align-items:flex-start;transition:border-color .16s,background .16s}
+.v-ev:hover{border-color:#404a5e;background:var(--panel3)}
+.v-ev.on{border-color:var(--cur);background:var(--cur-bg)}
+.v-ev.on b{color:var(--cur)}
+.v-ev b{display:block;font-size:14px;font-weight:700;line-height:1.5}
+.v-ev span.sub{display:block;font-size:12px;color:var(--dim);line-height:1.55;margin-top:2px}
+.sev{flex:none;font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;
+  border-radius:4px;margin-top:2px;letter-spacing:.03em}
+.sev.S1{background:rgba(255,107,107,.16);color:var(--s1);border:1px solid var(--s1)}
+.sev.S2{background:rgba(255,176,46,.16);color:var(--s2);border:1px solid var(--s2)}
+.sev.S3{background:rgba(90,209,230,.16);color:var(--s3);border:1px solid var(--s3)}
+
+.v-stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px 22px;overflow-x:auto}
+.v-grid{position:relative;display:flex;gap:46px;min-width:1330px;padding-bottom:104px}
+.v-col{flex:1 1 0;min-width:178px;display:flex;flex-direction:column;gap:18px}
+.v-col>h2{margin:0 0 6px;font-size:11px;letter-spacing:.13em;font-weight:700;white-space:nowrap;
+  color:var(--pc,var(--faint));padding-bottom:6px;border-bottom:2px solid var(--pc,var(--line));opacity:.9}
+
+/* フェーズ色は左のバーで常に見えるようにし、状態は枠線・地色・記号で示す。
+   （色だけに頼らないという設計判断を守りつつ、カテゴリ色を消さない） */
+.v-node{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc,var(--line));
+  border-radius:8px;padding:10px 12px 10px 13px;cursor:pointer;position:relative;
+  transition:opacity .18s,border-color .18s,background .18s,box-shadow .18s}
+.v-node .n{font-size:13.5px;display:block;line-height:1.5;font-weight:600}
+.v-node .t{font-size:11px;color:var(--faint);display:block;line-height:1.45;margin-top:2px}
+.v-node .mk{position:absolute;top:8px;right:9px;font-family:var(--mono);font-size:12px;font-weight:700}
+.v-node:hover{background:var(--panel3)}
+.v-node.done{border-color:var(--ok);background:var(--ok-bg)}
+.v-node.done .mk{color:var(--ok)}
+.v-node.cur{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px rgba(255,201,60,.18)}
+.v-node.cur .mk{color:var(--cur)}
+.v-node.skip{opacity:.32;border-style:dashed;background:transparent}
+.v-node.skip .mk{color:var(--skip)}
+.v-node .dec{position:absolute;bottom:7px;right:9px;font-size:11px;color:var(--dec)}
+
+.v-wires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.v-wires path.w{fill:none;stroke:var(--cur);stroke-width:2;opacity:.85;stroke-linecap:round}
+.v-wires path.w.done{stroke:var(--ok)}
+.v-wires path.w.pend{stroke:var(--faint);stroke-dasharray:5 4;opacity:.7}
+.v-wires circle{fill:var(--bg);stroke:var(--cur);stroke-width:1.6}
+.v-wires circle.done{stroke:var(--ok)} .v-wires circle.pend{stroke:var(--faint)}
+.v-wires text{fill:var(--cur);font-family:var(--mono);font-size:11px;font-weight:700;
+  text-anchor:middle;dominant-baseline:central}
+.v-wires text.done{fill:var(--ok)} .v-wires text.pend{fill:var(--faint)}
+
+.v-steps{margin:18px 28px 60px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:18px 22px 22px}
+.v-steps>header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.v-steps h2{margin:0;font-size:18px}
+.v-steps h2 small{display:block;font-size:13px;color:var(--dim);font-weight:400;margin-top:3px}
+.v-acts{display:flex;gap:9px}
+.v-btn{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
+  padding:8px 15px;font-size:13px;cursor:pointer;font-family:var(--sans)}
+.v-btn:hover{border-color:#404a5e;background:var(--panel3)}
+.v-btn.p{border-color:var(--ok);color:var(--ok)}
+
+.v-s{display:flex;gap:14px;padding:15px 12px;border-top:1px solid var(--line-soft);
+  border-radius:9px;transition:background .18s}
+.v-s:first-of-type{border-top:none}
+.v-s.current{background:var(--cur-bg);border-top-color:transparent;box-shadow:inset 4px 0 0 var(--cur)}
+.v-s .chk{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--line);
+  background:var(--panel2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:13px;font-weight:700;color:var(--faint);margin-top:2px}
+.v-s .chk:hover{border-color:var(--cur);color:var(--cur)}
+.v-s.current .chk{border-color:var(--cur);color:var(--cur)}
+.v-s.done .chk{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.v-s .bd{flex:1;min-width:0}
+.v-s .ttl{font-size:15.5px;font-weight:700;line-height:1.6}
+.v-s.current .ttl{color:var(--cur)}
+.v-s.done .ttl{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--faint)}
+.v-s .path{font-size:12px;color:var(--faint);margin:2px 0 7px}
+.v-s .path i{font-style:normal;color:var(--pc,var(--faint))}
+.v-s .dsc{font-size:13.5px;color:var(--dim);line-height:1.85}
+.v-s .dsc code{font-family:var(--mono);font-size:12.5px;background:var(--panel3);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--fg)}
+.v-s.skipped{opacity:.34}
+.v-s.skipped .ttl{text-decoration:line-through}
+
+.tag{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;
+  margin-left:8px;vertical-align:middle;white-space:nowrap}
+.tag.now{background:var(--cur);color:#1a1405;border:1px solid var(--cur)}
+.tag.sla{background:var(--panel3);color:var(--dim);border:1px solid var(--line);font-family:var(--mono)}
+.tag.esc{background:rgba(255,107,107,.16);color:var(--s1);border:1px solid var(--s1)}
+.tag.cond{background:rgba(169,123,255,.16);color:#bfa0ff;border:1px solid var(--dec)}
+
+.v-godone{margin-top:12px;background:var(--cur);border:none;color:#1a1405;border-radius:8px;
+  padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans)}
+.v-godone:hover{filter:brightness(1.08)}
+
+.v-ask{margin-top:12px;padding:14px 16px;background:var(--panel2);border:2px solid var(--dec);border-radius:9px}
+.v-ask p{margin:0 0 10px;font-size:14.5px;font-weight:700}
+.v-ask .opts{display:flex;gap:10px;flex-wrap:wrap}
+.v-ask button{background:var(--panel3);border:2px solid var(--line);color:var(--fg);border-radius:8px;
+  padding:9px 18px;font-size:14px;cursor:pointer;font-family:var(--sans)}
+.v-ask button:hover{border-color:var(--dec)}
+.v-ask button.on{border-color:var(--dec);background:rgba(169,123,255,.22);color:#d5bfff;font-weight:700}
+
+.v-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--dim)}
+.v-legend span{display:flex;align-items:center;gap:6px}
+.v-legend i{font-family:var(--mono);font-weight:700;font-size:13px;font-style:normal}
+.v-note{margin:18px 0 0;font-size:12.5px;color:var(--faint);line-height:1.75}
+.v-empty{color:var(--faint);font-size:14px;margin:18px 0 6px}
+
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+</style>
+
+<!-- ==================================================================
+     editorCss — エディタ画面だけで使う。書き出しHTMLには含まれない。
+     ================================================================== -->
+<style id="editorCss">
+.ed-top{position:sticky;top:0;z-index:30;background:rgba(10,12,17,.97);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.ed-top h1{margin:0;font-size:16px;font-weight:700;white-space:nowrap;letter-spacing:.01em}
+.ed-top h1 b{color:var(--cur)}
+.ed-top h1 em{font-style:normal;font-size:10px;letter-spacing:.16em;color:var(--faint);
+  border:1px solid var(--line);border-radius:4px;padding:2px 6px;margin-left:9px;vertical-align:2px}
+.ed-spacer{flex:1}
+
+.ed-evsel{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;min-width:0;
+  overflow-x:auto;max-width:50vw;scrollbar-width:thin;padding-bottom:2px}
+.ed-evsel>button{flex:none}
+.ed-evsel button{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:999px;
+  padding:5px 13px;font-size:12.5px;cursor:pointer;font-family:var(--sans);display:flex;gap:7px;align-items:center}
+.ed-evsel button:hover{border-color:#404a5e;color:var(--fg)}
+.ed-evsel button.on{border-color:var(--cur);color:var(--cur);background:var(--cur-bg);font-weight:700}
+.ed-evsel button i{font-style:normal;font-family:var(--mono);font-size:10px;opacity:.85}
+
+.ed-modes{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px}
+.ed-modes button{background:none;border:none;color:var(--dim);font-family:var(--sans);font-size:13px;
+  padding:6px 17px;border-radius:6px;cursor:pointer;font-weight:600}
+.ed-modes button.on{background:var(--cur);color:#1a1405;font-weight:700}
+
+.ed-tool{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
+  padding:7px 14px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap}
+.ed-tool:hover{border-color:#404a5e;background:var(--panel3)}
+.ed-tool.warn{border-color:var(--s2);color:var(--s2)}
+.ed-tool.good{border-color:var(--ok);color:var(--ok)}
+.ed-tool.pri{background:var(--ok);border-color:var(--ok);color:#04241a;font-weight:700}
+.ed-tool.pri:hover{filter:brightness(1.08);background:var(--ok)}
+
+/* ---------- 3ペイン ---------- */
+.ed-body{display:grid;grid-template-columns:288px minmax(0,1fr) 348px;gap:14px;padding:14px 20px 0;
+  align-items:start;min-height:420px}
+/* 編集モードは 1 画面に収める。ヘッダーの折り返し量に依存しないよう flex で組む。 */
+body.edit{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+body.edit .ed-top{flex:none}
+body.edit .ed-body{flex:1 1 auto;min-height:300px}
+body.edit .lane{flex:none}
+body.edit .ed-note{flex:none;margin:9px 20px 11px}
+@media(max-width:1500px){.ed-body{grid-template-columns:250px minmax(0,1fr) 300px}}
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:12px;height:100%;
+  display:flex;flex-direction:column;overflow:hidden}
+.pane>h3{margin:0;padding:12px 15px 10px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--faint);font-weight:700;border-bottom:1px solid var(--line-soft);display:flex;
+  justify-content:space-between;align-items:center;gap:8px}
+.pane>h3 span{letter-spacing:0;text-transform:none;font-size:11px;color:var(--faint);font-weight:400}
+.pane .scroll{overflow:auto;flex:1;padding:11px 13px 18px}
+
+/* ---------- パレット ---------- */
+.pal-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
+  border-radius:8px;padding:8px 11px;font-size:13px;font-family:var(--sans);margin-bottom:12px}
+.pal-search:focus{outline:none;border-color:var(--cur)}
+.pal-g{margin-bottom:14px}
+.pal-g>h4{margin:0 0 7px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--pc);
+  display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.pal-g>h4::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--pc);flex:none}
+.pal-g>h4 u{margin-left:auto;text-decoration:none;font-family:var(--mono);font-size:10px;
+  color:var(--faint);font-weight:400}
+.pal-t{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--pc);
+  border-radius:7px;padding:7px 9px;margin-bottom:6px;cursor:grab;position:relative;
+  transition:border-color .15s,background .15s,transform .12s}
+.pal-t:hover{background:var(--panel3);border-color:#404a5e;transform:translateX(2px)}
+.pal-t:active{cursor:grabbing}
+.pal-t.drag{opacity:.4}
+.pal-t b{display:block;font-size:12.5px;font-weight:600;line-height:1.45;padding-right:44px}
+.pal-t span{display:block;font-size:10.5px;color:var(--faint);line-height:1.4;margin-top:1px}
+.pal-t .use{position:absolute;top:6px;right:7px;display:flex;gap:4px;align-items:center}
+.pal-t .u-in{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--cur);
+  border:1px solid var(--cur);border-radius:4px;padding:0 4px;background:var(--cur-bg)}
+.pal-t .u-all{font-family:var(--mono);font-size:9.5px;color:var(--faint)}
+.pal-t .add{position:absolute;bottom:6px;right:7px;opacity:0;background:var(--panel3);
+  border:1px solid var(--line);color:var(--dim);border-radius:5px;width:20px;height:20px;
+  font-size:13px;line-height:1;cursor:pointer;transition:opacity .15s}
+.pal-t:hover .add{opacity:1}
+.pal-t .add:hover{border-color:var(--ok);color:var(--ok)}
+.pal-new{width:100%;background:none;border:1px dashed var(--line);color:var(--faint);border-radius:7px;
+  padding:8px;font-size:12px;cursor:pointer;font-family:var(--sans)}
+.pal-new:hover{border-color:var(--ok);color:var(--ok)}
+
+/* ---------- キャンバス ---------- */
+.canvas{position:relative;overflow:auto;flex:1;padding:14px 16px 16px}
+.cgrid{position:relative;display:flex;gap:40px;min-width:1240px;padding-bottom:96px;min-height:100%}
+.ccol{flex:1 1 0;min-width:168px;display:flex;flex-direction:column;gap:14px;position:relative;
+  border-radius:9px;padding:4px;transition:background .18s,box-shadow .18s}
+.ccol>h2{margin:0 0 2px;font-size:10.5px;letter-spacing:.13em;font-weight:700;white-space:nowrap;
+  color:var(--pc);padding-bottom:5px;border-bottom:2px solid var(--pc);opacity:.9;
+  display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.ccol>h2 u{text-decoration:none;font-family:var(--mono);font-size:9.5px;opacity:.7}
+body.dragging .ccol.drop{background:rgba(255,201,60,.06);box-shadow:inset 0 0 0 2px rgba(255,201,60,.4)}
+body.dragging .ccol:not(.drop){opacity:.4}
+.ccol .ghost{border:1px dashed var(--cur);border-radius:8px;height:52px;display:none;
+  align-items:center;justify-content:center;font-size:11px;color:var(--cur)}
+body.dragging .ccol.drop .ghost{display:flex}
+
+.cnode{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc);
+  border-radius:8px;padding:8px 11px 8px 12px;cursor:pointer;position:relative;
+  transition:border-color .16s,background .16s,box-shadow .16s,transform .16s}
+.cnode:hover{background:var(--panel3)}
+.cnode.sel{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px rgba(255,201,60,.2)}
+.cnode.new{animation:pop .32s ease-out}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.cnode .num{position:absolute;top:-7px;left:-7px;width:19px;height:19px;border-radius:50%;
+  background:var(--panel3);border:1px solid var(--line);font-family:var(--mono);font-size:10px;
+  font-weight:700;color:var(--dim);display:flex;align-items:center;justify-content:center}
+.cnode.sel .num{background:var(--cur);border-color:var(--cur);color:#1a1405}
+.cnode b{display:block;font-size:12.5px;font-weight:600;line-height:1.45}
+.cnode span.tk{display:block;font-size:10.5px;color:var(--faint);line-height:1.4;margin-top:1px}
+.cnode .flags{position:absolute;top:6px;right:8px;display:flex;gap:5px;font-size:10.5px;font-family:var(--mono)}
+.cnode .f-dec{color:var(--dec)} .cnode .f-cond{color:#bfa0ff} .cnode .f-esc{color:var(--s1)}
+.cnode .f-sla{color:var(--dim)}
+.cwires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.cwires path{fill:none;stroke:#5b6478;stroke-width:1.8;opacity:.55;stroke-linecap:round}
+.cempty{color:var(--faint);font-size:13px;padding:40px 0;text-align:center;line-height:2}
+.cempty b{display:block;color:var(--dim);font-size:14px;margin-bottom:4px}
+
+/* ---------- インスペクタ ---------- */
+.ins label{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--faint);font-weight:700;margin:13px 0 5px}
+.ins label:first-child{margin-top:0}
+.ins input[type=text],.ins textarea,.ins select{width:100%;background:var(--panel2);
+  border:1px solid var(--line);color:var(--fg);border-radius:7px;padding:8px 10px;font-size:13px;
+  font-family:var(--sans);line-height:1.65}
+.ins textarea{resize:vertical;min-height:88px}
+.ins input:focus,.ins textarea:focus,.ins select:focus{outline:none;border-color:var(--cur)}
+.ins .row{display:flex;gap:8px}
+.ins .row>*{flex:1;min-width:0}
+.ins .hint{font-size:11px;color:var(--faint);line-height:1.6;margin:5px 0 0}
+.ins .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);cursor:pointer;
+  background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+.ins .chk input{accent-color:var(--s1)}
+.ins .sect{border:1px solid var(--line);border-radius:9px;padding:11px 12px;margin-top:13px;
+  background:rgba(169,123,255,.05)}
+.ins .sect>h4{margin:0 0 8px;font-size:11px;letter-spacing:.09em;color:var(--dec);font-weight:700;
+  display:flex;justify-content:space-between;align-items:center}
+.ins .cond{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.ins .cond select{font-size:12px;padding:6px 8px}
+.ins .x{flex:none;background:var(--panel2);border:1px solid var(--line);color:var(--faint);
+  border-radius:6px;width:26px;height:30px;cursor:pointer;font-size:14px;line-height:1}
+.ins .x:hover{border-color:var(--s1);color:var(--s1)}
+.ins .mini{background:var(--panel2);border:1px dashed var(--line);color:var(--faint);border-radius:6px;
+  padding:6px 10px;font-size:11.5px;cursor:pointer;font-family:var(--sans);width:100%}
+.ins .mini:hover{border-color:var(--dec);color:var(--dec)}
+.ins .opt{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.ins .opt i{width:9px;height:9px;border-radius:3px;flex:none}
+.ins .del{width:100%;margin-top:16px;background:none;border:1px solid var(--line);color:var(--faint);
+  border-radius:7px;padding:8px;font-size:12.5px;cursor:pointer;font-family:var(--sans)}
+.ins .del:hover{border-color:var(--s1);color:var(--s1)}
+.ins .none{color:var(--faint);font-size:12.5px;line-height:1.85}
+.ins .taskref{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--pc);
+  border-radius:7px;padding:7px 10px;font-size:12px;color:var(--dim);margin-bottom:2px}
+.ins .taskref b{color:var(--fg);font-size:12.5px;display:block}
+
+/* ---------- 手順レーン ---------- */
+.lane{margin:12px 20px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:10px 14px 12px;height:164px;display:flex;flex-direction:column}
+.lane>h3{margin:0 0 8px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);
+  font-weight:700;display:flex;gap:12px;align-items:center}
+.lane>h3 span{letter-spacing:0;text-transform:none;font-size:11px;font-weight:400}
+.lane-scroll{overflow-x:auto;overflow-y:hidden;flex:1;display:flex;align-items:stretch;gap:0;padding-bottom:4px}
+.chip{flex:none;width:158px;background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--pc);
+  border-radius:8px;padding:7px 9px;cursor:grab;position:relative;transition:border-color .15s,background .15s}
+.chip:hover{background:var(--panel3)}
+.chip.sel{border-color:var(--cur);border-top-color:var(--cur);background:var(--cur-bg)}
+.chip.drag{opacity:.35}
+.chip.over{box-shadow:-3px 0 0 var(--cur)}
+.chip b{display:block;font-size:11.5px;font-weight:600;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.chip .no{font-family:var(--mono);font-size:10px;color:var(--faint);font-weight:700}
+.chip .cd{margin-top:4px;font-size:10px;font-family:var(--mono);border-radius:4px;padding:1px 5px;
+  display:inline-block;border:1px solid}
+.chip .dq{margin-top:4px;font-size:10px;color:var(--dec);font-weight:700}
+.arrow{flex:none;width:22px;display:flex;align-items:center;justify-content:center;color:var(--line);font-size:13px}
+.lane-empty{color:var(--faint);font-size:12.5px;padding:24px 4px}
+
+/* ---------- モーダル ---------- */
+.mask{position:fixed;inset:0;background:rgba(5,7,11,.82);backdrop-filter:blur(4px);z-index:80;
+  display:none;align-items:center;justify-content:center;padding:26px}
+.mask.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;
+  max-width:1080px;max-height:100%;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.modal>header{padding:15px 20px;border-bottom:1px solid var(--line);display:flex;
+  align-items:center;justify-content:space-between;gap:16px}
+.modal>header h2{margin:0;font-size:16px}
+.modal>header h2 small{display:block;font-size:12px;color:var(--faint);font-weight:400;margin-top:2px}
+.modal .mbody{overflow:auto;padding:18px 20px;flex:1}
+.modal>footer{padding:13px 20px;border-top:1px solid var(--line);display:flex;gap:10px;
+  justify-content:flex-end;align-items:center}
+.modal>footer .fnote{margin-right:auto;font-size:11.5px;color:var(--faint);line-height:1.6}
+.xbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:7px;width:30px;height:30px;
+  cursor:pointer;font-size:16px;line-height:1}
+.xbtn:hover{border-color:var(--s1);color:var(--s1)}
+.frame{width:100%;height:min(60vh,540px);border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+  border-bottom:1px solid var(--line);padding:7px 9px;font-weight:700;white-space:nowrap}
+.tbl td{border-bottom:1px solid var(--line-soft);padding:9px;vertical-align:top;line-height:1.65}
+.tbl tr:hover td{background:var(--panel2)}
+.tbl .num{font-family:var(--mono);text-align:right;white-space:nowrap}
+.tbl .long{color:var(--s2);font-weight:700}
+.pathkey{display:flex;flex-wrap:wrap;gap:5px}
+.pathkey em{font-style:normal;font-size:11px;border:1px solid;border-radius:4px;padding:1px 7px}
+
+.issue{display:flex;gap:11px;padding:11px 12px;border:1px solid var(--line);border-radius:9px;
+  margin-bottom:9px;background:var(--panel2);align-items:flex-start}
+.issue i{font-style:normal;font-family:var(--mono);font-weight:700;font-size:12px;flex:none;
+  border-radius:5px;padding:2px 7px;margin-top:1px}
+.issue.err i{background:rgba(255,107,107,.16);color:var(--s1);border:1px solid var(--s1)}
+.issue.wrn i{background:rgba(255,176,46,.16);color:var(--s2);border:1px solid var(--s2)}
+.issue b{display:block;font-size:13.5px;line-height:1.55}
+.issue span{display:block;font-size:12px;color:var(--dim);line-height:1.7;margin-top:2px}
+.okmsg{color:var(--ok);font-size:14px;padding:20px 0;text-align:center}
+
+.ed-note{margin:14px 20px 26px;font-size:12px;color:var(--faint);line-height:1.85}
+.ed-note b{color:var(--dim)}
+#runWrap{display:none}
+body.run .ed-body,body.run .lane,body.run .ed-note{display:none}
+body.run #runWrap{display:block}
+.runbar{margin:12px 20px 0;padding:9px 14px;border:1px dashed var(--dec);border-radius:9px;
+  font-size:12.5px;color:#c7b0ff;background:rgba(169,123,255,.07);line-height:1.7}
+</style>
+</head>
+
+<body>
+
+<!-- ================= ヘッダー ================= -->
+<div class="ed-top">
+  <h1>SOC <b>Workflow</b><em>EDITOR MOCK</em></h1>
+  <div class="ed-evsel" id="evsel"></div>
+  <div class="ed-spacer"></div>
+  <button class="ed-tool" id="btnCheck">検証</button>
+  <button class="ed-tool" id="btnPaths">経路一覧</button>
+  <div class="ed-modes">
+    <button data-mode="edit" class="on">編集</button>
+    <button data-mode="run">試走</button>
+  </div>
+  <button class="ed-tool pri" id="btnExport">書き出し</button>
+</div>
+
+<!-- ================= 編集モード ================= -->
+<div class="ed-body" id="edBody">
+
+  <div class="pane">
+    <h3>タスクパレット <span id="palCount"></span></h3>
+    <div class="scroll">
+      <input class="pal-search" id="palSearch" type="text" placeholder="タスクを検索…">
+      <div id="palList"></div>
+      <button class="pal-new" id="palNew">＋ 新しいタスクを作る</button>
+    </div>
+  </div>
+
+  <div class="pane">
+    <h3>フローキャンバス <span id="canvHint">パレットからドラッグして投入</span></h3>
+    <div class="canvas" id="canvas">
+      <div class="cgrid" id="cgrid"><svg class="cwires" id="cwires"></svg></div>
+    </div>
+  </div>
+
+  <div class="pane">
+    <h3 id="insTitle">インスペクタ</h3>
+    <div class="scroll ins" id="ins"></div>
+  </div>
+
+</div>
+
+<!-- ================= 手順レーン ================= -->
+<div class="lane" id="lane">
+  <h3>手順レーン <span>ドラッグで順序を入れ替える／分岐は色で束ねて表示</span></h3>
+  <div class="lane-scroll" id="laneScroll"></div>
+</div>
+
+<p class="ed-note">
+  <b>提案用モックです。</b>内容はダミーで、実運用の手順ではありません。
+  データはこのブラウザの localStorage にのみ保存され、外部には送信されません。
+</p>
+
+<!-- ================= 試走モード ================= -->
+<div id="runWrap">
+  <div class="runbar">
+    <b>試走モード</b> — 対応者と同じ画面です。ここで見えているものが、そのまま書き出される単一 HTML になります。
+    ここで付けた進捗と回答は、編集モードに戻ると破棄されます。
+  </div>
+  <div id="runRoot"></div>
+</div>
+
+<!-- ================= モーダル ================= -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <header>
+      <h2 id="mTitle">タイトル<small id="mSub"></small></h2>
+      <button class="xbtn" id="mClose">×</button>
+    </header>
+    <div class="mbody" id="mBody"></div>
+    <footer id="mFoot"></footer>
+  </div>
+</div>
+
+
+<!-- ==================================================================
+     viewerJs — 「書き出される単一HTML」の中身。
+     エディタの試走モードでも、この同じ関数を呼んで描画する。
+     エクスポート時は textContent をそのまま埋め込むため、
+     このブロックは外部の変数を一切参照しないこと。
+     ================================================================== -->
+<script id="viewerJs">
+function mountViewer(root, DATA, opt){
+  opt = opt || {};
+  var uid = "v" + Math.floor(Math.random()*1e9).toString(36);
+  var phaseByKey = {}, taskByKey = {};
+  DATA.phases.forEach(function(p){ phaseByKey[p.key] = p; });
+  DATA.tasks.forEach(function(t){ taskByKey[t.key] = t; });
+
+  var events = DATA.events;
+  var solo = events.length < 2;
+
+  root.innerHTML =
+    '<div class="v-top">'
+    + '<h1>SOC <b>対応フロー</b></h1>'
+    + '<div class="v-now" data-e="now">左の一覧から、発生した事象を選択してください。</div>'
+    + '<div class="v-meters">'
+    +   '<div class="v-meter"><div class="k">経過時間</div><div class="val" data-e="elapsed">--:--</div></div>'
+    +   '<div class="v-meter"><div class="k">進捗</div><div class="val" data-e="prog">0 / 0</div>'
+    +     '<div class="v-bar"><i data-e="progbar"></i></div></div>'
+    + '</div></div>'
+    + '<div class="v-main' + (solo ? ' solo' : '') + '">'
+    +   '<aside class="v-card v-evs"><h3>発生した事象</h3><div data-e="evlist"></div>'
+    +     '<div class="v-legend">'
+    +       '<span><i style="color:var(--cur)">&#9654;</i>現在</span>'
+    +       '<span><i style="color:var(--ok)">&#10003;</i>完了</span>'
+    +       '<span><i style="color:var(--skip)">&#8212;</i>対象外</span></div></aside>'
+    +   '<div class="v-stage"><div class="v-grid" data-e="grid">'
+    +     '<svg class="v-wires" data-e="wires"></svg></div></div>'
+    + '</div>'
+    + '<div class="v-steps"><header>'
+    +   '<h2 data-e="stitle">対応手順<small>事象を選択してください</small></h2>'
+    +   '<div class="v-acts"><button class="v-btn p" data-e="copy">作業ログをコピー</button>'
+    +     '<button class="v-btn" data-e="reset">リセット</button></div></header>'
+    +   '<div data-e="slist"><p class="v-empty">事象を選択してください。</p></div>'
+    +   '<p class="v-note">' + (opt.note || "内容はダミーです。進捗はこのブラウザにのみ保存され、外部には送信されません。") + '</p>'
+    + '</div>';
+
+  function $(k){ return root.querySelector('[data-e="' + k + '"]'); }
+  var grid = $("grid"), wires = $("wires");
+
+  var cur = null, answers = {}, done = {}, startedAt = null, timer = null;
+  var nodes = [];               // step index -> ボックス要素
+  var KEY = opt.storageKey || "";
+
+  function save(){
+    if(!KEY) return;
+    try{ localStorage.setItem(KEY, JSON.stringify({cur:cur, answers:answers, done:done, startedAt:startedAt})); }catch(e){}
+  }
+  function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  /* 表示条件は AND。未回答の条件が残っていれば null（＝まだ分からない）。 */
+  function visible(st){
+    var cs = st.conditions || [];
+    if(!cs.length) return true;
+    var unknown = false;
+    for(var i=0;i<cs.length;i++){
+      var a = answers[cs[i].key];
+      if(a === undefined){ unknown = true; continue; }
+      if(a !== cs[i].value) return false;
+    }
+    return unknown ? null : true;
+  }
+  function currentIndex(ev){
+    for(var i=0;i<ev.steps.length;i++){ if(visible(ev.steps[i]) !== false && !done[i]) return i; }
+    return -1;
+  }
+  function findEvent(k){ for(var i=0;i<events.length;i++) if(events[i].key===k) return events[i]; return null; }
+
+  /* ---- 事象リスト ---- */
+  var evlist = $("evlist");
+  events.forEach(function(ev){
+    var b = document.createElement("button");
+    b.className = "v-ev"; b.dataset.k = ev.key;
+    b.innerHTML = '<span class="sev ' + ev.severity + '">' + ev.severity + '</span>'
+      + '<span><b>' + esc(ev.title) + '</b><span class="sub">' + esc(ev.sub) + '</span></span>';
+    b.addEventListener("click", function(){ select(ev.key); });
+    evlist.appendChild(b);
+  });
+
+  /* ---- キャンバス（手順1つにつきボックス1つ） ---- */
+  function buildGrid(ev){
+    grid.innerHTML = "";
+    nodes = [];
+    grid.appendChild(wires);
+    DATA.phases.forEach(function(p){
+      var col = document.createElement("div");
+      col.className = "v-col";
+      col.style.setProperty("--pc", p.color);
+      col.innerHTML = '<h2>' + esc(p.name) + '</h2>';
+      ev.steps.forEach(function(st, i){
+        var tk = taskByKey[st.task];
+        if(!tk || tk.phase !== p.key) return;
+        var el = document.createElement("div");
+        el.className = "v-node";
+        el.style.setProperty("--pc", p.color);
+        el.innerHTML = '<span class="mk"></span><span class="n">' + esc(tk.label) + '</span>'
+          + '<span class="t">' + esc(tk.note || "") + '</span>'
+          + (st.decision ? '<span class="dec">&#9670;</span>' : '');
+        el.addEventListener("click", function(){
+          var rows = $("slist").querySelectorAll(".v-s");
+          if(rows[i]) rows[i].scrollIntoView({behavior:"smooth", block:"center"});
+        });
+        col.appendChild(el);
+        nodes[i] = el;
+      });
+      grid.appendChild(col);
+    });
+  }
+
+  /* ---- 接続線 ---- */
+  function ortho(pts, r){
+    var d = "M " + pts[0][0] + " " + pts[0][1];
+    for(var i=1;i<pts.length-1;i++){
+      var px=pts[i-1][0], py=pts[i-1][1], cx=pts[i][0], cy=pts[i][1], nx=pts[i+1][0], ny=pts[i+1][1];
+      var v1x=cx-px, v1y=cy-py, v2x=nx-cx, v2y=ny-cy;
+      var l1=Math.hypot(v1x,v1y)||1, l2=Math.hypot(v2x,v2y)||1;
+      var rr=Math.min(r, l1/2, l2/2);
+      d += " L " + (cx-v1x/l1*rr) + " " + (cy-v1y/l1*rr);
+      d += " Q " + cx + " " + cy + " " + (cx+v2x/l2*rr) + " " + (cy+v2y/l2*rr);
+    }
+    return d + " L " + pts[pts.length-1][0] + " " + pts[pts.length-1][1];
+  }
+  /* 同じ列の 2 ボックスの間に線を通せるすき間があれば、その y を返す */
+  function gapLane(a, b, box){
+    var ra=a.getBoundingClientRect(), rb=b.getBoundingClientRect();
+    if(Math.abs(ra.left-rb.left) > 2) return null;
+    var up = ra.top<rb.top?ra:rb, low = ra.top<rb.top?rb:ra;
+    var gap = low.top - up.bottom;
+    if(gap < 12) return null;
+    var y = up.bottom + gap/2 - box.top;
+    for(var i=0;i<nodes.length;i++){
+      var el = nodes[i];
+      if(!el || el===a || el===b) continue;
+      var r = el.getBoundingClientRect();
+      if(Math.abs(r.left-ra.left) > 2) continue;
+      if(r.top-box.top < y && r.bottom-box.top > y) return null;
+    }
+    return y;
+  }
+
+  function paint(ev, ci){
+    nodes.forEach(function(el){ if(el){ el.className="v-node"; el.querySelector(".mk").textContent=""; } });
+    var box = grid.getBoundingClientRect();
+    wires.setAttribute("viewBox", "0 0 " + grid.clientWidth + " " + grid.clientHeight);
+
+    var seq = [];
+    ev.steps.forEach(function(st, i){
+      var el = nodes[i]; if(!el) return;
+      var vis = visible(st), mk = el.querySelector(".mk");
+      if(vis === false){ el.classList.add("skip"); mk.innerHTML = "&#8212;"; return; }
+      if(done[i]){ el.classList.add("done"); mk.innerHTML = "&#10003;"; }
+      else if(i === ci){ el.classList.add("cur"); mk.innerHTML = "&#9654;"; }
+      seq.push({i:i, el:el, done:!!done[i], known:vis===true});
+    });
+
+    var maxBottom = 0;
+    nodes.forEach(function(el){ if(el) maxBottom = Math.max(maxBottom, el.getBoundingClientRect().bottom - box.top); });
+
+    var HEAD=7, OUT=26, IN=26, back=0;
+    var out = '<defs>'
+      + '<marker id="ah_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--cur)"/></marker>'
+      + '<marker id="ahd_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--ok)"/></marker>'
+      + '<marker id="ahp_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--faint)"/></marker>'
+      + '</defs>';
+
+    for(var k=0;k<seq.length-1;k++){
+      var a = seq[k].el, b = seq[k+1].el;
+      var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      /* 規則: 必ず右から出て、左から入る */
+      var x1 = ra.right - box.left,        y1 = ra.top - box.top + ra.height/2;
+      var x2 = rb.left - box.left - HEAD,  y2 = rb.top - box.top + rb.height/2;
+      var d;
+      if(x2 > x1 + 10){
+        var dx = Math.max(26, (x2-x1)*0.45);
+        d = "M " + x1 + " " + y1 + " C " + (x1+dx) + " " + y1 + ", " + (x2-dx) + " " + y2 + ", " + x2 + " " + y2;
+      }else{
+        var gx = Math.min(grid.clientWidth-6, x1+OUT);
+        var hx = Math.max(-12, x2-IN);
+        var gy = gapLane(a, b, box);
+        if(gy !== null){
+          d = ortho([[x1,y1],[gx,y1],[gx,gy],[hx,gy],[hx,y2],[x2,y2]], 9);
+        }else{
+          var ch = maxBottom + 22 + back*13; back++;
+          d = ortho([[x1,y1],[gx,y1],[gx,ch],[hx,ch],[hx,y2],[x2,y2]], 11);
+        }
+      }
+      /* 状態は色と線種の両方で示す（色だけに頼らない） */
+      var st2 = seq[k].done && seq[k+1].done ? "done" : (seq[k].known && seq[k+1].known ? "" : "pend");
+      var mk2 = st2==="done" ? "ahd_"+uid : (st2==="pend" ? "ahp_"+uid : "ah_"+uid);
+      out += '<path class="w ' + st2 + '" d="' + d + '" marker-end="url(#' + mk2 + ')" />';
+
+      var probe = document.createElementNS("http://www.w3.org/2000/svg","path");
+      probe.setAttribute("d", d); wires.appendChild(probe);
+      var pt = probe.getPointAtLength(probe.getTotalLength()/2);
+      wires.removeChild(probe);
+      out += '<circle class="' + st2 + '" cx="' + pt.x + '" cy="' + pt.y + '" r="10" />'
+           + '<text class="' + st2 + '" x="' + pt.x + '" y="' + pt.y + '">' + (k+2) + '</text>';
+    }
+    wires.innerHTML = out;
+  }
+
+  function condLabel(ev, c){
+    for(var i=0;i<ev.steps.length;i++){
+      var d = ev.steps[i].decision;
+      if(d && d.key === c.key){
+        for(var j=0;j<d.options.length;j++) if(d.options[j].value===c.value) return d.options[j].label;
+      }
+    }
+    return c.value;
+  }
+
+  function render(){
+    var ev = findEvent(cur); if(!ev) return;
+    var ci = currentIndex(ev);
+    $("stitle").innerHTML = esc(ev.title) + '<small>' + esc(ev.sub) + '　—　重大度 ' + ev.severity + '</small>';
+    $("now").innerHTML = ci>=0
+      ? '次にやること: <b>' + esc(ev.steps[ci].title) + '</b>'
+      : 'すべての手順が完了しました。';
+
+    var list = $("slist"); list.innerHTML = "";
+    var n = 0, total = 0, fin = 0;
+    ev.steps.forEach(function(st, i){
+      var vis = visible(st), isCur = (i === ci);
+      var tk = taskByKey[st.task] || {label:"?", phase:""};
+      var ph = phaseByKey[tk.phase] || {name:"", color:"var(--line)"};
+      var row = document.createElement("div");
+      row.className = "v-s" + (vis===false ? " skipped" : "") + (done[i] ? " done" : "") + (isCur ? " current" : "");
+      row.style.setProperty("--pc", ph.color);
+      if(vis !== false){ n++; total++; if(done[i]) fin++; }
+      var mark = vis===false ? "&#8212;" : (done[i] ? "&#10003;" : n);
+
+      var tags = "";
+      if(isCur) tags += '<span class="tag now">現在</span>';
+      if(st.sla) tags += '<span class="tag sla">SLA ' + esc(st.sla) + '</span>';
+      if(st.escalate) tags += '<span class="tag esc">エスカレ判断</span>';
+      (st.conditions||[]).forEach(function(c){
+        tags += '<span class="tag cond">' + esc(condLabel(ev, c)) + ' のとき</span>';
+      });
+
+      row.innerHTML = '<div class="chk">' + mark + '</div><div class="bd">'
+        + '<div class="ttl">' + esc(st.title) + tags + '</div>'
+        + '<div class="path"><i>&#9679;</i> ' + esc(ph.name) + ' / ' + esc(tk.label) + '</div>'
+        + '<div class="dsc">' + (vis===false ? "この対応では対象外です。" : (st.detail||"")) + '</div></div>';
+
+      var chk = row.querySelector(".chk");
+      if(vis !== false && !st.decision){
+        chk.addEventListener("click", function(){ done[i] = !done[i]; save(); render(); });
+      }
+      var bd = row.querySelector(".bd");
+      if(vis !== false && st.decision){
+        var ask = document.createElement("div");
+        ask.className = "v-ask";
+        ask.innerHTML = '<p>' + esc(st.decision.label) + '</p><div class="opts"></div>';
+        var opts = ask.querySelector(".opts");
+        st.decision.options.forEach(function(o){
+          var b = document.createElement("button");
+          b.textContent = o.label;
+          if(answers[st.decision.key] === o.value) b.className = "on";
+          b.addEventListener("click", function(){
+            answers[st.decision.key] = o.value; done[i] = true; save(); render();
+          });
+          opts.appendChild(b);
+        });
+        bd.appendChild(ask);
+      }else if(isCur && vis !== false){
+        var g = document.createElement("button");
+        g.className = "v-godone"; g.textContent = "この手順を完了にする";
+        g.addEventListener("click", function(){ done[i] = true; save(); render(); });
+        bd.appendChild(g);
+      }
+      list.appendChild(row);
+    });
+
+    $("prog").textContent = fin + " / " + total;
+    $("progbar").style.width = (total ? fin/total*100 : 0) + "%";
+    paint(ev, ci);
+  }
+
+  function tick(){
+    if(!startedAt) return;
+    var s = Math.floor((Date.now()-startedAt)/1000);
+    $("elapsed").textContent =
+      String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+  }
+
+  function select(key, restore){
+    if(cur !== key){ answers = {}; done = {}; startedAt = Date.now(); }
+    cur = key;
+    Array.prototype.forEach.call(evlist.querySelectorAll(".v-ev"), function(b){
+      b.classList.toggle("on", b.dataset.k === key);
+    });
+    if(!startedAt) startedAt = Date.now();
+    if(!timer) timer = setInterval(tick, 1000);
+    buildGrid(findEvent(key));
+    render(); save(); tick();
+  }
+
+  $("reset").addEventListener("click", function(){
+    answers = {}; done = {}; startedAt = Date.now(); save(); render(); tick();
+  });
+  $("copy").addEventListener("click", function(){
+    var ev = findEvent(cur); if(!ev) return;
+    var lines = ["■ " + ev.title + "（重大度 " + ev.severity + "）",
+                 "経過: " + $("elapsed").textContent, ""];
+    ev.steps.forEach(function(st){
+      if(!st.decision) return;
+      var a = answers[st.decision.key]; if(a === undefined) return;
+      var l = a;
+      st.decision.options.forEach(function(o){ if(o.value===a) l = o.label; });
+      lines.push("判断: " + st.decision.label + " → " + l);
+    });
+    lines.push("");
+    var n = 0;
+    ev.steps.forEach(function(st, i){
+      if(visible(st) === false){
+        var why = (st.conditions||[]).map(function(c){ return condLabel(ev,c) + " のとき"; }).join(" かつ ");
+        lines.push("  --  " + st.title + "（" + why + "／条件不一致のためスキップ）");
+        return;
+      }
+      n++;
+      lines.push("  " + (done[i] ? "[x]" : "[ ]") + " " + n + ". " + st.title + (st.sla ? "（SLA " + st.sla + "）" : ""));
+    });
+    var txt = lines.join("\n");
+    var btn = $("copy"), old = btn.textContent;
+    function ok(){ btn.textContent = "コピーしました"; setTimeout(function(){ btn.textContent = old; }, 1600); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(ok).catch(function(){ ok(); });
+    }else{ ok(); }
+  });
+
+  var ro = new ResizeObserver(function(){ if(cur) render(); });
+  ro.observe(grid);
+
+  var boot = opt.event || (events[0] && events[0].key);
+  if(KEY){
+    try{
+      var s = JSON.parse(localStorage.getItem(KEY) || "null");
+      if(s && s.cur && findEvent(s.cur)){
+        answers = s.answers || {}; done = s.done || {}; startedAt = s.startedAt || Date.now();
+        boot = s.cur;
+        select(boot, true);
+        return { destroy: function(){ clearInterval(timer); ro.disconnect(); } };
+      }
+    }catch(e){}
+  }
+  if(boot) select(boot);
+  return { destroy: function(){ clearInterval(timer); ro.disconnect(); } };
+}
+</script>
+
+
+<!-- ==================================================================
+     editorJs — エディタ本体。書き出しHTMLには含まれない。
+     ================================================================== -->
+<script id="editorJs">
+/* ============ 初期データ（ダミー） ============ */
+function seed(){ return {
+  phases:[
+    {key:"recv",  name:"受信・確認", color:"var(--c1)"},
+    {key:"triage",name:"情報収集",   color:"var(--c2)"},
+    {key:"judge", name:"判断",       color:"var(--c3)"},
+    {key:"cont",  name:"封じ込め",   color:"var(--c4)"},
+    {key:"rec",   name:"復旧",       color:"var(--c5)"},
+    {key:"rep",   name:"記録・報告", color:"var(--c6)"}
+  ],
+  tasks:[
+    {key:"ack",    phase:"recv",  label:"アラート受領",       note:"SIEM で担当者アサイン"},
+    {key:"dup",    phase:"recv",  label:"重複確認",           note:"既存チケットの有無"},
+    {key:"scope",  phase:"recv",  label:"影響範囲の初期把握", note:"対象ホスト・アカウント数"},
+    {key:"host",   phase:"triage",label:"端末情報の収集",     note:"OS / 利用者 / 設置場所"},
+    {key:"logs",   phase:"triage",label:"ログの収集",         note:"EDR / プロキシ / 認証ログ"},
+    {key:"ioc",    phase:"triage",label:"IOC の照合",         note:"ハッシュ・IP・ドメイン"},
+    {key:"user",   phase:"triage",label:"利用者への聞き取り", note:"心当たりの確認"},
+    {key:"tp",     phase:"judge", label:"真陽性/誤検知の判定",note:"判定根拠を残す"},
+    {key:"sev",    phase:"judge", label:"重大度の確定",       note:"S1 / S2 / S3"},
+    {key:"esc",    phase:"judge", label:"エスカレーション判断",note:"CSIRT・経営への連絡要否"},
+    {key:"iso",    phase:"cont",  label:"端末のネットワーク隔離",note:"EDR から実行"},
+    {key:"acct",   phase:"cont",  label:"アカウントの無効化", note:"AD / IdP"},
+    {key:"block",  phase:"cont",  label:"通信のブロック",     note:"Proxy / FW に IOC 追加"},
+    {key:"pwd",    phase:"cont",  label:"認証情報のリセット", note:"本人確認のうえ実施"},
+    {key:"scan",   phase:"rec",   label:"再スキャン",         note:"クリーン確認"},
+    {key:"restore",phase:"rec",   label:"復旧作業",           note:"再イメージ or 隔離解除"},
+    {key:"verify", phase:"rec",   label:"復旧確認",           note:"業務影響の解消確認"},
+    {key:"ticket", phase:"rep",   label:"チケット更新",       note:"時系列で記録"},
+    {key:"report", phase:"rep",   label:"報告書作成",         note:"一次報告・最終報告"},
+    {key:"lesson", phase:"rep",   label:"再発防止の起票",     note:"検知ルール・教育"}
+  ],
+  events:[
+    {key:"ransom", severity:"S1", title:"ランサムウェアの疑い", sub:"大量のファイル暗号化・拡張子変更を検知", steps:[
+      S("ack","アラートを受領し、即座に上位へ一報する","<code>調査の完了を待たない</code>。S1 は第一報を優先する。","即時",1),
+      S("iso","対象端末を隔離する","判定を待たずに隔離する。誤検知のコストより拡散のコストが桁違いに大きい。","即時",1),
+      S("scope","影響範囲を把握する","共有フォルダ・バックアップ領域への到達有無を最優先で確認する。","15分"),
+      S("esc","CSIRT と経営に報告する","広報・法務にも同時に連絡する。公表判断が必要になる可能性がある。","30分",1),
+      S("block","横展開を遮断する","該当セグメントの通信制限、管理者アカウントの棚卸しを行う。"),
+      S("logs","侵入経路を特定する","初期侵入から暗号化までの経路を再構成する。同じ経路が他にも開いている可能性が高い。"),
+      D(S("restore","バックアップの健全性を確認する","<code>復旧前に、バックアップ自体が汚染されていないか検証する</code>。"),
+        "bk","健全なバックアップは存在しますか？",[["yes","存在する"],["no","存在しない／汚染"]]),
+      C(S("esc","外部の専門機関へ支援を要請する","復旧手段が無い場合は、自組織だけで判断しない。契約している IR 事業者へ連絡する。",null,1),"bk","no"),
+      C(S("restore","バックアップから復旧する","復旧対象を業務優先度順に並べ、上から実施する。"),"bk","yes"),
+      C(S("verify","復旧を確認する","業務部門による確認をもって完了とする。SOC の判断だけで完了にしない。"),"bk","yes"),
+      S("report","最終報告を作成する","時系列・影響・原因・再発防止をセットで。"),
+      S("lesson","再発防止策を起票する","検知の遅れがあった箇所を特定し、ルールとバックアップ運用の両方を見直す。")
+    ]},
+    {key:"edr", severity:"S2", title:"EDR がマルウェアを検知", sub:"端末で不審な実行ファイルが検出された", steps:[
+      S("ack","アラートを受領し担当を確定する","SIEM でチケットを起票し、自分をアサインする。<code>担当者未設定のまま調査を始めない</code>。","5分"),
+      S("dup","重複アラートを確認する","同一ホスト・同一ハッシュの未解決チケットがあれば統合し、以降はそちらで対応する。"),
+      S("host","端末と利用者を特定する","資産管理台帳でホスト名から利用者・部署・設置場所を引く。VIP 端末なら重大度を 1 段上げる。"),
+      S("ioc","検体ハッシュを脅威インテルで照合する","既知マルウェアなら family 名と挙動を記録。未知なら重大度を上げて次へ。"),
+      D(S("tp","真陽性か誤検知かを判定する","実行された痕跡（プロセス生成・永続化・外部通信）が 1 つでもあれば真陽性として扱う。","30分"),
+        "tp","判定結果はどちらですか？",[["yes","真陽性（実害あり／疑い）"],["no","誤検知"]]),
+      C(S("iso","端末をネットワークから隔離する","EDR コンソールから隔離を実行。<code>利用者に必ず事前連絡する</code>（業務停止を伴うため）。","15分",1),"tp","yes"),
+      C(S("acct","利用者アカウントを一時無効化する","横展開の兆候（他ホストへの認証試行）がある場合のみ。無い場合はこの手順は不要。"),"tp","yes"),
+      C(S("block","C2 通信先をブロックする","プロキシと FW に IOC を登録する。登録した IOC は必ずチケットに記載する。"),"tp","yes"),
+      C(S("esc","CSIRT にエスカレーションする","ランサムウェアの兆候、または 3 台以上への感染拡大が見られる場合は<code>即時</code>。それ以外は 1 時間以内。",null,1),"tp","yes"),
+      C(S("scan","フルスキャンを実行する","隔離状態のまま実施。検出ゼロを 2 回連続で確認する。"),"tp","yes"),
+      C(S("restore","端末を復旧する","永続化の痕跡があった場合は再イメージ。無ければ隔離解除で可。判断根拠を残す。"),"tp","yes"),
+      C(S("lesson","検知ルールの調整を起票する","誤検知の場合はここへ。除外条件を検知チームに連携し、同じアラートが再発しないようにする。"),"tp","no"),
+      S("ticket","時系列を記録する","検知時刻・着手時刻・隔離時刻・復旧時刻を分単位で残す。報告書の骨格になる。"),
+      S("report","一次報告を提出する","確定していない事項は「調査中」と明記する。推測を断定形で書かない。","4時間")
+    ]},
+    {key:"login", severity:"S2", title:"不審なログイン（地理的に不可能な移動）", sub:"短時間に離れた拠点から同一アカウントで認証", steps:[
+      S("ack","アラートを受領する","対象アカウントと 2 地点のログイン時刻・IP を記録する。","5分"),
+      S("logs","認証ログを時系列で並べる","直近 24 時間の全認証イベントを抽出する。成功・失敗の両方を含める。"),
+      S("ioc","接続元 IP を評価する","VPN・プロキシ・Tor 出口ノードかを確認。会社支給の VPN であれば誤検知の可能性が高い。"),
+      D(S("user","利用者本人に確認する","<code>メールではなく電話で</code>連絡する。侵害されている場合、メールは攻撃者に読まれている。","30分"),
+        "own","本人による操作でしたか？",[["yes","本人の操作"],["no","心当たりなし"],["na","連絡がつかない"]]),
+      C(S("acct","アカウントを無効化する","セッションも合わせて全て失効させる。無効化しただけでは既存セッションは切れない。","15分",1),"own","no"),
+      C(S("acct","アカウントを一時停止する","連絡がつかない間は保守的に停止する。誤って止めた場合の解除手順を添えて通知する。"),"own","na"),
+      C(S("pwd","認証情報をリセットする","本人確認のうえ実施。MFA の再登録も必須。<code>旧デバイスの MFA は必ず削除する</code>。"),"own","no"),
+      C(S("logs","攻撃者の操作範囲を洗い出す","侵害されたアカウントでのメール送信・ファイルアクセス・権限変更を全て確認する。",null,1),"own","no"),
+      C(S("esc","CSIRT にエスカレーションする","管理者アカウント、または機密データへのアクセスがあった場合は即時。"),"own","no"),
+      C(S("lesson","検知ルールの除外を検討する","正規の VPN 利用による誤検知が続く場合、拠点 IP を除外リストに追加する。"),"own","yes"),
+      S("ticket","対応内容を記録する","連絡手段（電話）と応答者名を必ず残す。"),
+      S("report","報告する","アカウント侵害は個人情報の観点で報告義務が生じることがある。法務の判断を仰ぐ。","4時間")
+    ]},
+    {key:"dlp", severity:"S2", title:"大量データ送信を検知（DLP）", sub:"外部への異常なデータ転送量", steps:[
+      S("ack","アラートを受領する","送信元・宛先・データ量・時刻を記録する。","15分"),
+      S("logs","転送内容を確認する","DLP のポリシー違反区分（個人情報・機密指定など）を確認する。"),
+      D(S("user","業務上の正当性を確認する","上長経由で確認する。本人に直接聞くと、内部不正の場合に証拠隠滅を招く。","1時間"),
+        "legit","業務上の正当な送信でしたか？",[["yes","正当な業務"],["no","正当性が確認できない"]]),
+      C(S("esc","人事・法務へエスカレーションする","内部不正の可能性がある場合、SOC 単独で本人に接触しない。手順を人事に引き継ぐ。",null,1),"legit","no"),
+      C(S("acct","アクセス権を制限する","法務の指示に従う。証拠保全の観点から、独断でログを削除・変更しない。"),"legit","no"),
+      C(S("lesson","ポリシーの調整を起票する","正当な業務が毎回アラートになるなら、例外承認のフローを整える。"),"legit","yes"),
+      S("ticket","記録する","内部不正の疑いがある案件は、閲覧権限を絞って記録する。"),
+      S("report","報告する","個人情報を含む場合は報告義務の有無を法務に確認する。","1営業日")
+    ]},
+    {key:"phish", severity:"S3", title:"フィッシングメールの報告", sub:"利用者から不審メールの報告があった", steps:[
+      S("ack","報告を受領する","報告者・受信時刻・件名を記録する。報告してくれたことへの謝意を必ず返す。","30分"),
+      S("logs","同報範囲を特定する","メールログで同一送信元・同一件名の配信先を全て洗い出す。1 通で終わることは少ない。"),
+      S("ioc","リンクと添付を解析する","サンドボックスで実行する。<code>本番端末でリンクを開かない</code>。"),
+      D(S("tp","フィッシングか判定する","正規のメールを誤報告するケースも多い。送信ドメイン認証（SPF/DKIM/DMARC）の結果を根拠にする。"),
+        "ph","判定結果はどちらですか？",[["yes","フィッシング"],["no","正規メール"]]),
+      C(S("block","送信元とリンク先をブロックする","メールゲートウェイとプロキシの両方に登録する。"),"ph","yes"),
+      C(S("logs","クリック・入力の有無を確認する","プロキシログでリンク先へのアクセスを確認する。<code>クリックした利用者がいれば、不審ログインのフローへ移行する</code>。",null,1),"ph","yes"),
+      C(S("acct","認証情報を入力した利用者を対処する","該当者がいる場合のみ。パスワードリセットと MFA 再登録を実施する。"),"ph","yes"),
+      C(S("user","同報者へ注意喚起する","開封・クリックしないよう周知。既にクリックした場合の申告窓口を明記する。"),"ph","yes"),
+      S("user","報告者へ結果を返す","正規メールだった場合も、判断根拠を添えて丁寧に返す。次回の報告をためらわせない。"),
+      S("ticket","記録する","同種の報告件数は、教育施策の効果測定に使う。"),
+      C(S("lesson","教育コンテンツへ反映する","実際に来た検体は最良の教材になる。匿名化して訓練メールに転用する。"),"ph","yes")
+    ]}
+  ]
+};}
+/* データ記述用のヘルパー（この 3 つは種データの整形だけに使う） */
+function S(task,title,detail,sla,esc){
+  return {id:nextId(), task:task, title:title, detail:detail||"", sla:sla||"",
+          escalate:!!esc, conditions:[], decision:null};
+}
+function D(st,key,label,opts){
+  st.decision={key:key,label:label,options:opts.map(function(o){return {value:o[0],label:o[1]};})};
+  return st;
+}
+function C(st,key,value){ st.conditions.push({key:key,value:value}); return st; }
+var _id=0; function nextId(){ return "s" + (++_id); }
+
+/* ============ 状態 ============ */
+var SKEY = "soc-flow-editor-mock/v1";
+var DB, curEv, selStep = null, mode = "edit", palQ = "", viewer = null, collapsed = {};
+
+var OPTC = ["#ffb02e","#4aa8ff","#ff5c8a","#2ee6a8","#a97bff","#5ad1e6"];
+
+function load(){
+  try{
+    var s = JSON.parse(localStorage.getItem(SKEY) || "null");
+    if(s && s.db && s.db.events && s.db.events.length){
+      DB = s.db; curEv = s.curEv; _id = s.seq || 900;
+      if(!getEv()) curEv = DB.events[0].key;
+      return;
+    }
+  }catch(e){}
+  DB = seed(); curEv = DB.events[0].key;
+}
+function persist(){
+  try{ localStorage.setItem(SKEY, JSON.stringify({db:DB, curEv:curEv, seq:_id})); }catch(e){}
+}
+function getEv(){ for(var i=0;i<DB.events.length;i++) if(DB.events[i].key===curEv) return DB.events[i]; return null; }
+function task(k){ for(var i=0;i<DB.tasks.length;i++) if(DB.tasks[i].key===k) return DB.tasks[i]; return null; }
+function phase(k){ for(var i=0;i<DB.phases.length;i++) if(DB.phases[i].key===k) return DB.phases[i]; return null; }
+function phaseOfStep(st){ var t = task(st.task); return t ? phase(t.phase) : null; }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function $(id){ return document.getElementById(id); }
+
+/* 何番目の判断か（分岐の色分けに使う） */
+function decisionColor(evt, key){
+  var n = 0;
+  for(var i=0;i<evt.steps.length;i++){
+    var d = evt.steps[i].decision;
+    if(!d) continue;
+    if(d.key === key) return { color: OPTC[n % OPTC.length], decision: d };
+    n++;
+  }
+  return { color: "var(--dec)", decision: null };
+}
+function optLabel(evt, c){
+  var d = decisionColor(evt, c.key).decision;
+  if(!d) return c.value;
+  for(var i=0;i<d.options.length;i++) if(d.options[i].value===c.value) return d.options[i].label;
+  return c.value;
+}
+function optColor(evt, c){
+  var r = decisionColor(evt, c.key);
+  if(!r.decision) return "var(--dec)";
+  var i = 0;
+  r.decision.options.forEach(function(o,ix){ if(o.value===c.value) i = ix; });
+  return OPTC[(r.decision.options.length>1 ? i : 0) % OPTC.length];
+}
+
+/* ============ パレット ============ */
+function usageAll(taskKey){
+  var n = 0;
+  DB.events.forEach(function(e){ if(e.steps.some(function(s){ return s.task===taskKey; })) n++; });
+  return n;
+}
+function usageHere(taskKey){
+  var e = getEv(); if(!e) return 0;
+  return e.steps.filter(function(s){ return s.task===taskKey; }).length;
+}
+function renderPalette(){
+  var box = $("palList"); box.innerHTML = "";
+  var q = palQ.trim().toLowerCase();
+  var shown = 0;
+  DB.phases.forEach(function(p){
+    var ts = DB.tasks.filter(function(t){
+      if(t.phase !== p.key) return false;
+      if(!q) return true;
+      return (t.label + " " + (t.note||"")).toLowerCase().indexOf(q) >= 0;
+    });
+    if(!ts.length) return;
+    var g = document.createElement("div");
+    g.className = "pal-g"; g.style.setProperty("--pc", p.color);
+    var open = !collapsed[p.key];
+    g.innerHTML = '<h4>' + esc(p.name) + '<u>' + ts.length + '</u></h4>';
+    g.querySelector("h4").addEventListener("click", function(){
+      collapsed[p.key] = open; renderPalette();
+    });
+    if(open) ts.forEach(function(t){
+      shown++;
+      var here = usageHere(t.key), all = usageAll(t.key);
+      var el = document.createElement("div");
+      el.className = "pal-t"; el.draggable = true; el.dataset.k = t.key;
+      el.innerHTML = '<b>' + esc(t.label) + '</b><span>' + esc(t.note||"") + '</span>'
+        + '<span class="use">' + (here ? '<span class="u-in">使用中' + (here>1 ? "×"+here : "") + '</span>' : '')
+        + '<span class="u-all">' + all + '事象</span></span>'
+        + '<button class="add" title="末尾に追加">+</button>';
+      el.addEventListener("dragstart", function(e){
+        e.dataTransfer.setData("text/plain", "task:" + t.key);
+        e.dataTransfer.effectAllowed = "copy";
+        el.classList.add("drag");
+        document.body.classList.add("dragging");
+        var col = $("cgrid").querySelector('.ccol[data-p="' + t.phase + '"]');
+        if(col) col.classList.add("drop");
+      });
+      el.addEventListener("dragend", function(){
+        el.classList.remove("drag");
+        document.body.classList.remove("dragging");
+        Array.prototype.forEach.call($("cgrid").querySelectorAll(".ccol"), function(c){ c.classList.remove("drop"); });
+      });
+      el.querySelector(".add").addEventListener("click", function(ev2){
+        ev2.stopPropagation(); addStep(t.key);
+      });
+      g.appendChild(el);
+    });
+    box.appendChild(g);
+  });
+  if(!shown) box.innerHTML = '<p class="ins none">該当するタスクがありません。</p>';
+  $("palCount").textContent = DB.tasks.length + " 件";
+}
+
+/* ============ キャンバス ============ */
+function renderCanvas(){
+  var evt = getEv();
+  var grid = $("cgrid"), wires = $("cwires");
+  grid.innerHTML = ""; grid.appendChild(wires);
+  var nodes = [];
+
+  DB.phases.forEach(function(p){
+    var col = document.createElement("div");
+    col.className = "ccol"; col.dataset.p = p.key;
+    col.style.setProperty("--pc", p.color);
+    var cnt = evt.steps.filter(function(s){ var t = task(s.task); return t && t.phase===p.key; }).length;
+    col.innerHTML = '<h2>' + esc(p.name) + '<u>' + (cnt||"") + '</u></h2>';
+    evt.steps.forEach(function(st, i){
+      var t = task(st.task); if(!t || t.phase !== p.key) return;
+      var el = document.createElement("div");
+      el.className = "cnode" + (selStep === st.id ? " sel" : "");
+      el.style.setProperty("--pc", p.color);
+      var flags = "";
+      if(st.decision) flags += '<span class="f-dec" title="判断ステップ">&#9670;</span>';
+      if((st.conditions||[]).length) flags += '<span class="f-cond" title="表示条件あり">&#8888;</span>';
+      if(st.escalate) flags += '<span class="f-esc" title="エスカレーション判断">!</span>';
+      if(st.sla) flags += '<span class="f-sla">' + esc(st.sla) + '</span>';
+      el.innerHTML = '<span class="num">' + (i+1) + '</span>'
+        + '<span class="flags">' + flags + '</span>'
+        + '<b>' + esc(st.title) + '</b><span class="tk">' + esc(t.label) + '</span>';
+      el.addEventListener("click", function(){ selStep = st.id; renderAll(); });
+      col.appendChild(el);
+      nodes[i] = el;
+    });
+    var gh = document.createElement("div");
+    gh.className = "ghost"; gh.textContent = "ここに入ります";
+    col.appendChild(gh);
+    grid.appendChild(col);
+  });
+
+  if(!evt.steps.length){
+    var e0 = document.createElement("div");
+    e0.className = "cempty";
+    e0.innerHTML = '<b>まだ手順がありません</b>左のパレットからタスクをドラッグして投入してください。<br>フェーズ列への配置と接続線は自動で決まります。';
+    grid.appendChild(e0);
+  }
+  requestAnimationFrame(function(){ paintEditorWires(nodes); });
+}
+
+function paintEditorWires(nodes){
+  var grid = $("cgrid"), wires = $("cwires");
+  var box = grid.getBoundingClientRect();
+  wires.setAttribute("viewBox", "0 0 " + grid.clientWidth + " " + grid.clientHeight);
+  var evt = getEv();
+  var seq = nodes.filter(Boolean);
+  if(seq.length < 2){ wires.innerHTML = ""; return; }
+
+  function ortho(pts, r){
+    var d = "M " + pts[0][0] + " " + pts[0][1];
+    for(var i=1;i<pts.length-1;i++){
+      var px=pts[i-1][0],py=pts[i-1][1],cx=pts[i][0],cy=pts[i][1],nx=pts[i+1][0],ny=pts[i+1][1];
+      var v1x=cx-px,v1y=cy-py,v2x=nx-cx,v2y=ny-cy;
+      var l1=Math.hypot(v1x,v1y)||1,l2=Math.hypot(v2x,v2y)||1,rr=Math.min(r,l1/2,l2/2);
+      d += " L " + (cx-v1x/l1*rr) + " " + (cy-v1y/l1*rr);
+      d += " Q " + cx + " " + cy + " " + (cx+v2x/l2*rr) + " " + (cy+v2y/l2*rr);
+    }
+    return d + " L " + pts[pts.length-1][0] + " " + pts[pts.length-1][1];
+  }
+  var maxBottom = 0;
+  seq.forEach(function(el){ maxBottom = Math.max(maxBottom, el.getBoundingClientRect().bottom - box.top); });
+
+  var out = '<defs><marker id="eah" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#5b6478"/></marker></defs>';
+  var back = 0;
+  for(var k=0;k<seq.length-1;k++){
+    var ra = seq[k].getBoundingClientRect(), rb = seq[k+1].getBoundingClientRect();
+    var x1 = ra.right - box.left, y1 = ra.top - box.top + ra.height/2;
+    var x2 = rb.left - box.left - 7, y2 = rb.top - box.top + rb.height/2;
+    var d;
+    if(x2 > x1 + 10){
+      var dx = Math.max(24, (x2-x1)*0.45);
+      d = "M " + x1 + " " + y1 + " C " + (x1+dx) + " " + y1 + ", " + (x2-dx) + " " + y2 + ", " + x2 + " " + y2;
+    }else{
+      var gx = Math.min(grid.clientWidth-6, x1+24), hx = Math.max(-10, x2-24);
+      var ch = maxBottom + 20 + back*12; back++;
+      d = ortho([[x1,y1],[gx,y1],[gx,ch],[hx,ch],[hx,y2],[x2,y2]], 10);
+    }
+    out += '<path d="' + d + '" stroke="#5b6478" fill="none" stroke-width="1.8" opacity="0.5" marker-end="url(#eah)"/>';
+  }
+  wires.innerHTML = out;
+  $("canvHint").textContent = back > 5
+    ? "後戻りが " + back + " 本 — 並び順を見直してください"
+    : "パレットからドラッグして投入";
+  $("canvHint").style.color = back > 5 ? "var(--s2)" : "";
+}
+
+/* ============ 手順レーン ============ */
+var dragStepId = null;
+function renderLane(){
+  var evt = getEv(), box = $("laneScroll");
+  box.innerHTML = "";
+  if(!evt.steps.length){
+    box.innerHTML = '<p class="lane-empty">手順がまだありません。パレットからタスクを投入すると、ここに実施順が並びます。</p>';
+    return;
+  }
+  evt.steps.forEach(function(st, i){
+    if(i) { var ar = document.createElement("div"); ar.className = "arrow"; ar.innerHTML = "&#8594;"; box.appendChild(ar); }
+    var p = phaseOfStep(st) || {color:"var(--line)", name:""};
+    var el = document.createElement("div");
+    el.className = "chip" + (selStep === st.id ? " sel" : "");
+    el.style.setProperty("--pc", p.color);
+    el.draggable = true; el.dataset.id = st.id;
+    var cond = (st.conditions||[]).map(function(c){
+      var col = optColor(evt, c);
+      return '<span class="cd" style="color:' + col + ';border-color:' + col + '">' + esc(optLabel(evt,c)) + '</span>';
+    }).join(" ");
+    el.innerHTML = '<span class="no">' + (i+1) + '</span>'
+      + (st.decision ? '<span class="dq">&#9670; 判断</span>' : '')
+      + '<b>' + esc(st.title) + '</b>' + cond;
+    el.addEventListener("click", function(){ selStep = st.id; renderAll(); });
+    el.addEventListener("dragstart", function(e){
+      dragStepId = st.id; el.classList.add("drag");
+      e.dataTransfer.setData("text/plain", "step:" + st.id);
+      e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragend", function(){
+      dragStepId = null; el.classList.remove("drag");
+      Array.prototype.forEach.call(box.querySelectorAll(".chip"), function(c){ c.classList.remove("over"); });
+    });
+    el.addEventListener("dragover", function(e){
+      if(!dragStepId) return;
+      e.preventDefault(); el.classList.add("over");
+    });
+    el.addEventListener("dragleave", function(){ el.classList.remove("over"); });
+    el.addEventListener("drop", function(e){
+      e.preventDefault(); e.stopPropagation();
+      if(!dragStepId) return;
+      moveStep(dragStepId, st.id);
+    });
+    box.appendChild(el);
+  });
+}
+function moveStep(fromId, beforeId){
+  var evt = getEv();
+  var fi = evt.steps.findIndex(function(s){ return s.id===fromId; });
+  if(fi < 0) return;
+  var moved = evt.steps.splice(fi, 1)[0];
+  var ti = evt.steps.findIndex(function(s){ return s.id===beforeId; });
+  evt.steps.splice(ti < 0 ? evt.steps.length : ti, 0, moved);
+  persist(); renderAll();
+}
+
+/* ============ インスペクタ ============ */
+function priorDecisions(evt, stepId){
+  var out = [], hit = false;
+  for(var i=0;i<evt.steps.length;i++){
+    if(evt.steps[i].id === stepId){ hit = true; break; }
+    if(evt.steps[i].decision) out.push(evt.steps[i].decision);
+  }
+  return hit ? out : [];
+}
+function renderInspector(){
+  var evt = getEv(), box = $("ins");
+  var st = evt.steps.filter(function(s){ return s.id===selStep; })[0];
+  box.innerHTML = "";
+
+  if(!st){
+    $("insTitle").innerHTML = 'インスペクタ <span>事象のプロパティ</span>';
+    box.innerHTML =
+      '<label>事象名</label><input type="text" id="i_title" value="' + esc(evt.title) + '">'
+      + '<label>補足</label><input type="text" id="i_sub" value="' + esc(evt.sub) + '">'
+      + '<label>重大度</label><select id="i_sev">'
+      + ["S1","S2","S3"].map(function(v){ return '<option value="'+v+'"' + (evt.severity===v?" selected":"") + '>' + v + '</option>'; }).join("")
+      + '</select>'
+      + '<p class="hint">フローキャンバスのボックスを選ぶと、その手順の内容を編集できます。</p>'
+      + '<button class="del" id="i_dupEv">この事象を複製する</button>'
+      + '<button class="del" id="i_delEv">この事象を削除する</button>';
+    $("i_title").addEventListener("input", function(){ evt.title = this.value; persist(); renderEvSel(); });
+    $("i_sub").addEventListener("input", function(){ evt.sub = this.value; persist(); });
+    $("i_sev").addEventListener("change", function(){ evt.severity = this.value; persist(); renderEvSel(); });
+    $("i_dupEv").addEventListener("click", dupEvent);
+    $("i_delEv").addEventListener("click", delEvent);
+    return;
+  }
+
+  var t = task(st.task), p = phase(t.phase);
+  $("insTitle").innerHTML = 'インスペクタ <span>手順 ' + (evt.steps.indexOf(st)+1) + '</span>';
+
+  var priors = priorDecisions(evt, st.id);
+  var condHtml = (st.conditions||[]).map(function(c, ci){
+    var opts = "";
+    priors.forEach(function(d){
+      opts += '<optgroup label="' + esc(d.label) + '">';
+      d.options.forEach(function(o){
+        var v = d.key + "=" + o.value;
+        opts += '<option value="' + esc(v) + '"' + ((c.key===d.key && c.value===o.value) ? " selected" : "") + '>' + esc(o.label) + '</option>';
+      });
+      opts += '</optgroup>';
+    });
+    if(!priors.some(function(d){ return d.key===c.key; })){
+      opts = '<option selected>' + esc(c.key + "=" + c.value) + '（前方に判断がありません）</option>' + opts;
+    }
+    return '<div class="cond"><select data-ci="' + ci + '">' + opts + '</select>'
+         + '<button class="x" data-rm="' + ci + '">&times;</button></div>';
+  }).join("");
+
+  var decHtml = "";
+  if(st.decision){
+    decHtml = '<div class="sect"><h4>判断ステップ <button class="x" id="d_del">&times;</button></h4>'
+      + '<label>質問文</label><input type="text" id="d_label" value="' + esc(st.decision.label) + '">'
+      + '<label>回答キー</label><input type="text" id="d_key" value="' + esc(st.decision.key) + '">'
+      + '<label>選択肢</label><div id="d_opts">'
+      + st.decision.options.map(function(o, oi){
+          return '<div class="opt"><i style="background:' + OPTC[oi % OPTC.length] + '"></i>'
+            + '<input type="text" data-oi="' + oi + '" value="' + esc(o.label) + '">'
+            + '<button class="x" data-ormv="' + oi + '">&times;</button></div>';
+        }).join("")
+      + '</div><button class="mini" id="d_add">＋ 選択肢を追加</button>'
+      + '<p class="hint">判断ステップには完了ボタンを出しません。回答しないと先へ進めません。</p></div>';
+  }else{
+    decHtml = '<button class="mini" id="d_make" style="margin-top:13px">◆ この手順を判断ステップにする</button>';
+  }
+
+  box.innerHTML =
+    '<div class="taskref" style="--pc:' + p.color + '"><b>' + esc(t.label) + '</b>'
+      + esc(p.name) + ' / ' + esc(t.note||"") + '</div>'
+    + '<label>手順のタイトル</label><input type="text" id="s_title" value="' + esc(st.title) + '">'
+    + '<label>詳細</label><textarea id="s_detail">' + esc(st.detail) + '</textarea>'
+    + '<p class="hint">&lt;code&gt; で囲んだ部分は強調表示されます。</p>'
+    + '<div class="row"><div><label>SLA</label><input type="text" id="s_sla" placeholder="15分 / 即時" value="' + esc(st.sla) + '"></div>'
+    + '<div><label>エスカレーション</label><label class="chk" style="margin:0"><input type="checkbox" id="s_esc"' + (st.escalate?" checked":"") + '>判断が必要</label></div></div>'
+    + '<div class="sect"><h4>表示条件（AND）</h4>' + (condHtml || '<p class="hint" style="margin:0 0 7px">常に表示されます。</p>')
+    + '<button class="mini" id="c_add"' + (priors.length ? "" : " disabled") + '>'
+    + (priors.length ? "＋ 条件を追加" : "この手順より前に判断がありません") + '</button></div>'
+    + decHtml
+    + '<button class="del" id="s_del">この手順を削除する</button>';
+
+  $("s_title").addEventListener("input", function(){ st.title = this.value; persist(); renderCanvas(); renderLane(); });
+  $("s_detail").addEventListener("input", function(){ st.detail = this.value; persist(); });
+  $("s_sla").addEventListener("input", function(){ st.sla = this.value; persist(); renderCanvas(); });
+  $("s_esc").addEventListener("change", function(){ st.escalate = this.checked; persist(); renderCanvas(); });
+  $("s_del").addEventListener("click", function(){
+    evt.steps = evt.steps.filter(function(x){ return x.id !== st.id; });
+    selStep = null; persist(); renderAll();
+  });
+  $("c_add").addEventListener("click", function(){
+    if(!priors.length) return;
+    st.conditions.push({key:priors[0].key, value:priors[0].options[0].value});
+    persist(); renderAll();
+  });
+  Array.prototype.forEach.call(box.querySelectorAll("[data-ci]"), function(sel){
+    sel.addEventListener("change", function(){
+      var parts = this.value.split("=");
+      st.conditions[+this.dataset.ci] = {key:parts[0], value:parts[1]};
+      persist(); renderAll();
+    });
+  });
+  Array.prototype.forEach.call(box.querySelectorAll("[data-rm]"), function(b){
+    b.addEventListener("click", function(){
+      st.conditions.splice(+this.dataset.rm, 1); persist(); renderAll();
+    });
+  });
+  if($("d_make")) $("d_make").addEventListener("click", function(){
+    st.decision = {key:"q" + (evt.steps.filter(function(s){return s.decision;}).length + 1),
+                   label:"判定結果はどちらですか？",
+                   options:[{value:"yes",label:"はい"},{value:"no",label:"いいえ"}]};
+    persist(); renderAll();
+  });
+  if($("d_del")) $("d_del").addEventListener("click", function(){
+    var used = evt.steps.filter(function(s){
+      return (s.conditions||[]).some(function(c){ return c.key === st.decision.key; });
+    });
+    if(used.length && !confirm("この判断を参照している手順が " + used.length + " 件あります。\n\n"
+        + used.map(function(s){ return "・" + s.title; }).join("\n")
+        + "\n\n削除すると、それらは常に表示されるようになります。続けますか？")) return;
+    used.forEach(function(s){
+      s.conditions = s.conditions.filter(function(c){ return c.key !== st.decision.key; });
+    });
+    st.decision = null; persist(); renderAll();
+  });
+  if($("d_label")) $("d_label").addEventListener("input", function(){ st.decision.label = this.value; persist(); });
+  if($("d_key")) $("d_key").addEventListener("input", function(){
+    var old = st.decision.key, nk = this.value;
+    evt.steps.forEach(function(s){
+      (s.conditions||[]).forEach(function(c){ if(c.key === old) c.key = nk; });
+    });
+    st.decision.key = nk; persist();
+  });
+  if($("d_add")) $("d_add").addEventListener("click", function(){
+    st.decision.options.push({value:"o" + (st.decision.options.length+1), label:"新しい選択肢"});
+    persist(); renderAll();
+  });
+  Array.prototype.forEach.call(box.querySelectorAll("[data-oi]"), function(inp){
+    inp.addEventListener("input", function(){
+      st.decision.options[+this.dataset.oi].label = this.value; persist(); renderLane();
+    });
+  });
+  Array.prototype.forEach.call(box.querySelectorAll("[data-ormv]"), function(b){
+    b.addEventListener("click", function(){
+      if(st.decision.options.length <= 2){ alert("選択肢は 2 つ以上必要です。"); return; }
+      st.decision.options.splice(+this.dataset.ormv, 1); persist(); renderAll();
+    });
+  });
+}
+
+/* ============ 事象セレクタ ============ */
+function renderEvSel(){
+  var box = $("evsel"); box.innerHTML = "";
+  DB.events.forEach(function(e){
+    var b = document.createElement("button");
+    b.className = (e.key === curEv ? "on" : "");
+    b.innerHTML = '<i>' + e.severity + '</i>' + esc(e.title);
+    b.addEventListener("click", function(){ curEv = e.key; selStep = null; persist(); renderAll(); });
+    box.appendChild(b);
+  });
+  var nb = document.createElement("button");
+  nb.innerHTML = "＋ 事象";
+  nb.addEventListener("click", newEvent);
+  box.appendChild(nb);
+}
+function newEvent(){
+  var t = prompt("新しい事象の名称を入力してください。", "新しい事象");
+  if(t === null) return;
+  var k = "e" + Date.now().toString(36);
+  DB.events.push({key:k, severity:"S2", title:t || "新しい事象", sub:"", steps:[]});
+  curEv = k; selStep = null; persist(); renderAll();
+}
+function dupEvent(){
+  var e = getEv();
+  var c = JSON.parse(JSON.stringify(e));
+  c.key = "e" + Date.now().toString(36);
+  c.title = e.title + "（複製）";
+  c.steps.forEach(function(s){ s.id = nextId(); });
+  DB.events.push(c); curEv = c.key; selStep = null; persist(); renderAll();
+}
+function delEvent(){
+  if(DB.events.length < 2){ alert("最後の 1 件は削除できません。"); return; }
+  var e = getEv();
+  if(!confirm("「" + e.title + "」を削除します。よろしいですか？")) return;
+  DB.events = DB.events.filter(function(x){ return x.key !== e.key; });
+  curEv = DB.events[0].key; selStep = null; persist(); renderAll();
+}
+
+/* ============ 手順の追加 ============ */
+function addStep(taskKey){
+  var evt = getEv(), t = task(taskKey);
+  var st = {id:nextId(), task:taskKey, title:t.label, detail:"", sla:"", escalate:false,
+            conditions:[], decision:null};
+  evt.steps.push(st);
+  selStep = st.id;
+  persist(); renderAll();
+  var el = $("cgrid").querySelector(".cnode.sel");
+  if(el){ el.classList.add("new"); el.scrollIntoView({behavior:"smooth", block:"nearest", inline:"nearest"}); }
+}
+
+/* ============ 検証 ============ */
+function parseSla(s){
+  if(!s) return 0;
+  var m = String(s).match(/(\d+(?:\.\d+)?)/);
+  var n = m ? parseFloat(m[1]) : 0;
+  if(/即時/.test(s)) return 0;
+  if(/営業日|日/.test(s)) return n * 8 * 60;
+  if(/時間/.test(s)) return n * 60;
+  return n;
+}
+function fmtMin(m){
+  if(m < 60) return m + " 分";
+  var h = Math.floor(m/60), r = Math.round(m%60);
+  return h + " 時間" + (r ? " " + r + " 分" : "");
+}
+function enumeratePaths(evt){
+  var results = [];
+  function walk(i, ans){
+    if(results.length >= 64) return;
+    for(; i<evt.steps.length; i++){
+      var st = evt.steps[i];
+      if(!vis(st, ans)) continue;
+      if(st.decision){
+        st.decision.options.forEach(function(o){
+          var a2 = Object.assign({}, ans); a2[st.decision.key] = o.value;
+          walk(i+1, a2);
+        });
+        return;
+      }
+    }
+    results.push(ans);
+  }
+  function vis(st, ans){
+    var cs = st.conditions || [];
+    for(var j=0;j<cs.length;j++){
+      if(ans[cs[j].key] === undefined) return false;
+      if(ans[cs[j].key] !== cs[j].value) return false;
+    }
+    return true;
+  }
+  walk(0, {});
+  return results.map(function(ans){
+    var steps = evt.steps.filter(function(st){ return vis(st, ans); });
+    return {answers:ans, count:steps.length,
+            minutes:steps.reduce(function(a,s){ return a + parseSla(s.sla); }, 0)};
+  });
+}
+function validate(evt){
+  var issues = [];
+  var seen = {};
+  evt.steps.forEach(function(st, i){
+    (st.conditions||[]).forEach(function(c){
+      if(!seen[c.key]) issues.push({lv:"err", t:"手順 " + (i+1) + "「" + st.title + "」の条件が、まだ現れていない判断を参照しています",
+        d:"参照キー: " + c.key + " — この判断はこの手順より後ろにあるか、存在しません。対応者は答えていない質問の結果で分岐させられません。"});
+    });
+    if(st.decision) seen[st.decision.key] = true;
+  });
+  var paths = enumeratePaths(evt);
+  evt.steps.forEach(function(st, i){
+    if(!(st.conditions||[]).length) return;
+    var reachable = paths.some(function(p){
+      return st.conditions.every(function(c){ return p.answers[c.key] === c.value; });
+    });
+    if(!reachable) issues.push({lv:"wrn", t:"手順 " + (i+1) + "「" + st.title + "」はどの経路でも表示されません",
+      d:"条件の組み合わせが成立しません。条件を見直すか、手順を削除してください。"});
+  });
+  var used = {};
+  evt.steps.forEach(function(st){
+    if(!st.decision) return;
+    var refs = evt.steps.filter(function(s){
+      return (s.conditions||[]).some(function(c){ return c.key === st.decision.key; });
+    });
+    if(!refs.length) issues.push({lv:"wrn", t:"判断「" + st.decision.label + "」の答えが、どの手順にも使われていません",
+      d:"回答しても何も変わりません。分岐が不要なら、判断ステップを解除できます。"});
+    used[st.decision.key] = 1;
+  });
+  var back = 0, order = DB.phases.map(function(p){ return p.key; });
+  for(var i=1;i<evt.steps.length;i++){
+    var a = task(evt.steps[i-1].task), b = task(evt.steps[i].task);
+    if(a && b && order.indexOf(b.phase) < order.indexOf(a.phase)) back++;
+  }
+  if(back > 5) issues.push({lv:"wrn", t:"前のフェーズへの後戻りが " + back + " 回あります",
+    d:"接続線が混み、図が読みにくくなります。線を整える前に、フロー自体の並び順を見直してください。"});
+  return {issues:issues, paths:paths, back:back};
+}
+function renderCheckBadge(){
+  var r = validate(getEv());
+  var b = $("btnCheck");
+  var err = r.issues.filter(function(i){ return i.lv==="err"; }).length;
+  b.className = "ed-tool" + (r.issues.length ? (err ? " warn" : " warn") : " good");
+  b.textContent = r.issues.length ? "検証 " + r.issues.length + " 件" : "検証 OK";
+}
+
+/* ============ モーダル ============ */
+function openModal(title, sub, bodyHtml, footHtml){
+  $("mTitle").innerHTML = esc(title) + '<small>' + esc(sub) + '</small>';
+  $("mBody").innerHTML = bodyHtml;
+  $("mFoot").innerHTML = footHtml || '<button class="ed-tool" onclick="closeModal()">閉じる</button>';
+  $("mask").classList.add("on");
+}
+function closeModal(){ $("mask").classList.remove("on"); $("mBody").innerHTML = ""; }
+$("mClose").addEventListener("click", closeModal);
+$("mask").addEventListener("click", function(e){ if(e.target === $("mask")) closeModal(); });
+
+function showCheck(){
+  var evt = getEv(), r = validate(evt);
+  var html = r.issues.length
+    ? r.issues.map(function(i){
+        return '<div class="issue ' + (i.lv==="err"?"err":"wrn") + '"><i>' + (i.lv==="err"?"エラー":"注意") + '</i>'
+             + '<div><b>' + esc(i.t) + '</b><span>' + esc(i.d) + '</span></div></div>';
+      }).join("")
+    : '<p class="okmsg">&#10003; 問題は見つかりませんでした。</p>';
+  openModal("検証", evt.title, html);
+}
+function showPaths(){
+  var evt = getEv(), r = validate(evt);
+  var max = Math.max.apply(null, r.paths.map(function(p){ return p.minutes; }).concat([0]));
+  var rows = r.paths.map(function(p, i){
+    var keys = Object.keys(p.answers);
+    var chips = keys.length ? keys.map(function(k){
+        var c = {key:k, value:p.answers[k]};
+        var col = optColor(evt, c);
+        return '<em style="color:' + col + ';border-color:' + col + '">' + esc(optLabel(evt, c)) + '</em>';
+      }).join("") : '<em style="color:var(--faint);border-color:var(--line)">分岐なし</em>';
+    return '<tr><td class="num">' + (i+1) + '</td><td><div class="pathkey">' + chips + '</div></td>'
+      + '<td class="num">' + p.count + '</td>'
+      + '<td class="num' + (p.minutes >= max && max > 0 ? " long" : "") + '">' + fmtMin(p.minutes) + '</td></tr>';
+  }).join("");
+  openModal("経路一覧", evt.title + " — " + r.paths.length + " 経路",
+    '<p class="ins hint" style="margin:0 0 12px">分岐の全組み合わせです。SLA の合計が最も長い経路を色付きで示します。'
+    + '対応者は 1 本しか辿りませんが、設計する側は全部を見る必要があります。</p>'
+    + '<table class="tbl"><thead><tr><th>#</th><th>回答の組み合わせ</th><th>手順数</th><th>SLA 合計</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>');
+}
+
+/* ============ 書き出し ============ */
+function buildExportHTML(events, title){
+  var css = document.getElementById("viewerCss").textContent;
+  var js  = document.getElementById("viewerJs").textContent;
+  var data = {phases:DB.phases, tasks:DB.tasks, events:events};
+  var json = JSON.stringify(data).replace(/</g, "\\u003c");
+  return '<!DOCTYPE html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+    + '<title>' + esc(title) + '</title>\n<style>' + css + '</style>\n</head>\n<body>\n'
+    + '<div id="root"></div>\n<script>\n' + js + '\nvar DATA=' + json + ';\n'
+    + 'mountViewer(document.getElementById("root"), DATA, {storageKey:"soc-flow-run/"+location.pathname});\n'
+    + '<\/script>\n</body>\n</html>\n';
+}
+function showExport(){
+  var evt = getEv();
+  var one = buildExportHTML([evt], evt.title + " — SOC 対応フロー");
+  var all = buildExportHTML(DB.events, "SOC 対応フロー");
+  var kb = function(s){ return (new Blob([s]).size / 1024).toFixed(0) + " KB"; };
+  openModal("書き出し", "対応者に配る単一 HTML",
+    '<p class="ins hint" style="margin:0 0 12px">下のプレビューは、実際に書き出される HTML をそのまま表示しています。'
+    + '外部依存はありません。ファイルをコピーするだけで配れます。</p>'
+    + '<iframe class="frame" id="expFrame"></iframe>',
+    '<div class="fnote">この事象のみ: ' + kb(one) + '　／　全 ' + DB.events.length + ' 事象: ' + kb(all) + '</div>'
+    + '<button class="ed-tool" id="dl1">この事象を保存</button>'
+    + '<button class="ed-tool pri" id="dlAll">全事象を保存</button>'
+    + '<button class="ed-tool" onclick="closeModal()">閉じる</button>');
+  $("expFrame").srcdoc = one;
+  $("dl1").addEventListener("click", function(){ download(one, "soc-flow-" + evt.key + ".html"); });
+  $("dlAll").addEventListener("click", function(){ download(all, "soc-flow-all.html"); });
+}
+function download(text, name){
+  var b = new Blob([text], {type:"text/html;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(b); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 400);
+}
+
+/* ============ モード ============ */
+function setMode(m){
+  mode = m;
+  Array.prototype.forEach.call(document.querySelectorAll(".ed-modes button"), function(b){
+    b.classList.toggle("on", b.dataset.mode === m);
+  });
+  document.body.classList.toggle("run", m === "run");
+  document.body.classList.toggle("edit", m === "edit");
+  if(m === "run"){
+    if(viewer) viewer.destroy();
+    /* 試走の進捗は保存しない（storageKey を渡さない）＝編集の下書きを汚さない */
+    viewer = mountViewer($("runRoot"), {phases:DB.phases, tasks:DB.tasks, events:DB.events},
+      {event:curEv, note:"提案用モックです。内容はダミーで、実運用の手順ではありません。"});
+  }else{
+    if(viewer){ viewer.destroy(); viewer = null; }
+    $("runRoot").innerHTML = "";
+    renderAll();
+  }
+}
+
+/* ============ 全体描画 ============ */
+function renderAll(){
+  renderEvSel(); renderPalette(); renderCanvas(); renderLane();
+  renderInspector(); renderCheckBadge();
+}
+
+/* ============ 配線 ============ */
+$("palSearch").addEventListener("input", function(){ palQ = this.value; renderPalette(); });
+$("palNew").addEventListener("click", function(){
+  var label = prompt("新しいタスクの名称を入力してください。", "");
+  if(!label) return;
+  var names = DB.phases.map(function(p, i){ return (i+1) + ") " + p.name; }).join("\n");
+  var pick = prompt("どのフェーズに置きますか？\n\n" + names, "1");
+  var idx = parseInt(pick, 10) - 1;
+  if(isNaN(idx) || idx < 0 || idx >= DB.phases.length) return;
+  var note = prompt("補足（任意）", "") || "";
+  DB.tasks.push({key:"t" + Date.now().toString(36), phase:DB.phases[idx].key, label:label, note:note});
+  persist(); renderPalette();
+});
+$("canvas").addEventListener("dragover", function(e){ e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
+$("canvas").addEventListener("drop", function(e){
+  e.preventDefault();
+  var d = e.dataTransfer.getData("text/plain") || "";
+  if(d.indexOf("task:") === 0) addStep(d.slice(5));
+});
+$("laneScroll").addEventListener("dragover", function(e){ if(dragStepId) e.preventDefault(); });
+$("laneScroll").addEventListener("drop", function(e){
+  e.preventDefault();
+  if(dragStepId) moveStep(dragStepId, null);
+});
+Array.prototype.forEach.call(document.querySelectorAll(".ed-modes button"), function(b){
+  b.addEventListener("click", function(){ setMode(b.dataset.mode); });
+});
+$("btnCheck").addEventListener("click", showCheck);
+$("btnPaths").addEventListener("click", showPaths);
+$("btnExport").addEventListener("click", showExport);
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape"){ if($("mask").classList.contains("on")) closeModal(); else { selStep = null; if(mode==="edit") renderAll(); } }
+});
+window.addEventListener("resize", function(){ if(mode === "edit") renderCanvas(); });
+
+load();
+setMode("edit");
+</script>
+</body>
+</html>
