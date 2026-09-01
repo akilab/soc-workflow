@@ -1068,23 +1068,47 @@ function seed(){ return {
     {key:"ack",    phase:"recv",  label:"アラート受領",       note:"SIEM で担当者アサイン"},
     {key:"dup",    phase:"recv",  label:"重複確認",           note:"既存チケットの有無"},
     {key:"scope",  phase:"recv",  label:"影響範囲の初期把握", note:"対象ホスト・アカウント数"},
+    {key:"detect", phase:"recv",      label:"検知内容の確認",                  note:"どのルールが何で発火したか"},
+    {key:"corr",   phase:"recv",      label:"関連アラートの相関確認",              note:"他ホスト・他ソースの同時発火"},
     {key:"host",   phase:"triage",label:"端末情報の収集",     note:"OS / 利用者 / 設置場所"},
     {key:"logs",   phase:"triage",label:"ログの収集",         note:"EDR / プロキシ / 認証ログ"},
     {key:"ioc",    phase:"triage",label:"IOC の照合",         note:"ハッシュ・IP・ドメイン"},
     {key:"user",   phase:"triage",label:"利用者への聞き取り", note:"心当たりの確認"},
     {key:"tp",     phase:"triage",label:"真陽性/誤検知の判定",note:"調査の結論。判定根拠を残す"},
+    {key:"evid",   phase:"triage",    label:"証拠保全",                     note:"メモリダンプ・ディスクイメージ"},
+    {key:"persist",phase:"triage",    label:"永続化の確認",                   note:"自動起動 / サービス / タスク"},
+    {key:"c2",     phase:"triage",    label:"通信先の確認",                   note:"C2・DNS・外部宛の通信"},
+    {key:"lat",    phase:"triage",    label:"横展開の痕跡確認",                 note:"他ホストへの認証・SMB・RDP"},
+    {key:"priv",   phase:"triage",    label:"アカウント権限の確認",               note:"管理者権限・アクセス範囲"},
+    {key:"data",   phase:"triage",    label:"取り扱いデータの確認",               note:"個人情報・機密区分"},
+    {key:"sbox",   phase:"triage",    label:"サンドボックス解析",                note:"検体の挙動を隔離環境で確認"},
+    {key:"mhdr",   phase:"triage",    label:"メールヘッダの解析",                note:"SPF / DKIM / DMARC・配送経路"},
     {key:"sev",    phase:"triage",label:"重大度の確定",       note:"S1 / S2 / S3"},
+    {key:"contq",  phase:"triage",    label:"封じ込め要否の判断",                note:"業務影響とのトレードオフ"},
     {key:"iso",    phase:"cont",  label:"端末のネットワーク隔離",note:"EDR から実行"},
     {key:"acct",   phase:"cont",  label:"アカウントの無効化", note:"AD / IdP"},
     {key:"block",  phase:"cont",  label:"通信のブロック",     note:"Proxy / FW に IOC 追加"},
     {key:"pwd",    phase:"cont",  label:"認証情報のリセット", note:"本人確認のうえ実施"},
+    {key:"sess",   phase:"cont",      label:"セッションの失効",                 note:"トークン・Cookie を無効化"},
+    {key:"mfa",    phase:"cont",      label:"MFA の再登録",                 note:"旧デバイスの登録を削除"},
+    {key:"hashb",  phase:"cont",      label:"検体のブロック登録",                note:"EDR にハッシュを登録"},
+    {key:"mailq",  phase:"cont",      label:"メールの隔離・回収",                note:"配信済みメールを削除"},
     {key:"scan",   phase:"rec",   label:"再スキャン",         note:"クリーン確認"},
     {key:"restore",phase:"rec",   label:"復旧作業",           note:"再イメージ or 隔離解除"},
+    {key:"reimg",  phase:"rec",       label:"再イメージ",                    note:"クリーンビルドで戻す"},
+    {key:"patch",  phase:"rec",       label:"脆弱性の修正",                   note:"パッチ適用・設定変更で侵入経路を塞ぐ"},
     {key:"verify", phase:"rec",   label:"復旧確認",           note:"業務影響の解消確認"},
+    {key:"watch",  phase:"rec",       label:"監視強化期間の設定",                note:"再発の有無を一定期間見る"},
+    {key:"bizn",   phase:"rec",       label:"業務部門への復旧連絡",               note:"利用再開の周知"},
     {key:"esc",    phase:"rep",   label:"エスカレーション",   note:"CSIRT・経営・外部への連絡"},
     {key:"ticket", phase:"rep",   label:"チケット更新",       note:"時系列で記録"},
     {key:"report", phase:"rep",   label:"報告書作成",         note:"一次報告・最終報告"},
-    {key:"lesson", phase:"rep",   label:"再発防止の起票",     note:"検知ルール・教育"}
+    {key:"timeline",phase:"rep",       label:"タイムラインの作成",                note:"分単位の時系列を確定させる"},
+    {key:"legal",  phase:"rep",       label:"法令報告の要否判断",                note:"個人情報保護委員会・当局への届出"},
+    {key:"custn",  phase:"rep",       label:"利用者・顧客への通知",               note:"影響を受けた人への連絡"},
+    {key:"share",  phase:"rep",       label:"IOC の共有",                  note:"社内他部門・ISAC へ展開"},
+    {key:"lesson", phase:"rep",   label:"再発防止の起票",     note:"検知ルール・教育"},
+    {key:"retro",  phase:"rep",       label:"振り返りの実施",                  note:"対応そのものの改善点を洗う"}
   ],
   events:[
     {key:"ransom", severity:"S1", title:"ランサムウェアの疑い", sub:"大量のファイル暗号化・拡張子変更を検知", steps:[
@@ -1175,6 +1199,8 @@ var _id=0; function nextId(){ return "s" + (++_id); }
 
 /* ============ 状態 ============ */
 var SKEY = "soc-flow-editor-mock/v3";
+/* 種データのタスクを増やしたら上げる。保存済みデータにも不足分をマージするため。 */
+var SEED_VER = 2;
 var DB, curEv = null, selStep = null, mode = "edit", viewer = null;
 var palQ = "", collapsed = {}, rightTab = "ins";
 var UI = {wl:244, wr:324};
@@ -1193,13 +1219,27 @@ function load(){
     if(s && s.db && s.db.events && s.db.events.length){
       DB = s.db; _id = s.seq || 900;
       if(s.ui) UI = Object.assign(UI, s.ui);
+      mergeSeedTasks(s.seedVer || 1);
       return;
     }
   }catch(e){}
   DB = seed();
 }
 function persist(){
-  try{ localStorage.setItem(SKEY, JSON.stringify({db:DB, seq:_id, ui:UI})); }catch(e){}
+  try{ localStorage.setItem(SKEY, JSON.stringify({db:DB, seq:_id, ui:UI, seedVer:SEED_VER})); }catch(e){}
+}
+/* PoC の間はタスクカタログが育ち続ける。保存済みのデータを捨てずに、
+   まだ持っていないタスクだけを足す。事象と手順には触らない。 */
+function mergeSeedTasks(ver){
+  if(ver >= SEED_VER) return;
+  var fresh = seed(), added = 0;
+  fresh.tasks.forEach(function(t){
+    var hasKey   = DB.tasks.some(function(x){ return x.key === t.key; });
+    var hasPhase = DB.phases.some(function(p){ return p.key === t.phase; });
+    if(!hasKey && hasPhase){ DB.tasks.push(t); added++; }
+  });
+  persist();
+  if(added) setTimeout(function(){ toast("新しいタスクを " + added + " 件追加しました"); }, 700);
 }
 function getEv(){ for(var i=0;i<DB.events.length;i++) if(DB.events[i].key===curEv) return DB.events[i]; return null; }
 function task(k){ for(var i=0;i<DB.tasks.length;i++) if(DB.tasks[i].key===k) return DB.tasks[i]; return null; }
