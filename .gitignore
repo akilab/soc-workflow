@@ -1,2 +1,7 @@
 # エージェントの作業メモ（明示的な依頼があるまでコミットしない）
 working-memory/
+
+# Python（uv で作るプロジェクト内環境）
+.venv/
+__pycache__/
+*.py[cod]
