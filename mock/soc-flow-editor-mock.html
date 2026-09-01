@@ -182,8 +182,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
      中央 … フローキャンバス
      右   … インスペクタ ⇄ タスクパレット（タブで切り替え）
    ================================================================== */
-#scEvents,#scEdit{display:none}
+#scEvents,#scEdit,#scTasks{display:none}
 body.screen-events #scEvents{display:block}
+body.screen-tasks  #scTasks{display:block}
 body.screen-edit  #scEdit{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 body.screen-edit{overflow:hidden}
 body.screen-run   #scEdit{display:block}
@@ -498,8 +499,54 @@ body.dragging .ccol.drop .ghost{display:flex}
 
 /* ---------- 試走 ---------- */
 #runWrap{display:none}
+body.screen-run #runWrap{display:block}   /* これが無く、試走モードが真っ白だった */
 .runbar{margin:12px 20px 0;padding:9px 14px;border:1px dashed var(--dec);border-radius:9px;
   font-size:12.5px;color:#c7b0ff;background:rgba(169,123,255,.07);line-height:1.7}
+
+
+/* ================= タスク管理画面 ================= */
+.tk-top{position:sticky;top:0;z-index:30;background:rgba(10,12,17,.97);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:11px}
+.tk-search{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
+  padding:7px 12px;font-size:13px;font-family:var(--sans);width:240px}
+.tk-search:focus{outline:none;border-color:var(--cur)}
+
+.tk-g{margin-bottom:26px}
+.tk-g>h3{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.07em;color:var(--pc);
+  display:flex;align-items:center;gap:9px;padding-bottom:6px;border-bottom:2px solid var(--pc)}
+.tk-g>h3 .dot{width:10px;height:10px;border-radius:3px;background:var(--pc);flex:none}
+.tk-g>h3 u{text-decoration:none;font-family:var(--mono);font-size:10.5px;color:var(--faint);font-weight:400}
+.tk-g>h3 button{margin-left:auto}
+
+.tk-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) 150px minmax(0,1.2fr) 78px;
+  gap:12px;align-items:start;background:var(--panel);border:1px solid var(--line);
+  border-left:3px solid var(--pc);border-radius:9px;padding:11px 13px;margin-bottom:8px}
+@media(max-width:1100px){.tk-row{grid-template-columns:1fr 1fr;}}
+.tk-f label,.tk-use label{display:block;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--faint);font-weight:700;margin-bottom:4px}
+.tk-f input,.tk-f select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
+  border-radius:7px;padding:7px 9px;font-size:13px;font-family:var(--sans)}
+.tk-f input:focus,.tk-f select:focus{outline:none;border-color:var(--cur)}
+.tk-use b{display:block;font-family:var(--mono);font-size:12.5px;color:var(--dim);padding-top:2px}
+.tk-use span{display:block;font-size:11px;color:var(--faint);line-height:1.55;margin-top:2px}
+.tk-use.used b{color:var(--cur)}
+.tk-act{display:flex;align-items:flex-end;justify-content:flex-end;height:100%;padding-bottom:2px}
+.ed-tool.dgr{border-color:var(--line);color:var(--faint)}
+.ed-tool.dgr:hover:not(:disabled){border-color:var(--s1);color:var(--s1);background:var(--panel3)}
+.ed-tool:disabled{opacity:.35;cursor:default}
+
+/* ================= 入力モーダル / トースト ================= */
+.formx label{margin-top:13px}
+.formx label:first-child{margin-top:0}
+.cfm{font-size:14px;line-height:1.85;color:var(--fg);margin:0}
+.cfm ul{margin:10px 0 0;padding-left:20px;color:var(--dim);font-size:13px;line-height:1.8}
+.cfm em{font-style:normal;color:var(--s2)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:100;
+  background:var(--panel3);border:1px solid var(--ok);border-radius:9px;padding:10px 20px;
+  font-size:13px;color:var(--fg);box-shadow:0 12px 34px rgba(0,0,0,.55);opacity:0;
+  transition:opacity .18s,transform .18s;pointer-events:none;max-width:80vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.warn{border-color:var(--s2);color:var(--s2)}
 </style>
 </head>
 
@@ -520,6 +567,28 @@ body.dragging .ccol.drop .ghost{display:flex}
     <p class="ed-note">
       <b>提案用モックです。</b>内容はダミーで、実運用の手順ではありません。
       データはこのブラウザの localStorage にのみ保存され、外部には送信されません。
+    </p>
+  </div>
+</div>
+
+<!-- ================= タスク管理画面 ================= -->
+<div id="scTasks">
+  <div class="tk-top">
+    <button class="ed-back" id="tkBack">← 事象一覧</button>
+    <h1 class="brand">タスク<b>管理</b></h1>
+    <div class="ed-spacer"></div>
+    <input class="tk-search" id="tkSearch" type="text" placeholder="タスクを検索…">
+    <button class="ed-tool" id="tkPhases">フェーズ設定</button>
+    <button class="ed-tool pri" id="tkNew">＋ 新しいタスク</button>
+  </div>
+  <div class="ew-body">
+    <h2 class="ew-h">タスク <span id="tkCount"></span></h2>
+    <div id="tkList"></div>
+    <p class="ed-note">
+      <b>タスクは事象をまたいで再利用される部品です。</b>
+      名称・補足はその場で書き換えられ、すべての事象に反映されます。
+      フェーズを変えると、そのタスクを使っている事象のフロー図で列が移動します。
+      どこかの事象で使われているタスクは削除できません。
     </p>
   </div>
 </div>
@@ -583,6 +652,8 @@ body.dragging .ccol.drop .ghost{display:flex}
   </div>
 
 </div>
+
+<div class="toast" id="toast"></div>
 
 <!-- ================= モーダル ================= -->
 <div class="mask" id="mask">
@@ -1209,11 +1280,21 @@ function backToEvents(){
   renderEventsScreen();
 }
 function newEvent(){
-  var t = prompt("新しい事象の名称を入力してください。", "新しい事象");
-  if(t === null) return;
-  var k = "e" + Date.now().toString(36);
-  DB.events.push({key:k, severity:"S2", title:t || "新しい事象", sub:"", steps:[]});
-  persist(); openEvent(k);
+  askModal({
+    title:"新しい事象", sub:"対応フロー 1 本に対応します",
+    fields:[
+      {k:"title", label:"事象名", required:true, placeholder:"例: ランサムウェアの疑い"},
+      {k:"sub",   label:"補足",   placeholder:"例: 大量のファイル暗号化・拡張子変更を検知"},
+      {k:"sev",   label:"重大度", type:"select", value:"S2",
+       options:[{v:"S1",l:"S1（最重大）"},{v:"S2",l:"S2"},{v:"S3",l:"S3"}]}
+    ],
+    onOk:function(v){
+      var k = "e" + Date.now().toString(36);
+      DB.events.push({key:k, severity:v.sev, title:v.title, sub:v.sub, steps:[]});
+      persist(); openEvent(k);
+      toast("事象「" + v.title + "」を作成しました");
+    }
+  });
 }
 function dupEvent(key){
   var e = DB.events.filter(function(x){ return x.key===key; })[0];
@@ -1225,10 +1306,15 @@ function dupEvent(key){
 }
 function delEvent(key){
   var e = DB.events.filter(function(x){ return x.key===key; })[0];
-  if(DB.events.length < 2){ alert("最後の 1 件は削除できません。"); return; }
-  if(!confirm("「" + e.title + "」を削除します。よろしいですか？")) return;
-  DB.events = DB.events.filter(function(x){ return x.key !== key; });
-  persist(); renderEventsScreen();
+  if(DB.events.length < 2){ toast("最後の 1 件は削除できません", true); return; }
+  confirmModal({
+    title:"事象を削除", sub:e.title, danger:true, okLabel:"削除する",
+    message:"「" + esc(e.title) + "」と、その " + e.steps.length + " 手順を削除します。<br>この操作は取り消せません。",
+    onOk:function(){
+      DB.events = DB.events.filter(function(x){ return x.key !== key; });
+      persist(); renderEventsScreen(); toast("削除しました");
+    }
+  });
 }
 
 /* ============================================================
@@ -1421,13 +1507,23 @@ function renderPalette(){
   $("tabPalNo").textContent = q ? (hit + "/" + DB.tasks.length) : DB.tasks.length;
 }
 function newTask(phaseKey){
-  var p = phase(phaseKey);
-  var label = prompt("「" + p.name + "」に追加するタスクの名称を入力してください。", "");
-  if(!label) return;
-  var note = prompt("補足（任意）", "") || "";
-  DB.tasks.push({key:"t" + Date.now().toString(36), phase:phaseKey, label:label, note:note});
-  collapsed[phaseKey] = false;
-  persist(); setTab("pal"); renderPalette();
+  askModal({
+    title:"新しいタスク", sub:"フロー図のボックスになる部品。事象をまたいで再利用されます",
+    fields:[
+      {k:"label", label:"タスク名", required:true, placeholder:"例: 端末のネットワーク隔離"},
+      {k:"note",  label:"補足",     placeholder:"例: EDR から実行"},
+      {k:"phase", label:"フェーズ", type:"select", value:phaseKey,
+       options:DB.phases.map(function(p){ return {v:p.key, l:p.name}; })}
+    ],
+    onOk:function(v){
+      DB.tasks.push({key:"t" + Date.now().toString(36), phase:v.phase, label:v.label, note:v.note});
+      collapsed[v.phase] = false;
+      persist();
+      toast("タスク「" + v.label + "」を作成しました");
+      if(document.body.classList.contains("screen-tasks")) renderTasksScreen();
+      else { setTab("pal"); renderPalette(); }
+    }
+  });
 }
 
 /* ---------- キャンバス（中央・上） ---------- */
@@ -1675,12 +1771,19 @@ function renderInspector(){
   if($("d_del")) $("d_del").addEventListener("click", function(){
     var used = evt.steps.filter(function(s){
       return (s.conditions||[]).some(function(c){ return c.key === st.decision.key; }); });
-    if(used.length && !confirm("この判断を参照している手順が " + used.length + " 件あります。\n\n"
-        + used.map(function(s){ return "・" + s.title; }).join("\n")
-        + "\n\n削除すると、それらは常に表示されるようになります。続けますか？")) return;
-    used.forEach(function(s){
-      s.conditions = s.conditions.filter(function(c){ return c.key !== st.decision.key; }); });
-    st.decision = null; persist(); renderAll();
+    function drop(){
+      used.forEach(function(s){
+        s.conditions = s.conditions.filter(function(c){ return c.key !== st.decision.key; }); });
+      st.decision = null; persist(); renderAll();
+    }
+    if(!used.length){ drop(); return; }
+    confirmModal({
+      title:"判断ステップを解除", sub:st.decision.label, danger:true, okLabel:"解除する",
+      message:"この判断を参照している手順が <em>" + used.length + " 件</em>あります。"
+        + "<ul>" + used.map(function(s){ return "<li>" + esc(s.title) + "</li>"; }).join("") + "</ul>"
+        + "解除すると、これらは条件なし（常に表示）になります。",
+      onOk:drop
+    });
   });
   if($("d_label")) $("d_label").addEventListener("input", function(){ st.decision.label = this.value; persist(); });
   if($("d_key")) $("d_key").addEventListener("input", function(){
@@ -1699,7 +1802,7 @@ function renderInspector(){
   });
   Array.prototype.forEach.call(box.querySelectorAll("[data-ormv]"), function(b){
     b.addEventListener("click", function(){
-      if(st.decision.options.length <= 2){ alert("選択肢は 2 つ以上必要です。"); return; }
+      if(st.decision.options.length <= 2){ toast("選択肢は 2 つ以上必要です", true); return; }
       st.decision.options.splice(+this.dataset.ormv, 1); persist(); renderAll();
     });
   });
@@ -1817,6 +1920,58 @@ function openModal(title, sub, bodyHtml, footHtml){
 }
 function closeModal(){ $("mask").classList.remove("on"); $("mBody").innerHTML = ""; }
 
+/* ---- prompt / confirm / alert の置き換え ----
+   ブラウザによっては prompt() が使えない（環境によっては例外になる）。
+   見た目も揃わないので、画面内のモーダルで受ける。 */
+function askModal(o){
+  var body = o.fields.map(function(f, i){
+    if(f.type === "select"){
+      return '<label>' + esc(f.label) + '</label><select data-f="' + i + '">'
+        + f.options.map(function(op){
+            return '<option value="' + esc(op.v) + '"' + (op.v === f.value ? " selected" : "") + '>'
+              + esc(op.l) + '</option>'; }).join("")
+        + '</select>' + (f.hint ? '<p class="hint">' + esc(f.hint) + '</p>' : '');
+    }
+    return '<label>' + esc(f.label) + (f.required ? "" : "（任意）") + '</label>'
+      + '<input type="text" data-f="' + i + '" value="' + esc(f.value || "") + '"'
+      + ' placeholder="' + esc(f.placeholder || "") + '">'
+      + (f.hint ? '<p class="hint">' + esc(f.hint) + '</p>' : '');
+  }).join("");
+  openModal(o.title, o.sub || "", '<div class="ins formx">' + body + '</div>',
+    '<button class="ed-tool" data-x="cancel">キャンセル</button>'
+    + '<button class="ed-tool pri" data-x="ok">' + esc(o.okLabel || "作成") + '</button>');
+  var mb = $("mBody"), mf = $("mFoot");
+  function ok(){
+    var v = {};
+    o.fields.forEach(function(f, i){ v[f.k] = mb.querySelector('[data-f="' + i + '"]').value.trim(); });
+    var miss = o.fields.filter(function(f){ return f.required && !v[f.k]; })[0];
+    if(miss){ toast(miss.label + "を入力してください", true); return; }
+    closeModal(); o.onOk(v);
+  }
+  mf.querySelector('[data-x="ok"]').addEventListener("click", ok);
+  mf.querySelector('[data-x="cancel"]').addEventListener("click", function(){
+    closeModal(); if(o.onCancel) o.onCancel(); });
+  mb.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); ok(); } });
+  var first = mb.querySelector("[data-f]"); if(first) first.focus();
+}
+function confirmModal(o){
+  openModal(o.title, o.sub || "", '<div class="ins"><div class="cfm">' + o.message + '</div></div>',
+    '<button class="ed-tool" data-x="cancel">キャンセル</button>'
+    + '<button class="ed-tool ' + (o.danger ? "dgr" : "pri") + '" data-x="ok">'
+    + esc(o.okLabel || "実行") + '</button>');
+  $("mFoot").querySelector('[data-x="ok"]').addEventListener("click", function(){ closeModal(); o.onOk(); });
+  $("mFoot").querySelector('[data-x="cancel"]').addEventListener("click", function(){
+    closeModal(); if(o.onCancel) o.onCancel(); });
+}
+var toastT = null;
+function toast(msg, warn){
+  var t = $("toast");
+  t.textContent = msg;
+  t.className = "toast on" + (warn ? " warn" : "");
+  clearTimeout(toastT);
+  toastT = setTimeout(function(){ t.className = "toast" + (warn ? " warn" : ""); }, 2600);
+}
+
 function showCheck(){
   var evt = getEv(), r = validate(evt);
   var html = r.issues.length
@@ -1845,23 +2000,88 @@ function showPaths(){
     + '<table class="tbl"><thead><tr><th>#</th><th>回答の組み合わせ</th><th>手順数</th><th>SLA 合計</th></tr></thead>'
     + '<tbody>' + rows + '</tbody></table>');
 }
-function showTasks(){
-  var rows = DB.phases.map(function(p){
-    return DB.tasks.filter(function(t){ return t.phase===p.key; }).map(function(t){
-      var evs = DB.events.filter(function(e){ return e.steps.some(function(s){ return s.task===t.key; }); });
-      return '<tr><td><span style="color:' + p.color + '">&#9679;</span> ' + esc(p.name) + '</td>'
-        + '<td><b>' + esc(t.label) + '</b><br><span style="color:var(--faint);font-size:12px">'
-        + esc(t.note||"") + '</span></td>'
-        + '<td class="num">' + evs.length + '</td>'
-        + '<td style="font-size:12px;color:var(--dim)">'
-        + (evs.length ? evs.map(function(e){ return esc(e.title); }).join("、") : "—") + '</td></tr>';
-    }).join("");
-  }).join("");
-  openModal("タスク一覧", DB.tasks.length + " 件 — どの事象で使われているか",
-    '<p class="ins hint" style="margin:0 0 12px">タスクは事象をまたいで再利用される部品です。'
-    + '使用事象が多いものほど、組織の定番手順として育っていることを示します。</p>'
-    + '<table class="tbl"><thead><tr><th>フェーズ</th><th>タスク</th><th>事象数</th><th>使用事象</th></tr></thead>'
-    + '<tbody>' + rows + '</tbody></table>');
+/* ============================================================
+   画面 3: タスク管理
+   タスクの追加・改名・フェーズ変更・削除は頻繁に使うので、
+   モーダルではなく独立した画面にする。
+   ============================================================ */
+var tkQ = "";
+function usedBy(taskKey){
+  return DB.events.filter(function(e){ return e.steps.some(function(s){ return s.task===taskKey; }); });
+}
+function taskRow(t){
+  var evs = usedBy(t.key), p = phase(t.phase) || {color:"var(--line)"};
+  var row = document.createElement("div");
+  row.className = "tk-row";
+  row.style.setProperty("--pc", p.color);
+  row.innerHTML =
+    '<div class="tk-f"><label>タスク名</label><input type="text" data-l value="' + esc(t.label) + '"></div>'
+    + '<div class="tk-f"><label>補足</label><input type="text" data-n value="' + esc(t.note||"") + '"'
+      + ' placeholder="ボックスに小さく表示されます"></div>'
+    + '<div class="tk-f"><label>フェーズ</label><select data-p>'
+      + DB.phases.map(function(x){
+          return '<option value="' + x.key + '"' + (x.key===t.phase ? " selected" : "") + '>'
+            + esc(x.name) + '</option>'; }).join("")
+      + '</select></div>'
+    + '<div class="tk-use' + (evs.length ? " used" : "") + '"><label>使用</label>'
+      + '<b>' + (evs.length ? evs.length + " 事象" : "未使用") + '</b>'
+      + '<span>' + (evs.length ? evs.map(function(e){ return esc(e.title); }).join("、") : "どの事象でも使われていません") + '</span></div>'
+    + '<div class="tk-act"><button class="ed-tool sm dgr" data-del'
+      + (evs.length ? ' disabled title="' + evs.length + ' 事象で使用中のため削除できません"' : "") + '>削除</button></div>';
+
+  row.querySelector("[data-l]").addEventListener("change", function(){
+    var v = this.value.trim();
+    if(!v){ this.value = t.label; toast("タスク名は空にできません", true); return; }
+    t.label = v; persist(); toast("保存しました");
+  });
+  row.querySelector("[data-n]").addEventListener("change", function(){
+    t.note = this.value.trim(); persist(); toast("保存しました");
+  });
+  row.querySelector("[data-p]").addEventListener("change", function(){
+    var sel = this.value;
+    t.phase = sel; persist(); renderTasksScreen();
+    toast(evs.length ? "フェーズを変更しました（" + evs.length + " 事象のフロー図で列が移動します）"
+                     : "フェーズを変更しました");
+  });
+  if(!evs.length) row.querySelector("[data-del]").addEventListener("click", function(){
+    confirmModal({
+      title:"タスクを削除", sub:t.label, danger:true, okLabel:"削除する",
+      message:"「" + esc(t.label) + "」を削除します。<br>どの事象でも使われていないため、影響はありません。",
+      onOk:function(){
+        DB.tasks = DB.tasks.filter(function(x){ return x.key !== t.key; });
+        persist(); renderTasksScreen(); toast("削除しました");
+      }
+    });
+  });
+  return row;
+}
+function renderTasksScreen(){
+  var box = $("tkList"); box.innerHTML = "";
+  var q = tkQ.trim().toLowerCase(), hit = 0;
+  DB.phases.forEach(function(p){
+    var ts = DB.tasks.filter(function(t){
+      if(t.phase !== p.key) return false;
+      if(!q) return true;
+      return (t.label + " " + (t.note||"")).toLowerCase().indexOf(q) >= 0;
+    });
+    hit += ts.length;
+    if(q && !ts.length) return;
+    var g = document.createElement("div");
+    g.className = "tk-g"; g.style.setProperty("--pc", p.color);
+    g.innerHTML = '<h3><span class="dot"></span>' + esc(p.name) + '<u>' + ts.length + '</u>'
+      + '<button class="ed-tool sm" data-add>＋ このフェーズに追加</button></h3>';
+    g.querySelector("[data-add]").addEventListener("click", function(){ newTask(p.key); });
+    ts.forEach(function(t){ g.appendChild(taskRow(t)); });
+    if(!ts.length) g.insertAdjacentHTML("beforeend", '<p class="pal-empty">タスクがありません。</p>');
+    box.appendChild(g);
+  });
+  if(q && !hit) box.innerHTML = '<p class="pal-empty">「' + esc(tkQ) + '」に一致するタスクはありません。</p>';
+  $("tkCount").textContent = q ? (hit + " / " + DB.tasks.length + " 件") : (DB.tasks.length + " 件");
+}
+function openTasksScreen(){
+  document.body.className = "screen-tasks";
+  if(viewer){ viewer.destroy(); viewer = null; $("runRoot").innerHTML = ""; }
+  renderTasksScreen();
 }
 
 /* ---------- フェーズ設定 ----------
@@ -1929,24 +2149,36 @@ function showPhases(){
     Array.prototype.forEach.call(b.querySelectorAll("[data-del]"), function(x){
       x.addEventListener("click", function(){
         var i = +this.dataset.del;
-        if(DB.phases.length < 2){ alert("最後の 1 つは削除できません。"); return; }
-        if(!confirm("フェーズ「" + DB.phases[i].name + "」を削除します。よろしいですか？")) return;
-        DB.phases.splice(i, 1); refresh();
+        if(DB.phases.length < 2){ toast("最後の 1 つは削除できません", true); return; }
+        confirmModal({
+          title:"フェーズを削除", sub:DB.phases[i].name, danger:true, okLabel:"削除する",
+          message:"フェーズ「" + esc(DB.phases[i].name) + "」を削除します。<br>"
+            + "このフェーズにタスクは割り当てられていません。",
+          onOk:function(){ DB.phases.splice(i, 1); refresh(); toast("削除しました"); },
+          onCancel:open
+        });
       });
     });
     $("ph_add").addEventListener("click", function(){
-      var name = prompt("追加するフェーズの名称を入力してください。", "");
-      if(!name) return;
-      var used = DB.phases.map(function(p){ return p.color; });
-      var col = PHC.filter(function(c){ return used.indexOf(c) < 0; })[0] || PHC[0];
-      DB.phases.push({key:"p" + Date.now().toString(36), name:name, color:col});
-      refresh();
+      askModal({
+        title:"フェーズを追加", sub:"フロー図の列が 1 つ増えます",
+        fields:[{k:"name", label:"フェーズ名", required:true, placeholder:"例: 事後対応",
+                 hint:"時間とともに一方向に進む「段階」を入れてください。"}],
+        onOk:function(v){
+          var used = DB.phases.map(function(p){ return p.color; });
+          var col = PHC.filter(function(c){ return used.indexOf(c) < 0; })[0] || PHC[0];
+          DB.phases.push({key:"p" + Date.now().toString(36), name:v.name, color:col});
+          refresh(); toast("フェーズ「" + v.name + "」を追加しました");
+        },
+        onCancel:open
+      });
     });
   }
   open();
 }
 function repaintAll(){
   if(document.body.classList.contains("screen-events")) renderEventsScreen();
+  else if(document.body.classList.contains("screen-tasks")) renderTasksScreen();
   else if(document.body.classList.contains("screen-edit")) renderAll();
 }
 
@@ -2046,7 +2278,11 @@ function renderAll(){
 
 /* ============ 配線 ============ */
 $("ewPhases").addEventListener("click", showPhases);
-$("ewTasks").addEventListener("click", showTasks);
+$("ewTasks").addEventListener("click", openTasksScreen);
+$("tkBack").addEventListener("click", backToEvents);
+$("tkNew").addEventListener("click", function(){ newTask(DB.phases[0].key); });
+$("tkPhases").addEventListener("click", showPhases);
+$("tkSearch").addEventListener("input", function(){ tkQ = this.value; renderTasksScreen(); });
 $("ewExportAll").addEventListener("click", function(){ curEv = null; showExport(); });
 $("btnBack").addEventListener("click", backToEvents);
 $("btnCheck").addEventListener("click", showCheck);
@@ -2059,13 +2295,7 @@ Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function
   b.addEventListener("click", function(){ setTab(b.dataset.tab); });
 });
 $("palSearch").addEventListener("input", function(){ palQ = this.value; renderPalette(); });
-$("palNew").addEventListener("click", function(){
-  var names = DB.phases.map(function(p, i){ return (i+1) + ") " + p.name; }).join("\n");
-  var pick = prompt("どのフェーズに追加しますか？\n\n" + names, "1");
-  var idx = parseInt(pick, 10) - 1;
-  if(isNaN(idx) || idx < 0 || idx >= DB.phases.length) return;
-  newTask(DB.phases[idx].key);
-});
+$("palNew").addEventListener("click", function(){ newTask(DB.phases[0].key); });
 $("canvas").addEventListener("dragover", function(e){ e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
 $("canvas").addEventListener("drop", function(e){
   e.preventDefault();
@@ -2083,6 +2313,7 @@ Array.prototype.forEach.call(document.querySelectorAll(".ed-modes button"), func
 document.addEventListener("keydown", function(e){
   if(e.key !== "Escape") return;
   if($("mask").classList.contains("on")){ closeModal(); return; }
+  if(document.body.classList.contains("screen-tasks")){ backToEvents(); return; }
   if(document.body.classList.contains("screen-edit")){
     if(selStep){ selStep = null; renderAll(); } else backToEvents();
   }
