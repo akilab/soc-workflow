@@ -169,28 +169,24 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
      editorCss — エディタ画面だけで使う。書き出しHTMLには含まれない。
      ================================================================== -->
 <style id="editorCss">
-.ed-top{position:sticky;top:0;z-index:30;background:rgba(10,12,17,.97);backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--line);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.ed-top h1{margin:0;font-size:16px;font-weight:700;white-space:nowrap;letter-spacing:.01em}
-.ed-top h1 b{color:var(--cur)}
-.ed-top h1 em{font-style:normal;font-size:10px;letter-spacing:.16em;color:var(--faint);
-  border:1px solid var(--line);border-radius:4px;padding:2px 6px;margin-left:9px;vertical-align:2px}
+/* ==================================================================
+   editorCss — エディタ画面だけで使う。書き出しHTMLには含まれない。
+
+   画面は 2 つ。
+     事象ウィンドウ（body.screen-events） … 事象の一覧と作成
+     編集ビュー    （body.screen-edit / .screen-run）
+   ================================================================== */
+#scEvents,#scEdit{display:none}
+body.screen-events #scEvents{display:block}
+body.screen-edit  #scEdit{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+body.screen-edit{overflow:hidden}
+body.screen-run   #scEdit{display:block}
+body.screen-edit  #runWrap{display:none}
+body.screen-run   .ed-body{display:none}
+body.resizing{cursor:col-resize;user-select:none}
+
+/* ---------- 共通の部品 ---------- */
 .ed-spacer{flex:1}
-
-.ed-evsel{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;min-width:0;
-  overflow-x:auto;max-width:50vw;scrollbar-width:thin;padding-bottom:2px}
-.ed-evsel>button{flex:none}
-.ed-evsel button{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:999px;
-  padding:5px 13px;font-size:12.5px;cursor:pointer;font-family:var(--sans);display:flex;gap:7px;align-items:center}
-.ed-evsel button:hover{border-color:#404a5e;color:var(--fg)}
-.ed-evsel button.on{border-color:var(--cur);color:var(--cur);background:var(--cur-bg);font-weight:700}
-.ed-evsel button i{font-style:normal;font-family:var(--mono);font-size:10px;opacity:.85}
-
-.ed-modes{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px}
-.ed-modes button{background:none;border:none;color:var(--dim);font-family:var(--sans);font-size:13px;
-  padding:6px 17px;border-radius:6px;cursor:pointer;font-weight:600}
-.ed-modes button.on{background:var(--cur);color:#1a1405;font-weight:700}
-
 .ed-tool{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
   padding:7px 14px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap}
 .ed-tool:hover{border-color:#404a5e;background:var(--panel3)}
@@ -198,67 +194,128 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .ed-tool.good{border-color:var(--ok);color:var(--ok)}
 .ed-tool.pri{background:var(--ok);border-color:var(--ok);color:#04241a;font-weight:700}
 .ed-tool.pri:hover{filter:brightness(1.08);background:var(--ok)}
+.ed-note{margin:16px 0 30px;font-size:12px;color:var(--faint);line-height:1.85}
+.ed-note b{color:var(--dim)}
 
-/* ---------- 3ペイン ---------- */
-.ed-body{display:grid;grid-template-columns:288px minmax(0,1fr) 348px;gap:14px;padding:14px 20px 0;
-  align-items:start;min-height:420px}
-/* 編集モードは 1 画面に収める。ヘッダーの折り返し量に依存しないよう flex で組む。 */
-body.edit{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-body.edit .ed-top{flex:none}
-body.edit .ed-body{flex:1 1 auto;min-height:300px}
-body.edit .lane{flex:none}
-body.edit .ed-note{flex:none;margin:9px 20px 11px}
-@media(max-width:1500px){.ed-body{grid-template-columns:250px minmax(0,1fr) 300px}}
+.brand{margin:0;font-size:16px;font-weight:700;white-space:nowrap;letter-spacing:.01em}
+.brand b{color:var(--cur)}
+.brand em{font-style:normal;font-size:10px;letter-spacing:.16em;color:var(--faint);
+  border:1px solid var(--line);border-radius:4px;padding:2px 6px;margin-left:9px;vertical-align:2px}
+
+/* ================= 事象ウィンドウ ================= */
+.ew-top{position:sticky;top:0;z-index:30;background:rgba(10,12,17,.97);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:14px}
+.ew-body{max-width:1360px;margin:0 auto;padding:26px 30px 40px}
+.ew-h{margin:0 0 16px;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);
+  font-weight:700;display:flex;align-items:baseline;gap:10px}
+.ew-h span{letter-spacing:0;text-transform:none;font-size:12px;font-weight:400}
+.ew-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+
+.ew-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 17px 13px;
+  cursor:pointer;position:relative;transition:border-color .18s,background .18s,transform .18s,box-shadow .18s}
+.ew-card:hover{border-color:var(--cur);background:var(--panel2);transform:translateY(-2px);
+  box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.ew-card .ew-hd{display:flex;gap:10px;align-items:flex-start;margin-bottom:5px}
+.ew-card .ew-hd b{font-size:15.5px;font-weight:700;line-height:1.5;flex:1;min-width:0}
+.ew-card:hover .ew-hd b{color:var(--cur)}
+.ew-sub{margin:0 0 13px;font-size:12.5px;color:var(--dim);line-height:1.6;min-height:2.1em}
+
+/* フェーズ分布 — どの段階に手順が集まっている事象かが一目で分かる */
+.ew-bar{display:flex;gap:2px;height:7px;border-radius:4px;overflow:hidden;margin-bottom:7px;background:var(--panel3)}
+.ew-bar i{display:block;height:100%}
+.ew-dist{display:flex;flex-wrap:wrap;gap:9px;font-size:10.5px;color:var(--faint);margin-bottom:12px;
+  font-family:var(--mono);min-height:1.4em}
+.ew-dist span{display:flex;align-items:center;gap:4px}
+.ew-dist i{width:7px;height:7px;border-radius:2px;flex:none}
+
+.ew-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;font-family:var(--mono);
+  padding-top:11px;border-top:1px solid var(--line-soft)}
+.ew-meta span{border:1px solid var(--line);border-radius:5px;padding:2px 8px;color:var(--dim)}
+.ew-meta span.ok{border-color:var(--ok);color:var(--ok)}
+.ew-meta span.ng{border-color:var(--s2);color:var(--s2)}
+.ew-acts{display:flex;gap:6px;margin-top:11px;opacity:0;transition:opacity .18s}
+.ew-card:hover .ew-acts{opacity:1}
+.ew-acts button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+  border-radius:6px;padding:5px 0;font-size:11.5px;cursor:pointer;font-family:var(--sans)}
+.ew-acts button:hover{border-color:#404a5e;color:var(--fg)}
+.ew-acts button.dg:hover{border-color:var(--s1);color:var(--s1)}
+
+.ew-new{background:none;border:1px dashed var(--line);border-radius:12px;color:var(--faint);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;
+  min-height:190px;cursor:pointer;font-family:var(--sans);font-size:13px;transition:border-color .18s,color .18s}
+.ew-new:hover{border-color:var(--ok);color:var(--ok)}
+.ew-new u{text-decoration:none;font-size:26px;line-height:1}
+
+/* ================= 編集ビュー ================= */
+.ed-top{position:sticky;top:0;z-index:30;background:rgba(10,12,17,.97);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:10px 18px;display:flex;align-items:center;gap:13px;flex:none}
+.ed-back{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:8px;
+  padding:7px 13px;font-size:12.5px;cursor:pointer;font-family:var(--sans);white-space:nowrap}
+.ed-back:hover{border-color:var(--cur);color:var(--cur)}
+.ed-title{display:flex;align-items:center;gap:9px;min-width:0}
+.ed-title b{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-modes{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px}
+.ed-modes button{background:none;border:none;color:var(--dim);font-family:var(--sans);font-size:13px;
+  padding:6px 17px;border-radius:6px;cursor:pointer;font-weight:600}
+.ed-modes button.on{background:var(--cur);color:#1a1405;font-weight:700}
+
+/* 左＝アウトライン ／ 中央＝キャンバス ／ 右＝パレット＋インスペクタ（上下分割） */
+.ed-body{display:grid;grid-template-columns:var(--wl,268px) 7px minmax(0,1fr) 7px var(--wr,344px);
+  gap:0;padding:12px 16px 14px;flex:1 1 auto;min-height:0}
+.side{display:grid;grid-template-rows:var(--hp,42%) 7px minmax(0,1fr);gap:0;min-height:0}
+.split{cursor:col-resize;position:relative}
+.split.h{cursor:row-resize}
+.split::after{content:"";position:absolute;inset:0;margin:auto;width:1px;height:36px;
+  background:var(--line);border-radius:1px;transition:background .15s}
+.split.h::after{width:36px;height:1px}
+.split:hover::after{background:var(--cur)}
+
 .pane{background:var(--panel);border:1px solid var(--line);border-radius:12px;height:100%;
-  display:flex;flex-direction:column;overflow:hidden}
-.pane>h3{margin:0;padding:12px 15px 10px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.pane>h3{margin:0;padding:11px 14px 9px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
   color:var(--faint);font-weight:700;border-bottom:1px solid var(--line-soft);display:flex;
-  justify-content:space-between;align-items:center;gap:8px}
-.pane>h3 span{letter-spacing:0;text-transform:none;font-size:11px;color:var(--faint);font-weight:400}
-.pane .scroll{overflow:auto;flex:1;padding:11px 13px 18px}
+  justify-content:space-between;align-items:center;gap:8px;flex:none}
+.pane>h3 span{letter-spacing:0;text-transform:none;font-size:11px;color:var(--faint);font-weight:400;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pane .scroll{overflow:auto;flex:1;padding:10px 12px 16px;min-height:0}
 
-/* ---------- パレット ---------- */
-.pal-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
-  border-radius:8px;padding:8px 11px;font-size:13px;font-family:var(--sans);margin-bottom:12px}
-.pal-search:focus{outline:none;border-color:var(--cur)}
-.pal-g{margin-bottom:14px}
-.pal-g>h4{margin:0 0 7px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--pc);
-  display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
-.pal-g>h4::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--pc);flex:none}
-.pal-g>h4 u{margin-left:auto;text-decoration:none;font-family:var(--mono);font-size:10px;
-  color:var(--faint);font-weight:400}
-.pal-t{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--pc);
-  border-radius:7px;padding:7px 9px;margin-bottom:6px;cursor:grab;position:relative;
-  transition:border-color .15s,background .15s,transform .12s}
-.pal-t:hover{background:var(--panel3);border-color:#404a5e;transform:translateX(2px)}
-.pal-t:active{cursor:grabbing}
-.pal-t.drag{opacity:.4}
-.pal-t b{display:block;font-size:12.5px;font-weight:600;line-height:1.45;padding-right:44px}
-.pal-t span{display:block;font-size:10.5px;color:var(--faint);line-height:1.4;margin-top:1px}
-.pal-t .use{position:absolute;top:6px;right:7px;display:flex;gap:4px;align-items:center}
-.pal-t .u-in{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--cur);
-  border:1px solid var(--cur);border-radius:4px;padding:0 4px;background:var(--cur-bg)}
-.pal-t .u-all{font-family:var(--mono);font-size:9.5px;color:var(--faint)}
-.pal-t .add{position:absolute;bottom:6px;right:7px;opacity:0;background:var(--panel3);
-  border:1px solid var(--line);color:var(--dim);border-radius:5px;width:20px;height:20px;
-  font-size:13px;line-height:1;cursor:pointer;transition:opacity .15s}
-.pal-t:hover .add{opacity:1}
-.pal-t .add:hover{border-color:var(--ok);color:var(--ok)}
-.pal-new{width:100%;background:none;border:1px dashed var(--line);color:var(--faint);border-radius:7px;
-  padding:8px;font-size:12px;cursor:pointer;font-family:var(--sans)}
-.pal-new:hover{border-color:var(--ok);color:var(--ok)}
+/* ---------- 手順アウトライン（左） ---------- */
+.ol-row{display:flex;gap:7px;align-items:flex-start;padding:6px 8px;border-radius:7px;cursor:grab;
+  position:relative;transition:background .14s,box-shadow .14s;border-left:3px solid transparent}
+.ol-row:hover{background:var(--panel2)}
+.ol-row.sel{background:var(--cur-bg);box-shadow:inset 0 0 0 1px rgba(255,201,60,.4)}
+.ol-row.drag{opacity:.35}
+.ol-row.over{box-shadow:inset 0 2px 0 var(--cur)}
+.ol-row.d1{margin-left:20px}
+.ol-row.dec{border-left-color:var(--dec)}
+.ol-no{flex:none;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--faint);
+  min-width:16px;text-align:right;padding-top:2px}
+.ol-row.sel .ol-no{color:var(--cur)}
+.ol-pc{flex:none;width:7px;height:7px;border-radius:2px;background:var(--pc,var(--line));margin-top:6px}
+.ol-t{flex:1;min-width:0;font-size:12.5px;line-height:1.5}
+.ol-row.dec .ol-t::before{content:"\25C6";color:var(--dec);margin-right:5px;font-size:10px}
+.ol-f{flex:none;display:flex;gap:4px;font-family:var(--mono);font-size:9.5px;padding-top:3px}
+.ol-f .sla{color:var(--dim)} .ol-f .esc{color:var(--s1)}
 
-/* ---------- キャンバス ---------- */
-.canvas{position:relative;overflow:auto;flex:1;padding:14px 16px 16px}
+.ol-grp{display:flex;gap:6px;align-items:center;margin:7px 0 3px 8px;padding:3px 9px 3px 7px;
+  font-size:11px;font-weight:700;color:var(--oc);border-left:2px solid var(--oc);
+  background:color-mix(in srgb, var(--oc) 9%, transparent);border-radius:0 6px 6px 0}
+.ol-grp u{text-decoration:none;font-family:var(--mono);font-size:9.5px;opacity:.75;font-weight:400}
+.ol-empty{color:var(--faint);font-size:12.5px;line-height:1.9;padding:14px 4px}
+.ol-legend{margin-top:14px;padding-top:11px;border-top:1px solid var(--line-soft);
+  font-size:10.5px;color:var(--faint);line-height:1.8}
+
+/* ---------- キャンバス（中央） ---------- */
+.canvas{position:relative;overflow:auto;flex:1;padding:14px 16px 16px;min-height:0}
 .cgrid{position:relative;display:flex;gap:40px;min-width:1240px;padding-bottom:96px;min-height:100%}
 .ccol{flex:1 1 0;min-width:168px;display:flex;flex-direction:column;gap:14px;position:relative;
-  border-radius:9px;padding:4px;transition:background .18s,box-shadow .18s}
+  border-radius:9px;padding:4px;transition:background .18s,box-shadow .18s,opacity .18s}
 .ccol>h2{margin:0 0 2px;font-size:10.5px;letter-spacing:.13em;font-weight:700;white-space:nowrap;
   color:var(--pc);padding-bottom:5px;border-bottom:2px solid var(--pc);opacity:.9;
   display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .ccol>h2 u{text-decoration:none;font-family:var(--mono);font-size:9.5px;opacity:.7}
 body.dragging .ccol.drop{background:rgba(255,201,60,.06);box-shadow:inset 0 0 0 2px rgba(255,201,60,.4)}
-body.dragging .ccol:not(.drop){opacity:.4}
+body.dragging .ccol:not(.drop){opacity:.35}
 .ccol .ghost{border:1px dashed var(--cur);border-radius:8px;height:52px;display:none;
   align-items:center;justify-content:center;font-size:11px;color:var(--cur)}
 body.dragging .ccol.drop .ghost{display:flex}
@@ -280,18 +337,48 @@ body.dragging .ccol.drop .ghost{display:flex}
 .cnode .f-dec{color:var(--dec)} .cnode .f-cond{color:#bfa0ff} .cnode .f-esc{color:var(--s1)}
 .cnode .f-sla{color:var(--dim)}
 .cwires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
-.cwires path{fill:none;stroke:#5b6478;stroke-width:1.8;opacity:.55;stroke-linecap:round}
 .cempty{color:var(--faint);font-size:13px;padding:40px 0;text-align:center;line-height:2}
 .cempty b{display:block;color:var(--dim);font-size:14px;margin-bottom:4px}
 
-/* ---------- インスペクタ ---------- */
+/* ---------- タスクパレット（右上） ---------- */
+.pal-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
+  border-radius:8px;padding:7px 11px;font-size:13px;font-family:var(--sans);margin-bottom:11px}
+.pal-search:focus{outline:none;border-color:var(--cur)}
+.pal-g{margin-bottom:13px}
+.pal-g>h4{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--pc);
+  display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.pal-g>h4::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--pc);flex:none}
+.pal-g>h4 u{margin-left:auto;text-decoration:none;font-family:var(--mono);font-size:10px;
+  color:var(--faint);font-weight:400}
+.pal-t{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--pc);
+  border-radius:7px;padding:6px 9px;margin-bottom:5px;cursor:grab;position:relative;
+  transition:border-color .15s,background .15s,transform .12s}
+.pal-t:hover{background:var(--panel3);border-color:#404a5e;transform:translateX(2px)}
+.pal-t:active{cursor:grabbing}
+.pal-t.drag{opacity:.4}
+.pal-t b{display:block;font-size:12.5px;font-weight:600;line-height:1.45;padding-right:46px}
+.pal-t span.nt{display:block;font-size:10.5px;color:var(--faint);line-height:1.4;margin-top:1px}
+.pal-t .use{position:absolute;top:5px;right:7px;display:flex;gap:4px;align-items:center}
+.pal-t .u-in{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--cur);
+  border:1px solid var(--cur);border-radius:4px;padding:0 4px;background:var(--cur-bg)}
+.pal-t .u-all{font-family:var(--mono);font-size:9.5px;color:var(--faint)}
+.pal-t .add{position:absolute;bottom:5px;right:7px;opacity:0;background:var(--panel3);
+  border:1px solid var(--line);color:var(--dim);border-radius:5px;width:20px;height:20px;
+  font-size:13px;line-height:1;cursor:pointer;transition:opacity .15s}
+.pal-t:hover .add{opacity:1}
+.pal-t .add:hover{border-color:var(--ok);color:var(--ok)}
+.pal-new{width:100%;background:none;border:1px dashed var(--line);color:var(--faint);border-radius:7px;
+  padding:8px;font-size:12px;cursor:pointer;font-family:var(--sans)}
+.pal-new:hover{border-color:var(--ok);color:var(--ok)}
+
+/* ---------- インスペクタ（右下） ---------- */
 .ins label{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--faint);font-weight:700;margin:13px 0 5px}
+  color:var(--faint);font-weight:700;margin:12px 0 5px}
 .ins label:first-child{margin-top:0}
 .ins input[type=text],.ins textarea,.ins select{width:100%;background:var(--panel2);
   border:1px solid var(--line);color:var(--fg);border-radius:7px;padding:8px 10px;font-size:13px;
   font-family:var(--sans);line-height:1.65}
-.ins textarea{resize:vertical;min-height:88px}
+.ins textarea{resize:vertical;min-height:86px}
 .ins input:focus,.ins textarea:focus,.ins select:focus{outline:none;border-color:var(--cur)}
 .ins .row{display:flex;gap:8px}
 .ins .row>*{flex:1;min-width:0}
@@ -311,37 +398,16 @@ body.dragging .ccol.drop .ghost{display:flex}
 .ins .mini{background:var(--panel2);border:1px dashed var(--line);color:var(--faint);border-radius:6px;
   padding:6px 10px;font-size:11.5px;cursor:pointer;font-family:var(--sans);width:100%}
 .ins .mini:hover{border-color:var(--dec);color:var(--dec)}
+.ins .mini:disabled{cursor:default;opacity:.55}
 .ins .opt{display:flex;gap:6px;margin-bottom:6px;align-items:center}
 .ins .opt i{width:9px;height:9px;border-radius:3px;flex:none}
-.ins .del{width:100%;margin-top:16px;background:none;border:1px solid var(--line);color:var(--faint);
+.ins .del{width:100%;margin-top:15px;background:none;border:1px solid var(--line);color:var(--faint);
   border-radius:7px;padding:8px;font-size:12.5px;cursor:pointer;font-family:var(--sans)}
 .ins .del:hover{border-color:var(--s1);color:var(--s1)}
 .ins .none{color:var(--faint);font-size:12.5px;line-height:1.85}
 .ins .taskref{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--pc);
   border-radius:7px;padding:7px 10px;font-size:12px;color:var(--dim);margin-bottom:2px}
 .ins .taskref b{color:var(--fg);font-size:12.5px;display:block}
-
-/* ---------- 手順レーン ---------- */
-.lane{margin:12px 20px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;
-  padding:10px 14px 12px;height:164px;display:flex;flex-direction:column}
-.lane>h3{margin:0 0 8px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);
-  font-weight:700;display:flex;gap:12px;align-items:center}
-.lane>h3 span{letter-spacing:0;text-transform:none;font-size:11px;font-weight:400}
-.lane-scroll{overflow-x:auto;overflow-y:hidden;flex:1;display:flex;align-items:stretch;gap:0;padding-bottom:4px}
-.chip{flex:none;width:158px;background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--pc);
-  border-radius:8px;padding:7px 9px;cursor:grab;position:relative;transition:border-color .15s,background .15s}
-.chip:hover{background:var(--panel3)}
-.chip.sel{border-color:var(--cur);border-top-color:var(--cur);background:var(--cur-bg)}
-.chip.drag{opacity:.35}
-.chip.over{box-shadow:-3px 0 0 var(--cur)}
-.chip b{display:block;font-size:11.5px;font-weight:600;line-height:1.4;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.chip .no{font-family:var(--mono);font-size:10px;color:var(--faint);font-weight:700}
-.chip .cd{margin-top:4px;font-size:10px;font-family:var(--mono);border-radius:4px;padding:1px 5px;
-  display:inline-block;border:1px solid}
-.chip .dq{margin-top:4px;font-size:10px;color:var(--dec);font-weight:700}
-.arrow{flex:none;width:22px;display:flex;align-items:center;justify-content:center;color:var(--line);font-size:13px}
-.lane-empty{color:var(--faint);font-size:12.5px;padding:24px 4px}
 
 /* ---------- モーダル ---------- */
 .mask{position:fixed;inset:0;background:rgba(5,7,11,.82);backdrop-filter:blur(4px);z-index:80;
@@ -356,7 +422,7 @@ body.dragging .ccol.drop .ghost{display:flex}
 .modal>header h2 small{display:block;font-size:12px;color:var(--faint);font-weight:400;margin-top:2px}
 .modal .mbody{overflow:auto;padding:18px 20px;flex:1}
 .modal>footer{padding:13px 20px;border-top:1px solid var(--line);display:flex;gap:10px;
-  justify-content:flex-end;align-items:center}
+  justify-content:flex-end;align-items:center;flex-wrap:wrap}
 .modal>footer .fnote{margin-right:auto;font-size:11.5px;color:var(--faint);line-height:1.6}
 .xbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:7px;width:30px;height:30px;
   cursor:pointer;font-size:16px;line-height:1}
@@ -383,76 +449,93 @@ body.dragging .ccol.drop .ghost{display:flex}
 .issue span{display:block;font-size:12px;color:var(--dim);line-height:1.7;margin-top:2px}
 .okmsg{color:var(--ok);font-size:14px;padding:20px 0;text-align:center}
 
-.ed-note{margin:14px 20px 26px;font-size:12px;color:var(--faint);line-height:1.85}
-.ed-note b{color:var(--dim)}
+/* ---------- 試走 ---------- */
 #runWrap{display:none}
-body.run .ed-body,body.run .lane,body.run .ed-note{display:none}
-body.run #runWrap{display:block}
 .runbar{margin:12px 20px 0;padding:9px 14px;border:1px dashed var(--dec);border-radius:9px;
   font-size:12.5px;color:#c7b0ff;background:rgba(169,123,255,.07);line-height:1.7}
 </style>
 </head>
 
-<body>
+<body class="screen-events">
 
-<!-- ================= ヘッダー ================= -->
-<div class="ed-top">
-  <h1>SOC <b>Workflow</b><em>EDITOR MOCK</em></h1>
-  <div class="ed-evsel" id="evsel"></div>
-  <div class="ed-spacer"></div>
-  <button class="ed-tool" id="btnCheck">検証</button>
-  <button class="ed-tool" id="btnPaths">経路一覧</button>
-  <div class="ed-modes">
-    <button data-mode="edit" class="on">編集</button>
-    <button data-mode="run">試走</button>
+<!-- ================= 事象ウィンドウ ================= -->
+<div id="scEvents">
+  <div class="ew-top">
+    <h1 class="brand">SOC <b>Workflow</b><em>EDITOR MOCK</em></h1>
+    <div class="ed-spacer"></div>
+    <button class="ed-tool" id="ewTasks">タスク一覧</button>
+    <button class="ed-tool" id="ewExportAll">全事象を書き出し</button>
   </div>
-  <button class="ed-tool pri" id="btnExport">書き出し</button>
+  <div class="ew-body">
+    <h2 class="ew-h">発生しうる事象 <span id="ewCount"></span></h2>
+    <div class="ew-grid" id="ewGrid"></div>
+    <p class="ed-note">
+      <b>提案用モックです。</b>内容はダミーで、実運用の手順ではありません。
+      データはこのブラウザの localStorage にのみ保存され、外部には送信されません。
+    </p>
+  </div>
 </div>
 
-<!-- ================= 編集モード ================= -->
-<div class="ed-body" id="edBody">
+<!-- ================= 編集ビュー ================= -->
+<div id="scEdit">
 
-  <div class="pane">
-    <h3>タスクパレット <span id="palCount"></span></h3>
-    <div class="scroll">
-      <input class="pal-search" id="palSearch" type="text" placeholder="タスクを検索…">
-      <div id="palList"></div>
-      <button class="pal-new" id="palNew">＋ 新しいタスクを作る</button>
+  <div class="ed-top">
+    <button class="ed-back" id="btnBack">← 事象一覧</button>
+    <div class="ed-title" id="edTitle"></div>
+    <div class="ed-spacer"></div>
+    <button class="ed-tool" id="btnCheck">検証</button>
+    <button class="ed-tool" id="btnPaths">経路一覧</button>
+    <div class="ed-modes">
+      <button data-mode="edit" class="on">編集</button>
+      <button data-mode="run">試走</button>
     </div>
+    <button class="ed-tool pri" id="btnExport">書き出し</button>
   </div>
 
-  <div class="pane">
-    <h3>フローキャンバス <span id="canvHint">パレットからドラッグして投入</span></h3>
-    <div class="canvas" id="canvas">
-      <div class="cgrid" id="cgrid"><svg class="cwires" id="cwires"></svg></div>
+  <div class="ed-body" id="edBody">
+
+    <div class="pane">
+      <h3>手順アウトライン <span id="olCount"></span></h3>
+      <div class="scroll" id="olList"></div>
     </div>
+
+    <div class="split" data-target="left"></div>
+
+    <div class="pane">
+      <h3>フローキャンバス <span id="canvHint">パレットからドラッグして投入</span></h3>
+      <div class="canvas" id="canvas">
+        <div class="cgrid" id="cgrid"><svg class="cwires" id="cwires"></svg></div>
+      </div>
+    </div>
+
+    <div class="split" data-target="right"></div>
+
+    <div class="side" id="sideRight">
+      <div class="pane">
+        <h3>タスクパレット <span id="palCount"></span></h3>
+        <div class="scroll">
+          <input class="pal-search" id="palSearch" type="text" placeholder="タスクを検索…">
+          <div id="palList"></div>
+          <button class="pal-new" id="palNew">＋ 新しいタスクを作る</button>
+        </div>
+      </div>
+      <div class="split h" data-target="rowsplit"></div>
+      <div class="pane">
+        <h3 id="insTitle">インスペクタ</h3>
+        <div class="scroll ins" id="ins"></div>
+      </div>
+    </div>
+
   </div>
 
-  <div class="pane">
-    <h3 id="insTitle">インスペクタ</h3>
-    <div class="scroll ins" id="ins"></div>
+  <div id="runWrap">
+    <div class="runbar">
+      <b>試走モード</b> — 対応者と同じ画面です。ここで見えているものが、そのまま書き出される単一 HTML になります。
+      ここで付けた進捗と回答は、編集モードに戻ると破棄されます。
+    </div>
+    <div id="runRoot"></div>
   </div>
 
-</div>
-
-<!-- ================= 手順レーン ================= -->
-<div class="lane" id="lane">
-  <h3>手順レーン <span>ドラッグで順序を入れ替える／分岐は色で束ねて表示</span></h3>
-  <div class="lane-scroll" id="laneScroll"></div>
-</div>
-
-<p class="ed-note">
-  <b>提案用モックです。</b>内容はダミーで、実運用の手順ではありません。
-  データはこのブラウザの localStorage にのみ保存され、外部には送信されません。
-</p>
-
-<!-- ================= 試走モード ================= -->
-<div id="runWrap">
-  <div class="runbar">
-    <b>試走モード</b> — 対応者と同じ画面です。ここで見えているものが、そのまま書き出される単一 HTML になります。
-    ここで付けた進捗と回答は、編集モードに戻ると破棄されます。
-  </div>
-  <div id="runRoot"></div>
 </div>
 
 <!-- ================= モーダル ================= -->
@@ -936,7 +1019,7 @@ function seed(){ return {
     ]}
   ]
 };}
-/* データ記述用のヘルパー（この 3 つは種データの整形だけに使う） */
+/* データ記述用のヘルパー（種データの整形だけに使う） */
 function S(task,title,detail,sla,esc){
   return {id:nextId(), task:task, title:title, detail:detail||"", sla:sla||"",
           escalate:!!esc, conditions:[], decision:null};
@@ -949,71 +1032,266 @@ function C(st,key,value){ st.conditions.push({key:key,value:value}); return st; 
 var _id=0; function nextId(){ return "s" + (++_id); }
 
 /* ============ 状態 ============ */
-var SKEY = "soc-flow-editor-mock/v1";
-var DB, curEv, selStep = null, mode = "edit", palQ = "", viewer = null, collapsed = {};
+var SKEY = "soc-flow-editor-mock/v2";
+var DB, curEv = null, selStep = null, mode = "edit", viewer = null;
+var palQ = "", collapsed = {};
+var UI = {wl:268, wr:344, hp:42};
 
 var OPTC = ["#ffb02e","#4aa8ff","#ff5c8a","#2ee6a8","#a97bff","#5ad1e6"];
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
 function load(){
   try{
     var s = JSON.parse(localStorage.getItem(SKEY) || "null");
     if(s && s.db && s.db.events && s.db.events.length){
-      DB = s.db; curEv = s.curEv; _id = s.seq || 900;
-      if(!getEv()) curEv = DB.events[0].key;
+      DB = s.db; _id = s.seq || 900;
+      if(s.ui) UI = Object.assign(UI, s.ui);
       return;
     }
   }catch(e){}
-  DB = seed(); curEv = DB.events[0].key;
+  DB = seed();
 }
 function persist(){
-  try{ localStorage.setItem(SKEY, JSON.stringify({db:DB, curEv:curEv, seq:_id})); }catch(e){}
+  try{ localStorage.setItem(SKEY, JSON.stringify({db:DB, seq:_id, ui:UI})); }catch(e){}
 }
 function getEv(){ for(var i=0;i<DB.events.length;i++) if(DB.events[i].key===curEv) return DB.events[i]; return null; }
 function task(k){ for(var i=0;i<DB.tasks.length;i++) if(DB.tasks[i].key===k) return DB.tasks[i]; return null; }
 function phase(k){ for(var i=0;i<DB.phases.length;i++) if(DB.phases[i].key===k) return DB.phases[i]; return null; }
 function phaseOfStep(st){ var t = task(st.task); return t ? phase(t.phase) : null; }
-function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function $(id){ return document.getElementById(id); }
 
-/* 何番目の判断か（分岐の色分けに使う） */
-function decisionColor(evt, key){
+/* 判断ごとに色系統を割り当てる（分岐の見分けに使う） */
+function decisionOf(evt, key){
   var n = 0;
   for(var i=0;i<evt.steps.length;i++){
     var d = evt.steps[i].decision;
     if(!d) continue;
-    if(d.key === key) return { color: OPTC[n % OPTC.length], decision: d };
+    if(d.key === key) return {decision:d, index:n};
     n++;
   }
-  return { color: "var(--dec)", decision: null };
+  return {decision:null, index:0};
 }
 function optLabel(evt, c){
-  var d = decisionColor(evt, c.key).decision;
+  var d = decisionOf(evt, c.key).decision;
   if(!d) return c.value;
   for(var i=0;i<d.options.length;i++) if(d.options[i].value===c.value) return d.options[i].label;
   return c.value;
 }
 function optColor(evt, c){
-  var r = decisionColor(evt, c.key);
+  var r = decisionOf(evt, c.key);
   if(!r.decision) return "var(--dec)";
   var i = 0;
-  r.decision.options.forEach(function(o,ix){ if(o.value===c.value) i = ix; });
-  return OPTC[(r.decision.options.length>1 ? i : 0) % OPTC.length];
+  r.decision.options.forEach(function(o, ix){ if(o.value===c.value) i = ix; });
+  return OPTC[(i + r.index) % OPTC.length];
 }
 
-/* ============ パレット ============ */
-function usageAll(taskKey){
+/* ============================================================
+   画面 1: 事象ウィンドウ
+   ============================================================ */
+function phaseDist(evt){
+  var m = {};
+  evt.steps.forEach(function(s){ var t = task(s.task); if(t) m[t.phase] = (m[t.phase]||0) + 1; });
+  return DB.phases.filter(function(p){ return m[p.key]; }).map(function(p){ return {p:p, n:m[p.key]}; });
+}
+function renderEventsScreen(){
+  var grid = $("ewGrid"); grid.innerHTML = "";
+  $("ewCount").textContent = DB.events.length + " 件";
+
+  DB.events.forEach(function(ev){
+    var v = validate(ev);
+    var dist = phaseDist(ev);
+    var card = document.createElement("div");
+    card.className = "ew-card";
+    card.innerHTML =
+      '<div class="ew-hd"><span class="sev ' + ev.severity + '">' + ev.severity + '</span>'
+        + '<b>' + esc(ev.title) + '</b></div>'
+      + '<p class="ew-sub">' + esc(ev.sub || "（説明なし）") + '</p>'
+      + '<div class="ew-bar">' + dist.map(function(d){
+          return '<i style="background:' + d.p.color + ';flex:' + d.n + '"></i>'; }).join("") + '</div>'
+      + '<div class="ew-dist">' + dist.map(function(d){
+          return '<span><i style="background:' + d.p.color + '"></i>' + esc(d.p.name) + ' ' + d.n + '</span>';
+        }).join("") + '</div>'
+      + '<div class="ew-meta"><span>' + ev.steps.length + ' 手順</span>'
+        + '<span>' + v.paths.length + ' 経路</span>'
+        + '<span class="' + (v.issues.length ? "ng" : "ok") + '">'
+        + (v.issues.length ? "検証 " + v.issues.length + " 件" : "検証 OK") + '</span></div>'
+      + '<div class="ew-acts">'
+        + '<button data-a="open">開く</button>'
+        + '<button data-a="dup">複製</button>'
+        + '<button data-a="exp">書き出し</button>'
+        + '<button data-a="del" class="dg">削除</button></div>';
+
+    card.addEventListener("click", function(e){
+      var a = e.target.dataset ? e.target.dataset.a : null;
+      if(a === "dup"){ e.stopPropagation(); dupEvent(ev.key); return; }
+      if(a === "del"){ e.stopPropagation(); delEvent(ev.key); return; }
+      if(a === "exp"){ e.stopPropagation(); curEv = ev.key; showExport(); return; }
+      openEvent(ev.key);
+    });
+    grid.appendChild(card);
+  });
+
+  var nb = document.createElement("button");
+  nb.className = "ew-new";
+  nb.innerHTML = '<u>＋</u>新しい事象を作る';
+  nb.addEventListener("click", newEvent);
+  grid.appendChild(nb);
+}
+
+function openEvent(key){
+  curEv = key; selStep = null;
+  document.body.className = "screen-edit";
+  mode = "edit";
+  Array.prototype.forEach.call(document.querySelectorAll(".ed-modes button"), function(b){
+    b.classList.toggle("on", b.dataset.mode === "edit");
+  });
+  if(viewer){ viewer.destroy(); viewer = null; $("runRoot").innerHTML = ""; }
+  applyUI();
+  renderAll();
+  requestAnimationFrame(renderCanvas);
+}
+function backToEvents(){
+  if(viewer){ viewer.destroy(); viewer = null; $("runRoot").innerHTML = ""; }
+  document.body.className = "screen-events";
+  selStep = null;
+  renderEventsScreen();
+}
+function newEvent(){
+  var t = prompt("新しい事象の名称を入力してください。", "新しい事象");
+  if(t === null) return;
+  var k = "e" + Date.now().toString(36);
+  DB.events.push({key:k, severity:"S2", title:t || "新しい事象", sub:"", steps:[]});
+  persist();
+  openEvent(k);
+}
+function dupEvent(key){
+  var e = DB.events.filter(function(x){ return x.key===key; })[0];
+  var c = JSON.parse(JSON.stringify(e));
+  c.key = "e" + Date.now().toString(36);
+  c.title = e.title + "（複製）";
+  c.steps.forEach(function(s){ s.id = nextId(); });
+  DB.events.push(c); persist(); renderEventsScreen();
+}
+function delEvent(key){
+  var e = DB.events.filter(function(x){ return x.key===key; })[0];
+  if(DB.events.length < 2){ alert("最後の 1 件は削除できません。"); return; }
+  if(!confirm("「" + e.title + "」を削除します。よろしいですか？")) return;
+  DB.events = DB.events.filter(function(x){ return x.key !== key; });
+  persist(); renderEventsScreen();
+}
+
+/* ============================================================
+   画面 2: 編集ビュー
+   ============================================================ */
+function renderHeader(){
+  var ev = getEv(); if(!ev) return;
+  $("edTitle").innerHTML = '<span class="sev ' + ev.severity + '">' + ev.severity + '</span>'
+    + '<b>' + esc(ev.title) + '</b>';
+}
+
+/* ---------- 手順アウトライン（左） ---------- */
+function condKey(st){
+  return (st.conditions||[]).map(function(c){ return c.key + "=" + c.value; }).sort().join("&");
+}
+function outlineRows(evt){
+  var rows = [], prev = "";
+  evt.steps.forEach(function(st, i){
+    var k = condKey(st);
+    if(k !== prev){
+      if(k) rows.push({type:"grp", conds:(st.conditions||[]).slice()});
+      prev = k;
+    }
+    rows.push({type:"step", st:st, i:i, deep:!!k});
+  });
+  return rows;
+}
+var dragStepId = null;
+function renderOutline(){
+  var evt = getEv(), box = $("olList");
+  box.innerHTML = "";
+  $("olCount").textContent = evt.steps.length + " 手順";
+
+  if(!evt.steps.length){
+    box.innerHTML = '<p class="ol-empty">手順がまだありません。<br>'
+      + '右のタスクパレットから、キャンバスへドラッグしてください。</p>';
+    return;
+  }
+
+  outlineRows(evt).forEach(function(r){
+    if(r.type === "grp"){
+      var col = optColor(evt, r.conds[0]);
+      var g = document.createElement("div");
+      g.className = "ol-grp"; g.style.setProperty("--oc", col);
+      g.innerHTML = r.conds.map(function(c){ return esc(optLabel(evt, c)); }).join(" かつ ")
+        + ' <u>のとき</u>';
+      box.appendChild(g);
+      return;
+    }
+    var st = r.st, p = phaseOfStep(st) || {color:"var(--line)"};
+    var el = document.createElement("div");
+    el.className = "ol-row" + (r.deep ? " d1" : "") + (st.decision ? " dec" : "")
+      + (selStep === st.id ? " sel" : "");
+    el.style.setProperty("--pc", p.color);
+    el.draggable = true; el.dataset.id = st.id;
+    var f = "";
+    if(st.sla) f += '<span class="sla">' + esc(st.sla) + '</span>';
+    if(st.escalate) f += '<span class="esc">!</span>';
+    el.innerHTML = '<span class="ol-no">' + (r.i+1) + '</span><span class="ol-pc"></span>'
+      + '<span class="ol-t">' + esc(st.title) + '</span><span class="ol-f">' + f + '</span>';
+    el.addEventListener("click", function(){ selStep = st.id; renderAll(); scrollCanvasToSel(); });
+    el.addEventListener("dragstart", function(e){
+      dragStepId = st.id; el.classList.add("drag");
+      e.dataTransfer.setData("text/plain", "step:" + st.id);
+      e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragend", function(){
+      dragStepId = null; el.classList.remove("drag");
+      Array.prototype.forEach.call(box.querySelectorAll(".ol-row"), function(x){ x.classList.remove("over"); });
+    });
+    el.addEventListener("dragover", function(e){ if(dragStepId){ e.preventDefault(); el.classList.add("over"); } });
+    el.addEventListener("dragleave", function(){ el.classList.remove("over"); });
+    el.addEventListener("drop", function(e){
+      e.preventDefault(); e.stopPropagation();
+      if(dragStepId) moveStep(dragStepId, st.id);
+    });
+    box.appendChild(el);
+  });
+
+  var lg = document.createElement("p");
+  lg.className = "ol-legend";
+  lg.innerHTML = "◆ 判断ステップ　／　字下げ＝その答えのときだけ実施する手順<br>"
+    + "行をドラッグすると順序を入れ替えられます。";
+  box.appendChild(lg);
+}
+function scrollCanvasToSel(){
+  var el = $("cgrid").querySelector(".cnode.sel");
+  if(el) el.scrollIntoView({behavior:"smooth", block:"nearest", inline:"nearest"});
+}
+function moveStep(fromId, beforeId){
+  var evt = getEv();
+  var fi = evt.steps.findIndex(function(s){ return s.id===fromId; });
+  if(fi < 0 || fromId === beforeId) return;
+  var moved = evt.steps.splice(fi, 1)[0];
+  var ti = beforeId ? evt.steps.findIndex(function(s){ return s.id===beforeId; }) : -1;
+  evt.steps.splice(ti < 0 ? evt.steps.length : ti, 0, moved);
+  persist(); renderAll();
+}
+
+/* ---------- タスクパレット（右上） ---------- */
+function usageAll(k){
   var n = 0;
-  DB.events.forEach(function(e){ if(e.steps.some(function(s){ return s.task===taskKey; })) n++; });
+  DB.events.forEach(function(e){ if(e.steps.some(function(s){ return s.task===k; })) n++; });
   return n;
 }
-function usageHere(taskKey){
+function usageHere(k){
   var e = getEv(); if(!e) return 0;
-  return e.steps.filter(function(s){ return s.task===taskKey; }).length;
+  return e.steps.filter(function(s){ return s.task===k; }).length;
 }
 function renderPalette(){
   var box = $("palList"); box.innerHTML = "";
-  var q = palQ.trim().toLowerCase();
-  var shown = 0;
+  var q = palQ.trim().toLowerCase(), shown = 0;
   DB.phases.forEach(function(p){
     var ts = DB.tasks.filter(function(t){
       if(t.phase !== p.key) return false;
@@ -1025,15 +1303,13 @@ function renderPalette(){
     g.className = "pal-g"; g.style.setProperty("--pc", p.color);
     var open = !collapsed[p.key];
     g.innerHTML = '<h4>' + esc(p.name) + '<u>' + ts.length + '</u></h4>';
-    g.querySelector("h4").addEventListener("click", function(){
-      collapsed[p.key] = open; renderPalette();
-    });
+    g.querySelector("h4").addEventListener("click", function(){ collapsed[p.key] = open; renderPalette(); });
     if(open) ts.forEach(function(t){
       shown++;
       var here = usageHere(t.key), all = usageAll(t.key);
       var el = document.createElement("div");
       el.className = "pal-t"; el.draggable = true; el.dataset.k = t.key;
-      el.innerHTML = '<b>' + esc(t.label) + '</b><span>' + esc(t.note||"") + '</span>'
+      el.innerHTML = '<b>' + esc(t.label) + '</b><span class="nt">' + esc(t.note||"") + '</span>'
         + '<span class="use">' + (here ? '<span class="u-in">使用中' + (here>1 ? "×"+here : "") + '</span>' : '')
         + '<span class="u-all">' + all + '事象</span></span>'
         + '<button class="add" title="末尾に追加">+</button>';
@@ -1050,9 +1326,7 @@ function renderPalette(){
         document.body.classList.remove("dragging");
         Array.prototype.forEach.call($("cgrid").querySelectorAll(".ccol"), function(c){ c.classList.remove("drop"); });
       });
-      el.querySelector(".add").addEventListener("click", function(ev2){
-        ev2.stopPropagation(); addStep(t.key);
-      });
+      el.querySelector(".add").addEventListener("click", function(e2){ e2.stopPropagation(); addStep(t.key); });
       g.appendChild(el);
     });
     box.appendChild(g);
@@ -1061,9 +1335,9 @@ function renderPalette(){
   $("palCount").textContent = DB.tasks.length + " 件";
 }
 
-/* ============ キャンバス ============ */
+/* ---------- キャンバス（中央） ---------- */
 function renderCanvas(){
-  var evt = getEv();
+  var evt = getEv(); if(!evt) return;
   var grid = $("cgrid"), wires = $("cwires");
   grid.innerHTML = ""; grid.appendChild(wires);
   var nodes = [];
@@ -1084,8 +1358,7 @@ function renderCanvas(){
       if((st.conditions||[]).length) flags += '<span class="f-cond" title="表示条件あり">&#8888;</span>';
       if(st.escalate) flags += '<span class="f-esc" title="エスカレーション判断">!</span>';
       if(st.sla) flags += '<span class="f-sla">' + esc(st.sla) + '</span>';
-      el.innerHTML = '<span class="num">' + (i+1) + '</span>'
-        + '<span class="flags">' + flags + '</span>'
+      el.innerHTML = '<span class="num">' + (i+1) + '</span><span class="flags">' + flags + '</span>'
         + '<b>' + esc(st.title) + '</b><span class="tk">' + esc(t.label) + '</span>';
       el.addEventListener("click", function(){ selStep = st.id; renderAll(); });
       col.appendChild(el);
@@ -1100,7 +1373,8 @@ function renderCanvas(){
   if(!evt.steps.length){
     var e0 = document.createElement("div");
     e0.className = "cempty";
-    e0.innerHTML = '<b>まだ手順がありません</b>左のパレットからタスクをドラッグして投入してください。<br>フェーズ列への配置と接続線は自動で決まります。';
+    e0.innerHTML = '<b>まだ手順がありません</b>右のタスクパレットからドラッグして投入してください。<br>'
+      + 'フェーズ列への配置と接続線は自動で決まります。';
     grid.appendChild(e0);
   }
   requestAnimationFrame(function(){ paintEditorWires(nodes); });
@@ -1110,9 +1384,8 @@ function paintEditorWires(nodes){
   var grid = $("cgrid"), wires = $("cwires");
   var box = grid.getBoundingClientRect();
   wires.setAttribute("viewBox", "0 0 " + grid.clientWidth + " " + grid.clientHeight);
-  var evt = getEv();
   var seq = nodes.filter(Boolean);
-  if(seq.length < 2){ wires.innerHTML = ""; return; }
+  if(seq.length < 2){ wires.innerHTML = ""; $("canvHint").textContent = "パレットからドラッグして投入"; return; }
 
   function ortho(pts, r){
     var d = "M " + pts[0][0] + " " + pts[0][1];
@@ -1128,7 +1401,27 @@ function paintEditorWires(nodes){
   var maxBottom = 0;
   seq.forEach(function(el){ maxBottom = Math.max(maxBottom, el.getBoundingClientRect().bottom - box.top); });
 
-  var out = '<defs><marker id="eah" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#5b6478"/></marker></defs>';
+  /* 同じ列の 2 つのボックスの間に線を通せるすき間があれば、その y を返す。
+     無ければ null（＝下の迂回路を使う）。ビューア側と同じ規則。 */
+  function gapLane(a, b){
+    var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    if(Math.abs(ra.left - rb.left) > 2) return null;
+    var up = ra.top < rb.top ? ra : rb, low = ra.top < rb.top ? rb : ra;
+    var gap = low.top - up.bottom;
+    if(gap < 12) return null;
+    var y = up.bottom + gap/2 - box.top;
+    for(var i=0;i<seq.length;i++){
+      var el = seq[i];
+      if(el === a || el === b) continue;
+      var r = el.getBoundingClientRect();
+      if(Math.abs(r.left - ra.left) > 2) continue;
+      if(r.top - box.top < y && r.bottom - box.top > y) return null;
+    }
+    return y;
+  }
+
+  var out = '<defs><marker id="eah" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6"'
+    + ' orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#5b6478"/></marker></defs>';
   var back = 0;
   for(var k=0;k<seq.length-1;k++){
     var ra = seq[k].getBoundingClientRect(), rb = seq[k+1].getBoundingClientRect();
@@ -1140,75 +1433,27 @@ function paintEditorWires(nodes){
       d = "M " + x1 + " " + y1 + " C " + (x1+dx) + " " + y1 + ", " + (x2-dx) + " " + y2 + ", " + x2 + " " + y2;
     }else{
       var gx = Math.min(grid.clientWidth-6, x1+24), hx = Math.max(-10, x2-24);
-      var ch = maxBottom + 20 + back*12; back++;
-      d = ortho([[x1,y1],[gx,y1],[gx,ch],[hx,ch],[hx,y2],[x2,y2]], 10);
+      var gy = gapLane(seq[k], seq[k+1]);
+      if(gy !== null){
+        d = ortho([[x1,y1],[gx,y1],[gx,gy],[hx,gy],[hx,y2],[x2,y2]], 9);
+      }else{
+        var ch = maxBottom + 20 + back*12; back++;
+        d = ortho([[x1,y1],[gx,y1],[gx,ch],[hx,ch],[hx,y2],[x2,y2]], 10);
+      }
     }
-    out += '<path d="' + d + '" stroke="#5b6478" fill="none" stroke-width="1.8" opacity="0.5" marker-end="url(#eah)"/>';
+    out += '<path d="' + d + '" stroke="#5b6478" fill="none" stroke-width="1.8" opacity="0.5"'
+      + ' marker-end="url(#eah)"/>';
   }
   wires.innerHTML = out;
+  /* ここで数えているのは「下の迂回路を通った線」。検証モーダルの
+     「前のフェーズへの後戻り」とは別の指標なので、文言を分けてある。 */
   $("canvHint").textContent = back > 5
-    ? "後戻りが " + back + " 本 — 並び順を見直してください"
+    ? "迂回する線が " + back + " 本 — 並び順を見直してください"
     : "パレットからドラッグして投入";
   $("canvHint").style.color = back > 5 ? "var(--s2)" : "";
 }
 
-/* ============ 手順レーン ============ */
-var dragStepId = null;
-function renderLane(){
-  var evt = getEv(), box = $("laneScroll");
-  box.innerHTML = "";
-  if(!evt.steps.length){
-    box.innerHTML = '<p class="lane-empty">手順がまだありません。パレットからタスクを投入すると、ここに実施順が並びます。</p>';
-    return;
-  }
-  evt.steps.forEach(function(st, i){
-    if(i) { var ar = document.createElement("div"); ar.className = "arrow"; ar.innerHTML = "&#8594;"; box.appendChild(ar); }
-    var p = phaseOfStep(st) || {color:"var(--line)", name:""};
-    var el = document.createElement("div");
-    el.className = "chip" + (selStep === st.id ? " sel" : "");
-    el.style.setProperty("--pc", p.color);
-    el.draggable = true; el.dataset.id = st.id;
-    var cond = (st.conditions||[]).map(function(c){
-      var col = optColor(evt, c);
-      return '<span class="cd" style="color:' + col + ';border-color:' + col + '">' + esc(optLabel(evt,c)) + '</span>';
-    }).join(" ");
-    el.innerHTML = '<span class="no">' + (i+1) + '</span>'
-      + (st.decision ? '<span class="dq">&#9670; 判断</span>' : '')
-      + '<b>' + esc(st.title) + '</b>' + cond;
-    el.addEventListener("click", function(){ selStep = st.id; renderAll(); });
-    el.addEventListener("dragstart", function(e){
-      dragStepId = st.id; el.classList.add("drag");
-      e.dataTransfer.setData("text/plain", "step:" + st.id);
-      e.dataTransfer.effectAllowed = "move";
-    });
-    el.addEventListener("dragend", function(){
-      dragStepId = null; el.classList.remove("drag");
-      Array.prototype.forEach.call(box.querySelectorAll(".chip"), function(c){ c.classList.remove("over"); });
-    });
-    el.addEventListener("dragover", function(e){
-      if(!dragStepId) return;
-      e.preventDefault(); el.classList.add("over");
-    });
-    el.addEventListener("dragleave", function(){ el.classList.remove("over"); });
-    el.addEventListener("drop", function(e){
-      e.preventDefault(); e.stopPropagation();
-      if(!dragStepId) return;
-      moveStep(dragStepId, st.id);
-    });
-    box.appendChild(el);
-  });
-}
-function moveStep(fromId, beforeId){
-  var evt = getEv();
-  var fi = evt.steps.findIndex(function(s){ return s.id===fromId; });
-  if(fi < 0) return;
-  var moved = evt.steps.splice(fi, 1)[0];
-  var ti = evt.steps.findIndex(function(s){ return s.id===beforeId; });
-  evt.steps.splice(ti < 0 ? evt.steps.length : ti, 0, moved);
-  persist(); renderAll();
-}
-
-/* ============ インスペクタ ============ */
+/* ---------- インスペクタ（右下） ---------- */
 function priorDecisions(evt, stepId){
   var out = [], hit = false;
   for(var i=0;i<evt.steps.length;i++){
@@ -1228,16 +1473,14 @@ function renderInspector(){
       '<label>事象名</label><input type="text" id="i_title" value="' + esc(evt.title) + '">'
       + '<label>補足</label><input type="text" id="i_sub" value="' + esc(evt.sub) + '">'
       + '<label>重大度</label><select id="i_sev">'
-      + ["S1","S2","S3"].map(function(v){ return '<option value="'+v+'"' + (evt.severity===v?" selected":"") + '>' + v + '</option>'; }).join("")
+      + ["S1","S2","S3"].map(function(v){
+          return '<option value="'+v+'"' + (evt.severity===v?" selected":"") + '>' + v + '</option>'; }).join("")
       + '</select>'
-      + '<p class="hint">フローキャンバスのボックスを選ぶと、その手順の内容を編集できます。</p>'
-      + '<button class="del" id="i_dupEv">この事象を複製する</button>'
-      + '<button class="del" id="i_delEv">この事象を削除する</button>';
-    $("i_title").addEventListener("input", function(){ evt.title = this.value; persist(); renderEvSel(); });
+      + '<p class="hint">キャンバスのボックス、または左のアウトラインの行を選ぶと、'
+      + 'その手順の内容を編集できます。<br>複製と削除は事象一覧で行います。</p>';
+    $("i_title").addEventListener("input", function(){ evt.title = this.value; persist(); renderHeader(); });
     $("i_sub").addEventListener("input", function(){ evt.sub = this.value; persist(); });
-    $("i_sev").addEventListener("change", function(){ evt.severity = this.value; persist(); renderEvSel(); });
-    $("i_dupEv").addEventListener("click", dupEvent);
-    $("i_delEv").addEventListener("click", delEvent);
+    $("i_sev").addEventListener("change", function(){ evt.severity = this.value; persist(); renderHeader(); });
     return;
   }
 
@@ -1251,7 +1494,8 @@ function renderInspector(){
       opts += '<optgroup label="' + esc(d.label) + '">';
       d.options.forEach(function(o){
         var v = d.key + "=" + o.value;
-        opts += '<option value="' + esc(v) + '"' + ((c.key===d.key && c.value===o.value) ? " selected" : "") + '>' + esc(o.label) + '</option>';
+        opts += '<option value="' + esc(v) + '"'
+          + ((c.key===d.key && c.value===o.value) ? " selected" : "") + '>' + esc(o.label) + '</option>';
       });
       opts += '</optgroup>';
     });
@@ -1262,7 +1506,7 @@ function renderInspector(){
          + '<button class="x" data-rm="' + ci + '">&times;</button></div>';
   }).join("");
 
-  var decHtml = "";
+  var decHtml;
   if(st.decision){
     decHtml = '<div class="sect"><h4>判断ステップ <button class="x" id="d_del">&times;</button></h4>'
       + '<label>質問文</label><input type="text" id="d_label" value="' + esc(st.decision.label) + '">'
@@ -1285,18 +1529,24 @@ function renderInspector(){
     + '<label>手順のタイトル</label><input type="text" id="s_title" value="' + esc(st.title) + '">'
     + '<label>詳細</label><textarea id="s_detail">' + esc(st.detail) + '</textarea>'
     + '<p class="hint">&lt;code&gt; で囲んだ部分は強調表示されます。</p>'
-    + '<div class="row"><div><label>SLA</label><input type="text" id="s_sla" placeholder="15分 / 即時" value="' + esc(st.sla) + '"></div>'
-    + '<div><label>エスカレーション</label><label class="chk" style="margin:0"><input type="checkbox" id="s_esc"' + (st.escalate?" checked":"") + '>判断が必要</label></div></div>'
-    + '<div class="sect"><h4>表示条件（AND）</h4>' + (condHtml || '<p class="hint" style="margin:0 0 7px">常に表示されます。</p>')
-    + '<button class="mini" id="c_add"' + (priors.length ? "" : " disabled") + '>'
-    + (priors.length ? "＋ 条件を追加" : "この手順より前に判断がありません") + '</button></div>'
+    + '<div class="row"><div><label>SLA</label>'
+      + '<input type="text" id="s_sla" placeholder="15分 / 即時" value="' + esc(st.sla) + '"></div>'
+    + '<div><label>エスカレーション</label><label class="chk" style="margin:0">'
+      + '<input type="checkbox" id="s_esc"' + (st.escalate?" checked":"") + '>判断が必要</label></div></div>'
+    + '<div class="sect"><h4>表示条件（AND）</h4>'
+      + (condHtml || '<p class="hint" style="margin:0 0 7px">常に表示されます。</p>')
+      + '<button class="mini" id="c_add"' + (priors.length ? "" : " disabled") + '>'
+      + (priors.length ? "＋ 条件を追加" : "この手順より前に判断がありません") + '</button></div>'
     + decHtml
     + '<button class="del" id="s_del">この手順を削除する</button>';
 
-  $("s_title").addEventListener("input", function(){ st.title = this.value; persist(); renderCanvas(); renderLane(); });
+  $("s_title").addEventListener("input", function(){
+    st.title = this.value; persist(); renderCanvas(); renderOutline(); });
   $("s_detail").addEventListener("input", function(){ st.detail = this.value; persist(); });
-  $("s_sla").addEventListener("input", function(){ st.sla = this.value; persist(); renderCanvas(); });
-  $("s_esc").addEventListener("change", function(){ st.escalate = this.checked; persist(); renderCanvas(); });
+  $("s_sla").addEventListener("input", function(){
+    st.sla = this.value; persist(); renderCanvas(); renderOutline(); });
+  $("s_esc").addEventListener("change", function(){
+    st.escalate = this.checked; persist(); renderCanvas(); renderOutline(); });
   $("s_del").addEventListener("click", function(){
     evt.steps = evt.steps.filter(function(x){ return x.id !== st.id; });
     selStep = null; persist(); renderAll();
@@ -1314,34 +1564,29 @@ function renderInspector(){
     });
   });
   Array.prototype.forEach.call(box.querySelectorAll("[data-rm]"), function(b){
-    b.addEventListener("click", function(){
-      st.conditions.splice(+this.dataset.rm, 1); persist(); renderAll();
-    });
+    b.addEventListener("click", function(){ st.conditions.splice(+this.dataset.rm, 1); persist(); renderAll(); });
   });
   if($("d_make")) $("d_make").addEventListener("click", function(){
-    st.decision = {key:"q" + (evt.steps.filter(function(s){return s.decision;}).length + 1),
+    st.decision = {key:"q" + (evt.steps.filter(function(s){ return s.decision; }).length + 1),
                    label:"判定結果はどちらですか？",
                    options:[{value:"yes",label:"はい"},{value:"no",label:"いいえ"}]};
     persist(); renderAll();
   });
   if($("d_del")) $("d_del").addEventListener("click", function(){
     var used = evt.steps.filter(function(s){
-      return (s.conditions||[]).some(function(c){ return c.key === st.decision.key; });
-    });
+      return (s.conditions||[]).some(function(c){ return c.key === st.decision.key; }); });
     if(used.length && !confirm("この判断を参照している手順が " + used.length + " 件あります。\n\n"
         + used.map(function(s){ return "・" + s.title; }).join("\n")
         + "\n\n削除すると、それらは常に表示されるようになります。続けますか？")) return;
     used.forEach(function(s){
-      s.conditions = s.conditions.filter(function(c){ return c.key !== st.decision.key; });
-    });
+      s.conditions = s.conditions.filter(function(c){ return c.key !== st.decision.key; }); });
     st.decision = null; persist(); renderAll();
   });
   if($("d_label")) $("d_label").addEventListener("input", function(){ st.decision.label = this.value; persist(); });
   if($("d_key")) $("d_key").addEventListener("input", function(){
     var old = st.decision.key, nk = this.value;
     evt.steps.forEach(function(s){
-      (s.conditions||[]).forEach(function(c){ if(c.key === old) c.key = nk; });
-    });
+      (s.conditions||[]).forEach(function(c){ if(c.key === old) c.key = nk; }); });
     st.decision.key = nk; persist();
   });
   if($("d_add")) $("d_add").addEventListener("click", function(){
@@ -1350,8 +1595,7 @@ function renderInspector(){
   });
   Array.prototype.forEach.call(box.querySelectorAll("[data-oi]"), function(inp){
     inp.addEventListener("input", function(){
-      st.decision.options[+this.dataset.oi].label = this.value; persist(); renderLane();
-    });
+      st.decision.options[+this.dataset.oi].label = this.value; persist(); renderOutline(); });
   });
   Array.prototype.forEach.call(box.querySelectorAll("[data-ormv]"), function(b){
     b.addEventListener("click", function(){
@@ -1361,45 +1605,7 @@ function renderInspector(){
   });
 }
 
-/* ============ 事象セレクタ ============ */
-function renderEvSel(){
-  var box = $("evsel"); box.innerHTML = "";
-  DB.events.forEach(function(e){
-    var b = document.createElement("button");
-    b.className = (e.key === curEv ? "on" : "");
-    b.innerHTML = '<i>' + e.severity + '</i>' + esc(e.title);
-    b.addEventListener("click", function(){ curEv = e.key; selStep = null; persist(); renderAll(); });
-    box.appendChild(b);
-  });
-  var nb = document.createElement("button");
-  nb.innerHTML = "＋ 事象";
-  nb.addEventListener("click", newEvent);
-  box.appendChild(nb);
-}
-function newEvent(){
-  var t = prompt("新しい事象の名称を入力してください。", "新しい事象");
-  if(t === null) return;
-  var k = "e" + Date.now().toString(36);
-  DB.events.push({key:k, severity:"S2", title:t || "新しい事象", sub:"", steps:[]});
-  curEv = k; selStep = null; persist(); renderAll();
-}
-function dupEvent(){
-  var e = getEv();
-  var c = JSON.parse(JSON.stringify(e));
-  c.key = "e" + Date.now().toString(36);
-  c.title = e.title + "（複製）";
-  c.steps.forEach(function(s){ s.id = nextId(); });
-  DB.events.push(c); curEv = c.key; selStep = null; persist(); renderAll();
-}
-function delEvent(){
-  if(DB.events.length < 2){ alert("最後の 1 件は削除できません。"); return; }
-  var e = getEv();
-  if(!confirm("「" + e.title + "」を削除します。よろしいですか？")) return;
-  DB.events = DB.events.filter(function(x){ return x.key !== e.key; });
-  curEv = DB.events[0].key; selStep = null; persist(); renderAll();
-}
-
-/* ============ 手順の追加 ============ */
+/* ---------- 手順の追加 ---------- */
 function addStep(taskKey){
   var evt = getEv(), t = task(taskKey);
   var st = {id:nextId(), task:taskKey, title:t.label, detail:"", sla:"", escalate:false,
@@ -1411,12 +1617,12 @@ function addStep(taskKey){
   if(el){ el.classList.add("new"); el.scrollIntoView({behavior:"smooth", block:"nearest", inline:"nearest"}); }
 }
 
-/* ============ 検証 ============ */
+/* ============ 検証・経路 ============ */
 function parseSla(s){
   if(!s) return 0;
+  if(/即時/.test(s)) return 0;
   var m = String(s).match(/(\d+(?:\.\d+)?)/);
   var n = m ? parseFloat(m[1]) : 0;
-  if(/即時/.test(s)) return 0;
   if(/営業日|日/.test(s)) return n * 8 * 60;
   if(/時間/.test(s)) return n * 60;
   return n;
@@ -1428,6 +1634,14 @@ function fmtMin(m){
 }
 function enumeratePaths(evt){
   var results = [];
+  function vis(st, ans){
+    var cs = st.conditions || [];
+    for(var j=0;j<cs.length;j++){
+      if(ans[cs[j].key] === undefined) return false;
+      if(ans[cs[j].key] !== cs[j].value) return false;
+    }
+    return true;
+  }
   function walk(i, ans){
     if(results.length >= 64) return;
     for(; i<evt.steps.length; i++){
@@ -1443,14 +1657,6 @@ function enumeratePaths(evt){
     }
     results.push(ans);
   }
-  function vis(st, ans){
-    var cs = st.conditions || [];
-    for(var j=0;j<cs.length;j++){
-      if(ans[cs[j].key] === undefined) return false;
-      if(ans[cs[j].key] !== cs[j].value) return false;
-    }
-    return true;
-  }
   walk(0, {});
   return results.map(function(ans){
     var steps = evt.steps.filter(function(st){ return vis(st, ans); });
@@ -1459,12 +1665,13 @@ function enumeratePaths(evt){
   });
 }
 function validate(evt){
-  var issues = [];
-  var seen = {};
+  var issues = [], seen = {};
   evt.steps.forEach(function(st, i){
     (st.conditions||[]).forEach(function(c){
-      if(!seen[c.key]) issues.push({lv:"err", t:"手順 " + (i+1) + "「" + st.title + "」の条件が、まだ現れていない判断を参照しています",
-        d:"参照キー: " + c.key + " — この判断はこの手順より後ろにあるか、存在しません。対応者は答えていない質問の結果で分岐させられません。"});
+      if(!seen[c.key]) issues.push({lv:"err",
+        t:"手順 " + (i+1) + "「" + st.title + "」の条件が、まだ現れていない判断を参照しています",
+        d:"参照キー: " + c.key + " — この判断はこの手順より後ろにあるか、存在しません。"
+          + "対応者は、まだ答えていない質問の結果で分岐させられません。"});
     });
     if(st.decision) seen[st.decision.key] = true;
   });
@@ -1472,20 +1679,18 @@ function validate(evt){
   evt.steps.forEach(function(st, i){
     if(!(st.conditions||[]).length) return;
     var reachable = paths.some(function(p){
-      return st.conditions.every(function(c){ return p.answers[c.key] === c.value; });
-    });
-    if(!reachable) issues.push({lv:"wrn", t:"手順 " + (i+1) + "「" + st.title + "」はどの経路でも表示されません",
+      return st.conditions.every(function(c){ return p.answers[c.key] === c.value; }); });
+    if(!reachable) issues.push({lv:"wrn",
+      t:"手順 " + (i+1) + "「" + st.title + "」はどの経路でも表示されません",
       d:"条件の組み合わせが成立しません。条件を見直すか、手順を削除してください。"});
   });
-  var used = {};
   evt.steps.forEach(function(st){
     if(!st.decision) return;
     var refs = evt.steps.filter(function(s){
-      return (s.conditions||[]).some(function(c){ return c.key === st.decision.key; });
-    });
-    if(!refs.length) issues.push({lv:"wrn", t:"判断「" + st.decision.label + "」の答えが、どの手順にも使われていません",
+      return (s.conditions||[]).some(function(c){ return c.key === st.decision.key; }); });
+    if(!refs.length) issues.push({lv:"wrn",
+      t:"判断「" + st.decision.label + "」の答えが、どの手順にも使われていません",
       d:"回答しても何も変わりません。分岐が不要なら、判断ステップを解除できます。"});
-    used[st.decision.key] = 1;
   });
   var back = 0, order = DB.phases.map(function(p){ return p.key; });
   for(var i=1;i<evt.steps.length;i++){
@@ -1497,10 +1702,8 @@ function validate(evt){
   return {issues:issues, paths:paths, back:back};
 }
 function renderCheckBadge(){
-  var r = validate(getEv());
-  var b = $("btnCheck");
-  var err = r.issues.filter(function(i){ return i.lv==="err"; }).length;
-  b.className = "ed-tool" + (r.issues.length ? (err ? " warn" : " warn") : " good");
+  var r = validate(getEv()), b = $("btnCheck");
+  b.className = "ed-tool" + (r.issues.length ? " warn" : " good");
   b.textContent = r.issues.length ? "検証 " + r.issues.length + " 件" : "検証 OK";
 }
 
@@ -1512,16 +1715,13 @@ function openModal(title, sub, bodyHtml, footHtml){
   $("mask").classList.add("on");
 }
 function closeModal(){ $("mask").classList.remove("on"); $("mBody").innerHTML = ""; }
-$("mClose").addEventListener("click", closeModal);
-$("mask").addEventListener("click", function(e){ if(e.target === $("mask")) closeModal(); });
 
 function showCheck(){
   var evt = getEv(), r = validate(evt);
   var html = r.issues.length
     ? r.issues.map(function(i){
         return '<div class="issue ' + (i.lv==="err"?"err":"wrn") + '"><i>' + (i.lv==="err"?"エラー":"注意") + '</i>'
-             + '<div><b>' + esc(i.t) + '</b><span>' + esc(i.d) + '</span></div></div>';
-      }).join("")
+             + '<div><b>' + esc(i.t) + '</b><span>' + esc(i.d) + '</span></div></div>'; }).join("")
     : '<p class="okmsg">&#10003; 問題は見つかりませんでした。</p>';
   openModal("検証", evt.title, html);
 }
@@ -1531,8 +1731,7 @@ function showPaths(){
   var rows = r.paths.map(function(p, i){
     var keys = Object.keys(p.answers);
     var chips = keys.length ? keys.map(function(k){
-        var c = {key:k, value:p.answers[k]};
-        var col = optColor(evt, c);
+        var c = {key:k, value:p.answers[k]}, col = optColor(evt, c);
         return '<em style="color:' + col + ';border-color:' + col + '">' + esc(optLabel(evt, c)) + '</em>';
       }).join("") : '<em style="color:var(--faint);border-color:var(--line)">分岐なし</em>';
     return '<tr><td class="num">' + (i+1) + '</td><td><div class="pathkey">' + chips + '</div></td>'
@@ -1543,6 +1742,24 @@ function showPaths(){
     '<p class="ins hint" style="margin:0 0 12px">分岐の全組み合わせです。SLA の合計が最も長い経路を色付きで示します。'
     + '対応者は 1 本しか辿りませんが、設計する側は全部を見る必要があります。</p>'
     + '<table class="tbl"><thead><tr><th>#</th><th>回答の組み合わせ</th><th>手順数</th><th>SLA 合計</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>');
+}
+function showTasks(){
+  var rows = DB.phases.map(function(p){
+    return DB.tasks.filter(function(t){ return t.phase===p.key; }).map(function(t){
+      var evs = DB.events.filter(function(e){ return e.steps.some(function(s){ return s.task===t.key; }); });
+      return '<tr><td><span style="color:' + p.color + '">&#9679;</span> ' + esc(p.name) + '</td>'
+        + '<td><b>' + esc(t.label) + '</b><br><span style="color:var(--faint);font-size:12px">'
+        + esc(t.note||"") + '</span></td>'
+        + '<td class="num">' + evs.length + '</td>'
+        + '<td style="font-size:12px;color:var(--dim)">'
+        + (evs.length ? evs.map(function(e){ return esc(e.title); }).join("、") : "—") + '</td></tr>';
+    }).join("");
+  }).join("");
+  openModal("タスク一覧", DB.tasks.length + " 件 — どの事象で使われているか",
+    '<p class="ins hint" style="margin:0 0 12px">タスクは事象をまたいで再利用される部品です。'
+    + '使用事象が多いものほど、組織の定番手順として育っていることを示します。</p>'
+    + '<table class="tbl"><thead><tr><th>フェーズ</th><th>タスク</th><th>事象数</th><th>使用事象</th></tr></thead>'
     + '<tbody>' + rows + '</tbody></table>');
 }
 
@@ -1559,21 +1776,22 @@ function buildExportHTML(events, title){
     + 'mountViewer(document.getElementById("root"), DATA, {storageKey:"soc-flow-run/"+location.pathname});\n'
     + '<\/script>\n</body>\n</html>\n';
 }
+function kb(s){ return (new Blob([s]).size / 1024).toFixed(0) + " KB"; }
 function showExport(){
   var evt = getEv();
-  var one = buildExportHTML([evt], evt.title + " — SOC 対応フロー");
   var all = buildExportHTML(DB.events, "SOC 対応フロー");
-  var kb = function(s){ return (new Blob([s]).size / 1024).toFixed(0) + " KB"; };
+  var one = evt ? buildExportHTML([evt], evt.title + " — SOC 対応フロー") : null;
   openModal("書き出し", "対応者に配る単一 HTML",
-    '<p class="ins hint" style="margin:0 0 12px">下のプレビューは、実際に書き出される HTML をそのまま表示しています。'
-    + '外部依存はありません。ファイルをコピーするだけで配れます。</p>'
+    '<p class="ins hint" style="margin:0 0 12px">下のプレビューは、実際に書き出される HTML を'
+    + 'そのまま表示しています。外部依存はありません。ファイルをコピーするだけで配れます。</p>'
     + '<iframe class="frame" id="expFrame"></iframe>',
-    '<div class="fnote">この事象のみ: ' + kb(one) + '　／　全 ' + DB.events.length + ' 事象: ' + kb(all) + '</div>'
-    + '<button class="ed-tool" id="dl1">この事象を保存</button>'
+    '<div class="fnote">' + (one ? 'この事象のみ: ' + kb(one) + '　／　' : '')
+      + '全 ' + DB.events.length + ' 事象: ' + kb(all) + '</div>'
+    + (one ? '<button class="ed-tool" id="dl1">この事象を保存</button>' : '')
     + '<button class="ed-tool pri" id="dlAll">全事象を保存</button>'
     + '<button class="ed-tool" onclick="closeModal()">閉じる</button>');
-  $("expFrame").srcdoc = one;
-  $("dl1").addEventListener("click", function(){ download(one, "soc-flow-" + evt.key + ".html"); });
+  $("expFrame").srcdoc = one || all;
+  if(one) $("dl1").addEventListener("click", function(){ download(one, "soc-flow-" + evt.key + ".html"); });
   $("dlAll").addEventListener("click", function(){ download(all, "soc-flow-all.html"); });
 }
 function download(text, name){
@@ -1588,10 +1806,8 @@ function download(text, name){
 function setMode(m){
   mode = m;
   Array.prototype.forEach.call(document.querySelectorAll(".ed-modes button"), function(b){
-    b.classList.toggle("on", b.dataset.mode === m);
-  });
-  document.body.classList.toggle("run", m === "run");
-  document.body.classList.toggle("edit", m === "edit");
+    b.classList.toggle("on", b.dataset.mode === m); });
+  document.body.className = (m === "run") ? "screen-run" : "screen-edit";
   if(m === "run"){
     if(viewer) viewer.destroy();
     /* 試走の進捗は保存しない（storageKey を渡さない）＝編集の下書きを汚さない */
@@ -1601,16 +1817,60 @@ function setMode(m){
     if(viewer){ viewer.destroy(); viewer = null; }
     $("runRoot").innerHTML = "";
     renderAll();
+    requestAnimationFrame(renderCanvas);
   }
+}
+
+/* ============ レイアウト（分割バー） ============ */
+function applyUI(){
+  var b = $("edBody");
+  b.style.setProperty("--wl", UI.wl + "px");
+  b.style.setProperty("--wr", UI.wr + "px");
+  $("sideRight").style.setProperty("--hp", UI.hp + "%");
+}
+function initSplits(){
+  Array.prototype.forEach.call(document.querySelectorAll(".split"), function(sp){
+    sp.addEventListener("mousedown", function(e){
+      e.preventDefault();
+      var t = sp.dataset.target, x0 = e.clientX, y0 = e.clientY;
+      var wl0 = UI.wl, wr0 = UI.wr, hp0 = UI.hp;
+      var sideH = $("sideRight").getBoundingClientRect().height || 1;
+      document.body.classList.add("resizing");
+      function mv(ev){
+        if(t === "left")      UI.wl = Math.max(190, Math.min(480, wl0 + (ev.clientX - x0)));
+        else if(t === "right") UI.wr = Math.max(270, Math.min(560, wr0 - (ev.clientX - x0)));
+        else                   UI.hp = Math.max(18, Math.min(78, hp0 + (ev.clientY - y0) / sideH * 100));
+        applyUI();
+      }
+      function up(){
+        document.removeEventListener("mousemove", mv);
+        document.removeEventListener("mouseup", up);
+        document.body.classList.remove("resizing");
+        persist(); renderCanvas();
+      }
+      document.addEventListener("mousemove", mv);
+      document.addEventListener("mouseup", up);
+    });
+  });
 }
 
 /* ============ 全体描画 ============ */
 function renderAll(){
-  renderEvSel(); renderPalette(); renderCanvas(); renderLane();
+  if(!getEv()) return;
+  renderHeader(); renderOutline(); renderPalette(); renderCanvas();
   renderInspector(); renderCheckBadge();
 }
 
 /* ============ 配線 ============ */
+$("ewTasks").addEventListener("click", showTasks);
+$("ewExportAll").addEventListener("click", function(){ curEv = null; showExport(); });
+$("btnBack").addEventListener("click", backToEvents);
+$("btnCheck").addEventListener("click", showCheck);
+$("btnPaths").addEventListener("click", showPaths);
+$("btnExport").addEventListener("click", showExport);
+$("mClose").addEventListener("click", closeModal);
+$("mask").addEventListener("click", function(e){ if(e.target === $("mask")) closeModal(); });
+
 $("palSearch").addEventListener("input", function(){ palQ = this.value; renderPalette(); });
 $("palNew").addEventListener("click", function(){
   var label = prompt("新しいタスクの名称を入力してください。", "");
@@ -1629,24 +1889,28 @@ $("canvas").addEventListener("drop", function(e){
   var d = e.dataTransfer.getData("text/plain") || "";
   if(d.indexOf("task:") === 0) addStep(d.slice(5));
 });
-$("laneScroll").addEventListener("dragover", function(e){ if(dragStepId) e.preventDefault(); });
-$("laneScroll").addEventListener("drop", function(e){
+$("olList").addEventListener("dragover", function(e){ if(dragStepId) e.preventDefault(); });
+$("olList").addEventListener("drop", function(e){
   e.preventDefault();
   if(dragStepId) moveStep(dragStepId, null);
 });
 Array.prototype.forEach.call(document.querySelectorAll(".ed-modes button"), function(b){
   b.addEventListener("click", function(){ setMode(b.dataset.mode); });
 });
-$("btnCheck").addEventListener("click", showCheck);
-$("btnPaths").addEventListener("click", showPaths);
-$("btnExport").addEventListener("click", showExport);
 document.addEventListener("keydown", function(e){
-  if(e.key === "Escape"){ if($("mask").classList.contains("on")) closeModal(); else { selStep = null; if(mode==="edit") renderAll(); } }
+  if(e.key !== "Escape") return;
+  if($("mask").classList.contains("on")){ closeModal(); return; }
+  if(document.body.classList.contains("screen-edit")){
+    if(selStep){ selStep = null; renderAll(); } else backToEvents();
+  }
 });
-window.addEventListener("resize", function(){ if(mode === "edit") renderCanvas(); });
+window.addEventListener("resize", function(){
+  if(document.body.classList.contains("screen-edit")) renderCanvas();
+});
 
 load();
-setMode("edit");
+initSplits();
+renderEventsScreen();
 </script>
 </body>
 </html>
