@@ -285,7 +285,8 @@ body.resizing{cursor:col-resize;user-select:none}
 
 /* ---------- 手順アウトライン（左） ---------- */
 .ol-row{display:flex;gap:7px;align-items:flex-start;padding:6px 8px;border-radius:7px;cursor:grab;
-  position:relative;transition:background .14s,box-shadow .14s;border-left:3px solid transparent}
+  position:relative;transition:background .14s,box-shadow .14s;border-left:3px solid transparent;
+  user-select:none}
 .ol-row:hover{background:var(--panel2)}
 .ol-row.sel{background:var(--cur-bg);box-shadow:inset 0 0 0 1px rgba(255,201,60,.4)}
 .ol-row.drag{opacity:.35}
@@ -379,7 +380,13 @@ body.dragging .ccol.drop .ghost{display:flex}
 
 /* ---------- タスクパレット（右サイドバー・縦） ---------- */
 .pal-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
-  border-radius:8px;padding:7px 11px;font-size:13px;font-family:var(--sans);margin-bottom:12px}
+  border-radius:8px;padding:7px 11px;font-size:13px;font-family:var(--sans);margin-bottom:7px}
+/* 並び順と絞り込み — 44 件を超えると定義順では定番が埋もれる */
+.tools{display:flex;gap:6px;margin-bottom:12px}
+.tools select{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);
+  color:var(--dim);border-radius:7px;padding:5px 7px;font-size:11.5px;font-family:var(--sans)}
+.tools select:focus{outline:none;border-color:var(--cur)}
+.tools select.on{border-color:var(--cur);color:var(--cur)}
 .pal-search:focus{outline:none;border-color:var(--cur)}
 .pal-g{margin-bottom:13px}
 .pal-g>h4{margin:0 0 7px;font-size:11px;font-weight:700;letter-spacing:.07em;color:var(--pc);
@@ -560,6 +567,28 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   transition:opacity .18s,transform .18s;pointer-events:none;max-width:80vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.warn{border-color:var(--s2);color:var(--s2)}
+
+/* タスク管理画面のツールバー */
+.tk-bar{display:flex;gap:8px;align-items:center;margin:0 0 16px}
+.tk-bar select{background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+  border-radius:7px;padding:6px 10px;font-size:12.5px;font-family:var(--sans)}
+.tk-bar select:focus{outline:none;border-color:var(--cur)}
+.tk-bar select.on{border-color:var(--cur);color:var(--cur)}
+.tk-bar .sp{flex:1}
+.tk-bar em{font-style:normal;font-size:11.5px;color:var(--faint);font-family:var(--mono)}
+
+/* 複数選択の一括操作（インスペクタ側に出す） */
+.bulk h4{margin:0 0 4px;font-size:15px;color:var(--cur)}
+.bulk>p{margin:0 0 14px;font-size:12px;color:var(--faint);line-height:1.7}
+.bulk ol{margin:0 0 16px;padding-left:20px;font-size:12.5px;color:var(--dim);line-height:1.85;
+  max-height:220px;overflow:auto}
+.bulk ol li::marker{color:var(--faint);font-family:var(--mono);font-size:11px}
+.bulk .act{display:flex;flex-direction:column;gap:8px}
+.bulk .act button{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
+  border-radius:8px;padding:9px;font-size:13px;cursor:pointer;font-family:var(--sans)}
+.bulk .act button:hover{border-color:var(--cur);color:var(--cur)}
+.bulk .act button.dgr:hover{border-color:var(--s1);color:var(--s1)}
+.ol-row.sel-multi{background:rgba(255,201,60,.09);box-shadow:inset 0 0 0 1px rgba(255,201,60,.3)}
 </style>
 </head>
 
@@ -596,6 +625,20 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   </div>
   <div class="ew-body">
     <h2 class="ew-h">タスク <span id="tkCount"></span></h2>
+    <div class="tk-bar">
+      <select id="tkSort" title="並び順">
+        <option value="use">使用の多い順</option>
+        <option value="def">定義順</option>
+        <option value="name">名前順</option>
+      </select>
+      <select id="tkFilter" title="絞り込み">
+        <option value="all">すべて</option>
+        <option value="used">どこかで使用中</option>
+        <option value="unused">未使用</option>
+      </select>
+      <span class="sp"></span>
+      <em id="tkStat"></em>
+    </div>
     <div id="tkList"></div>
     <p class="ed-note">
       <b>タスクは事象をまたいで再利用される部品です。</b>
@@ -649,6 +692,18 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
       <div class="scroll ins" id="ins"></div>
       <div class="palwrap" id="palwrap">
         <input class="pal-search" id="palSearch" type="text" placeholder="タスクを検索…">
+        <div class="tools">
+          <select id="palSort" title="並び順">
+            <option value="use">使用の多い順</option>
+            <option value="def">定義順</option>
+            <option value="name">名前順</option>
+          </select>
+          <select id="palFilter" title="絞り込み">
+            <option value="all">すべて</option>
+            <option value="here">この事象で使用中</option>
+            <option value="unused">未使用</option>
+          </select>
+        </div>
         <div id="palList"></div>
         <button class="pal-new" id="palNew">＋ 新しいタスクを作る</button>
       </div>
@@ -1203,6 +1258,9 @@ var SKEY = "soc-flow-editor-mock/v3";
 var SEED_VER = 2;
 var DB, curEv = null, selStep = null, mode = "edit", viewer = null;
 var palQ = "", collapsed = {}, rightTab = "ins";
+var palSort = "use", palFilter = "all";       /* タスクパレットの並び順・絞り込み */
+var tkQ = "", tkSort = "use", tkFilter = "all";  /* タスク管理画面 */
+var selIds = [], selAnchor = null;            /* 手順の複数選択 */
 var UI = {wl:244, wr:324};
 
 var OPTC = ["#ffb02e","#4aa8ff","#ff5c8a","#2ee6a8","#a97bff","#5ad1e6"];
@@ -1338,7 +1396,7 @@ function renderEventsScreen(){
 }
 
 function openEvent(key){
-  curEv = key; selStep = null;
+  curEv = key; clearSel();
   document.body.className = "screen-edit";
   mode = "edit";
   Array.prototype.forEach.call(document.querySelectorAll(".ed-modes button"), function(b){
@@ -1352,7 +1410,7 @@ function openEvent(key){
 function backToEvents(){
   if(viewer){ viewer.destroy(); viewer = null; $("runRoot").innerHTML = ""; }
   document.body.className = "screen-events";
-  selStep = null;
+  clearSel();
   renderEventsScreen();
 }
 function newEvent(){
@@ -1402,6 +1460,27 @@ function renderHeader(){
     + '<b>' + esc(ev.title) + '</b>';
 }
 
+/* ---------- 手順の選択 ----------
+   単一選択が基本。Ctrl/Cmd クリックで足し引き、Shift クリックで範囲選択。
+   複数選ぶと、インスペクタが一括操作の画面に変わる。 */
+function isSel(id){ return selIds.indexOf(id) >= 0; }
+function setSel(id, e){
+  var evt = getEv(); if(!evt) return;
+  var ids = evt.steps.map(function(s){ return s.id; });
+  if(e && (e.ctrlKey || e.metaKey)){
+    var i = selIds.indexOf(id);
+    if(i >= 0) selIds.splice(i, 1); else selIds.push(id);
+    selAnchor = id;
+  }else if(e && e.shiftKey && selAnchor && ids.indexOf(selAnchor) >= 0){
+    var a = ids.indexOf(selAnchor), b = ids.indexOf(id);
+    selIds = ids.slice(Math.min(a, b), Math.max(a, b) + 1);
+  }else{
+    selIds = [id]; selAnchor = id;
+  }
+  selStep = selIds.length === 1 ? selIds[0] : null;
+}
+function clearSel(){ selIds = []; selAnchor = null; selStep = null; }
+
 /* ---------- 右サイドバーのタブ ----------
    「タスクを選んで置く」と「内容を書く」は別の作業なので、画面を分ける。
    既存のボックスやアウトラインの行を選んだときは、書く作業に入ったとみなして
@@ -1417,7 +1496,8 @@ function setTab(t){
 function renderTabs(){
   var evt = getEv();
   var st = evt ? evt.steps.filter(function(x){ return x.id===selStep; })[0] : null;
-  $("tabInsNo").textContent = st ? "手順 " + (evt.steps.indexOf(st)+1) : "事象";
+  $("tabInsNo").textContent = selIds.length > 1 ? selIds.length + " 手順"
+    : (st ? "手順 " + (evt.steps.indexOf(st)+1) : "事象");
   $("tabPalNo").textContent = DB.tasks.length;
 }
 
@@ -1507,7 +1587,7 @@ function renderOutline(){
     var st = r.st, p = phaseOfStep(st) || {color:"var(--line)"};
     var el = document.createElement("div");
     el.className = "ol-row" + (r.deep ? " d1" : "") + (st.decision ? " dec" : "")
-      + (selStep === st.id ? " sel" : "");
+      + (isSel(st.id) ? (selIds.length > 1 ? " sel-multi" : " sel") : "");
     el.style.setProperty("--pc", p.color);
     el.draggable = true; el.dataset.id = st.id;
     var f = "";
@@ -1520,8 +1600,8 @@ function renderOutline(){
     if(st.escalate) f += '<span class="esc">!</span>';
     el.innerHTML = '<span class="ol-no">' + (r.i+1) + '</span><span class="ol-pc"></span>'
       + '<span class="ol-t">' + esc(st.title) + '</span><span class="ol-f">' + f + '</span>';
-    el.addEventListener("click", function(){
-      selStep = st.id; setTab("ins"); renderAll(); scrollCanvasToSel(); });
+    el.addEventListener("click", function(e){
+      setSel(st.id, e); setTab("ins"); renderAll(); scrollCanvasToSel(); });
     el.addEventListener("dragstart", function(e){
       dragStepId = st.id; el.classList.add("drag");
       e.dataTransfer.setData("text/plain", "step:" + st.id);
@@ -1543,7 +1623,8 @@ function renderOutline(){
   var lg = document.createElement("p");
   lg.className = "ol-legend";
   lg.innerHTML = "◆ 判断ステップ。その下の縦線が、この判断で分かれる範囲です。<br>"
-    + "灰色の行が質問、色つきの行がその答え。行をドラッグすると順序を入れ替えられます。";
+    + "灰色の行が質問、色つきの行がその答え。行をドラッグすると順序を入れ替えられます。<br>"
+    + "Ctrl＋クリックで複数選択、Shift＋クリックで範囲選択。";
   box.appendChild(lg);
 }
 function scrollCanvasToSel(){
@@ -1599,24 +1680,43 @@ function palCard(t, p){
   el.querySelector(".add").addEventListener("click", function(e2){ e2.stopPropagation(); addStep(t.key); });
   return el;
 }
+/* 44 件を超えると定義順では定番が埋もれる。並び順と絞り込みで手繰れるようにする。 */
+function sortTasks(ts, mode){
+  var order = {};
+  DB.tasks.forEach(function(t, i){ order[t.key] = i; });
+  return ts.slice().sort(function(a, b){
+    if(mode === "name") return a.label.localeCompare(b.label, "ja");
+    if(mode === "use"){
+      var d = usageAll(b.key) - usageAll(a.key);
+      if(d) return d;
+      d = usageHere(b.key) - usageHere(a.key);
+      if(d) return d;
+    }
+    return order[a.key] - order[b.key];
+  });
+}
 function renderPalette(){
   var box = $("palList"); box.innerHTML = "";
   var q = palQ.trim().toLowerCase(), hit = 0;
   DB.phases.forEach(function(p){
     var ts = DB.tasks.filter(function(t){
       if(t.phase !== p.key) return false;
+      if(palFilter === "here" && !usageHere(t.key)) return false;
+      if(palFilter === "unused" && usageAll(t.key)) return false;
       if(!q) return true;
       return (t.label + " " + (t.note||"")).toLowerCase().indexOf(q) >= 0;
     });
+    ts = sortTasks(ts, palSort);
     hit += ts.length;
-    if(q && !ts.length) return;                 /* 検索中は空のフェーズを隠す */
+    var narrowed = !!q || palFilter !== "all";
+    if(narrowed && !ts.length) return;          /* 絞り込み中は空のフェーズを隠す */
     var g = document.createElement("div");
     g.className = "pal-g"; g.style.setProperty("--pc", p.color);
-    var open = !collapsed[p.key] || !!q;        /* 検索中は常に開く */
+    var open = !collapsed[p.key] || narrowed;   /* 絞り込み中は常に開く */
     g.innerHTML = '<h4><span>' + esc(p.name) + '<u>' + ts.length + '</u></span>'
       + '<button title="' + esc(p.name) + ' に新しいタスクを作る">＋</button></h4>';
     g.querySelector("h4 span").addEventListener("click", function(){
-      if(q) return;
+      if(narrowed) return;
       collapsed[p.key] = !collapsed[p.key]; renderPalette();
     });
     g.querySelector("h4 button").addEventListener("click", function(e){
@@ -1632,8 +1732,16 @@ function renderPalette(){
     }
     box.appendChild(g);
   });
-  if(q && !hit) box.innerHTML = '<p class="pal-empty">「' + esc(palQ) + '」に一致するタスクはありません。</p>';
-  $("tabPalNo").textContent = q ? (hit + "/" + DB.tasks.length) : DB.tasks.length;
+  if(!hit){
+    box.innerHTML = '<p class="pal-empty">'
+      + (q ? "「" + esc(palQ) + "」に一致するタスクはありません。"
+           : palFilter === "here" ? "この事象ではまだタスクを使っていません。"
+           : palFilter === "unused" ? "未使用のタスクはありません。" : "タスクがありません。")
+      + '</p>';
+  }
+  $("tabPalNo").textContent = (q || palFilter !== "all") ? (hit + "/" + DB.tasks.length) : DB.tasks.length;
+  $("palSort").classList.toggle("on", palSort !== "use");
+  $("palFilter").classList.toggle("on", palFilter !== "all");
 }
 function newTask(phaseKey){
   askModal({
@@ -1672,7 +1780,7 @@ function renderCanvas(){
     evt.steps.forEach(function(st, i){
       var t = task(st.task); if(!t || t.phase !== p.key) return;
       var el = document.createElement("div");
-      el.className = "cnode" + (selStep === st.id ? " sel" : "");
+      el.className = "cnode" + (isSel(st.id) ? " sel" : "");
       el.style.setProperty("--pc", p.color);
       var flags = "";
       if(st.decision) flags += '<span class="f-dec" title="判断ステップ">&#9670; 判断</span>';
@@ -1687,7 +1795,7 @@ function renderCanvas(){
       el.innerHTML = '<span class="num">' + (i+1) + '</span>'
         + '<b>' + esc(st.title) + '</b><span class="tk">' + esc(t.label) + '</span>'
         + (flags ? '<span class="flags">' + flags + '</span>' : '');
-      el.addEventListener("click", function(){ selStep = st.id; setTab("ins"); renderAll(); });
+      el.addEventListener("click", function(e){ setSel(st.id, e); setTab("ins"); renderAll(); });
       col.appendChild(el);
       nodes[i] = el;
     });
@@ -1799,6 +1907,23 @@ function renderInspector(){
   var st = evt.steps.filter(function(s){ return s.id===selStep; })[0];
   box.innerHTML = "";
 
+  if(selIds.length > 1){
+    var picked = evt.steps.filter(function(s){ return isSel(s.id); });
+    box.innerHTML = '<div class="bulk"><h4>' + picked.length + ' 手順を選択中</h4>'
+      + '<p>まとめて条件を付ける／外す、まとめて削除ができます。'
+      + 'Ctrl＋クリックで足し引き、Shift＋クリックで範囲選択。</p>'
+      + '<ol>' + picked.map(function(s){
+          return '<li value="' + (evt.steps.indexOf(s)+1) + '">' + esc(s.title) + '</li>'; }).join("") + '</ol>'
+      + '<div class="act">'
+      + '<button id="b_cond">表示条件をまとめて設定する</button>'
+      + '<button id="b_del" class="dgr">まとめて削除する</button>'
+      + '<button id="b_clr">選択を解除する</button></div></div>';
+    $("b_cond").addEventListener("click", bulkCondition);
+    $("b_del").addEventListener("click", bulkDelete);
+    $("b_clr").addEventListener("click", function(){ clearSel(); renderAll(); });
+    return;
+  }
+
   if(!st){
     box.innerHTML =
       '<label>事象名</label><input type="text" id="i_title" value="' + esc(evt.title) + '">'
@@ -1868,6 +1993,7 @@ function renderInspector(){
       + '<button class="mini" id="c_add"' + (priors.length ? "" : " disabled") + '>'
       + (priors.length ? "＋ 条件を追加" : "この手順より前に判断がありません") + '</button></div>'
     + decHtml
+    + '<button class="del" id="s_dup">この手順を複製する</button>'
     + '<button class="del" id="s_del">この手順を削除する</button>';
 
   $("s_title").addEventListener("input", function(){
@@ -1879,8 +2005,9 @@ function renderInspector(){
     st.escalate = this.checked; persist(); renderCanvas(); renderOutline(); });
   $("s_del").addEventListener("click", function(){
     evt.steps = evt.steps.filter(function(x){ return x.id !== st.id; });
-    selStep = null; persist(); renderAll();
+    clearSel(); persist(); renderAll();
   });
+  $("s_dup").addEventListener("click", function(){ dupStep(st.id); });
   $("c_add").addEventListener("click", function(){
     if(!priors.length) return;
     st.conditions.push({key:priors[0].key, value:priors[0].options[0].value});
@@ -1897,7 +2024,7 @@ function renderInspector(){
     b.addEventListener("click", function(){ st.conditions.splice(+this.dataset.rm, 1); persist(); renderAll(); });
   });
   if($("d_make")) $("d_make").addEventListener("click", function(){
-    st.decision = {key:"q" + (evt.steps.filter(function(s){ return s.decision; }).length + 1),
+    st.decision = {key:uniqueDecKey(evt),
                    label:"判定結果はどちらですか？",
                    options:[{value:"yes",label:"はい"},{value:"no",label:"いいえ"}]};
     persist(); renderAll();
@@ -1942,6 +2069,91 @@ function renderInspector(){
   });
 }
 
+/* ---------- 手順の複製・一括操作 ---------- */
+function uniqueDecKey(evt){
+  var used = {}, n = 1;
+  evt.steps.forEach(function(s){ if(s.decision) used[s.decision.key] = 1; });
+  while(used["q" + n]) n++;
+  return "q" + n;
+}
+/* 似た手順を書くとき、毎回一から入力しなくて済むようにする。 */
+function dupStep(id){
+  var evt = getEv();
+  var i = evt.steps.findIndex(function(s){ return s.id === id; });
+  if(i < 0) return;
+  var c = JSON.parse(JSON.stringify(evt.steps[i]));
+  c.id = nextId();
+  c.title = evt.steps[i].title + "（複製）";
+  /* 同じ回答キーが 2 つあると条件の解決が壊れるので、新しいキーを振る */
+  if(c.decision) c.decision.key = uniqueDecKey(evt);
+  evt.steps.splice(i + 1, 0, c);
+  selIds = [c.id]; selAnchor = c.id; selStep = c.id;
+  persist(); setTab("ins"); renderAll();
+  var inp = $("s_title");
+  if(inp){ inp.focus(); inp.select(); }
+  toast("複製しました。名称を書き換えてください");
+}
+/* 選択した手順より前にある判断だけを、一括設定の候補にする */
+function bulkPriors(evt){
+  var idx = selIds.map(function(id){
+    return evt.steps.findIndex(function(s){ return s.id === id; }); }).filter(function(n){ return n >= 0; });
+  var first = Math.min.apply(null, idx);
+  var out = [];
+  for(var i = 0; i < first; i++) if(evt.steps[i].decision) out.push(evt.steps[i].decision);
+  return out;
+}
+function bulkCondition(){
+  var evt = getEv(), priors = bulkPriors(evt);
+  if(!priors.length){ toast("選択した手順より前に判断がありません", true); return; }
+  var opts = [{v:"", l:"条件なし（常に表示）"}];
+  priors.forEach(function(d){
+    d.options.forEach(function(o){ opts.push({v:d.key + "=" + o.value, l:d.label + " → " + o.label}); });
+  });
+  askModal({
+    title:"表示条件をまとめて設定", sub:selIds.length + " 手順",
+    fields:[{k:"cond", label:"条件", type:"select", value:"", options:opts,
+             hint:"選択した手順の表示条件を、この内容で置き換えます。"}],
+    okLabel:"設定する",
+    onOk:function(v){
+      var n = 0;
+      selIds.forEach(function(id){
+        var st = evt.steps.filter(function(s){ return s.id === id; })[0];
+        if(!st) return;
+        st.conditions = v.cond ? [{key:v.cond.split("=")[0], value:v.cond.split("=")[1]}] : [];
+        n++;
+      });
+      persist(); renderAll();
+      toast(n + " 手順の条件を" + (v.cond ? "設定しました" : "外しました"));
+    }
+  });
+}
+function bulkDelete(){
+  var evt = getEv();
+  var picked = evt.steps.filter(function(s){ return isSel(s.id); });
+  /* 選択の外から参照されている判断が含まれていないか */
+  var breaks = [];
+  picked.forEach(function(s){
+    if(!s.decision) return;
+    evt.steps.forEach(function(x){
+      if(isSel(x.id)) return;
+      if((x.conditions||[]).some(function(c){ return c.key === s.decision.key; })) breaks.push(x.title);
+    });
+  });
+  confirmModal({
+    title:"手順をまとめて削除", sub:picked.length + " 手順", danger:true, okLabel:"削除する",
+    message:"次の手順を削除します。<ul>"
+      + picked.map(function(s){ return "<li>" + esc(s.title) + "</li>"; }).join("") + "</ul>"
+      + (breaks.length
+         ? "<p><em>削除する判断を参照している手順が " + breaks.length + " 件あります。</em>"
+           + "残された手順は条件を解決できなくなるため、検証でエラーになります。</p>"
+         : ""),
+    onOk:function(){
+      evt.steps = evt.steps.filter(function(s){ return !isSel(s.id); });
+      clearSel(); persist(); renderAll(); toast("削除しました");
+    }
+  });
+}
+
 /* ---------- 手順の追加 ---------- */
 /* 投入してもタブは切り替えない。骨組みをまとめて置く作業を邪魔しないため。 */
 function addStep(taskKey){
@@ -1949,7 +2161,7 @@ function addStep(taskKey){
   var st = {id:nextId(), task:taskKey, title:t.label, detail:"", sla:"", escalate:false,
             conditions:[], decision:null};
   evt.steps.push(st);
-  selStep = st.id;
+  selIds = [st.id]; selAnchor = st.id; selStep = st.id;
   persist(); renderAll();
   var el = $("cgrid").querySelector(".cnode.sel");
   if(el){ el.classList.add("new"); el.scrollIntoView({behavior:"smooth", block:"nearest", inline:"nearest"}); }
@@ -2139,7 +2351,6 @@ function showPaths(){
    タスクの追加・改名・フェーズ変更・削除は頻繁に使うので、
    モーダルではなく独立した画面にする。
    ============================================================ */
-var tkQ = "";
 function usedBy(taskKey){
   return DB.events.filter(function(e){ return e.steps.some(function(s){ return s.task===taskKey; }); });
 }
@@ -2195,11 +2406,14 @@ function renderTasksScreen(){
   DB.phases.forEach(function(p){
     var ts = DB.tasks.filter(function(t){
       if(t.phase !== p.key) return false;
+      if(tkFilter === "used" && !usedBy(t.key).length) return false;
+      if(tkFilter === "unused" && usedBy(t.key).length) return false;
       if(!q) return true;
       return (t.label + " " + (t.note||"")).toLowerCase().indexOf(q) >= 0;
     });
+    ts = sortTasks(ts, tkSort);
     hit += ts.length;
-    if(q && !ts.length) return;
+    if((q || tkFilter !== "all") && !ts.length) return;
     var g = document.createElement("div");
     g.className = "tk-g"; g.style.setProperty("--pc", p.color);
     g.innerHTML = '<h3><span class="dot"></span>' + esc(p.name) + '<u>' + ts.length + '</u>'
@@ -2209,8 +2423,13 @@ function renderTasksScreen(){
     if(!ts.length) g.insertAdjacentHTML("beforeend", '<p class="pal-empty">タスクがありません。</p>');
     box.appendChild(g);
   });
-  if(q && !hit) box.innerHTML = '<p class="pal-empty">「' + esc(tkQ) + '」に一致するタスクはありません。</p>';
-  $("tkCount").textContent = q ? (hit + " / " + DB.tasks.length + " 件") : (DB.tasks.length + " 件");
+  if(!hit) box.innerHTML = '<p class="pal-empty">条件に一致するタスクはありません。</p>';
+  $("tkCount").textContent = (q || tkFilter !== "all")
+    ? (hit + " / " + DB.tasks.length + " 件") : (DB.tasks.length + " 件");
+  var used = DB.tasks.filter(function(t){ return usedBy(t.key).length; }).length;
+  $("tkStat").textContent = "使用中 " + used + " / 未使用 " + (DB.tasks.length - used);
+  $("tkSort").classList.toggle("on", tkSort !== "use");
+  $("tkFilter").classList.toggle("on", tkFilter !== "all");
 }
 function openTasksScreen(){
   document.body.className = "screen-tasks";
@@ -2429,6 +2648,10 @@ Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function
   b.addEventListener("click", function(){ setTab(b.dataset.tab); });
 });
 $("palSearch").addEventListener("input", function(){ palQ = this.value; renderPalette(); });
+$("palSort").addEventListener("change", function(){ palSort = this.value; renderPalette(); });
+$("palFilter").addEventListener("change", function(){ palFilter = this.value; renderPalette(); });
+$("tkSort").addEventListener("change", function(){ tkSort = this.value; renderTasksScreen(); });
+$("tkFilter").addEventListener("change", function(){ tkFilter = this.value; renderTasksScreen(); });
 $("palNew").addEventListener("click", function(){ newTask(DB.phases[0].key); });
 $("canvas").addEventListener("dragover", function(e){ e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
 $("canvas").addEventListener("drop", function(e){
@@ -2449,7 +2672,7 @@ document.addEventListener("keydown", function(e){
   if($("mask").classList.contains("on")){ closeModal(); return; }
   if(document.body.classList.contains("screen-tasks")){ backToEvents(); return; }
   if(document.body.classList.contains("screen-edit")){
-    if(selStep){ selStep = null; renderAll(); } else backToEvents();
+    if(selIds.length){ clearSel(); renderAll(); } else backToEvents();
   }
 });
 window.addEventListener("resize", function(){
