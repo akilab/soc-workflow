@@ -25,8 +25,12 @@ declare global {
   }
 
   interface ViewerOptions {
-    /** 進捗の保存先。事象ごとに分けたいので呼ぶ側が決める。 */
+    /** 進捗の保存先。渡さなければ保存しない（試走は下書きを汚さない）。 */
     storageKey?: string;
+    /** 最初に開く事象のキー。 */
+    event?: string;
+    /** 画面の上に出す注意書き。 */
+    note?: string;
   }
 
   interface ViewerHandle {
@@ -50,4 +54,15 @@ declare global {
 
   /** 連絡手段のアイコン（SVG スプライト）を body に差し込む。 */
   function ensureViaSprite(): void;
+}
+
+declare global {
+  /** 連絡手段の表示定義。viewer.js の VIA。ico があれば SVG、無ければ m の文字。 */
+  const VIA: Record<string, { l: string; ico?: string; m: string; c: string }>;
+
+  /** 連絡先の区分の表示定義。viewer.js の KIND。 */
+  const KIND: Record<string, { l: string; c: string }>;
+
+  /** 担当の表示定義。viewer.js の TIER。 */
+  const TIER: Record<string, { l: string; c: string }>;
 }

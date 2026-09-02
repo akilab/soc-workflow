@@ -27,6 +27,79 @@
   </div>
 </div>
 
+<!-- ================= 編集ビュー ================= -->
+<div id="scEdit">
+
+  <div class="ed-top">
+    <button class="ed-back" id="btnBack">← 事象一覧</button>
+    <div class="ed-title" id="edTitle"></div>
+    <div class="ed-spacer"></div>
+    <button class="ed-tool" data-th type="button"></button>
+    <button class="ed-tool" id="btnCheck">検証</button>
+    <button class="ed-tool" id="btnPaths">経路一覧</button>
+    <div class="ed-modes">
+      <button data-mode="edit" class="on">編集</button>
+      <button data-mode="run">試走</button>
+    </div>
+    <button class="ed-tool pri" id="btnExport">書き出し</button>
+  </div>
+
+  <div class="ed-body" id="edBody">
+
+    <div class="pane">
+      <h3>手順アウトライン <span id="olCount"></span></h3>
+      <div class="scroll" id="olList"></div>
+    </div>
+
+    <div class="split" data-target="left"></div>
+
+    <div class="pane">
+      <h3>フローキャンバス <span id="canvHint">右のタスクパレットからドラッグして投入</span></h3>
+      <div class="canvas" id="canvas">
+        <div class="cgrid" id="cgrid"><svg class="cwires" id="cwires"></svg></div>
+      </div>
+    </div>
+
+    <div class="split" data-target="right"></div>
+
+    <!-- 右: インスペクタ ⇄ タスクパレット をタブで切り替える -->
+    <div class="pane tab-ins" id="paneRight">
+      <div class="tabs">
+        <button data-tab="ins" class="on">インスペクタ<i id="tabInsNo"></i></button>
+        <button data-tab="pal">タスクパレット<i id="tabPalNo"></i></button>
+      </div>
+      <div class="scroll ins" id="ins"></div>
+      <div class="palwrap" id="palwrap">
+        <input class="pal-search" id="palSearch" type="text" placeholder="タスクを検索…">
+        <div class="tools">
+          <select id="palSort" title="並び順">
+            <option value="use">使用の多い順</option>
+            <option value="def">定義順</option>
+            <option value="name">名前順</option>
+          </select>
+          <select id="palFilter" title="絞り込み">
+            <option value="all">すべて</option>
+            <option value="here">この事象で使用中</option>
+            <option value="unused">未使用</option>
+          </select>
+        </div>
+        <div id="palList"></div>
+        <button class="pal-new" id="palNew">＋ 新しいタスクを作る</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="runWrap">
+    <div class="runbar">
+      <b>試走モード</b> — 対応者と同じ画面です。ここで見えているものが、そのまま書き出される単一 HTML になります。
+      ここで付けた進捗と回答は、編集モードに戻ると破棄されます。
+    </div>
+    <div id="runRoot"></div>
+  </div>
+
+</div>
+
 <!-- 通知・モーダル -->
 <div class="toast" id="toast"></div>
 <div class="mask" id="mask">

@@ -63,6 +63,12 @@ export interface ContactMember {
 
 export type Via = "phone" | "teams" | "elgana" | "mail";
 
+/** 1 つの連絡手段と宛先。Go 側の model.Channel。 */
+export interface Channel {
+  via: Via;
+  value: string;
+}
+
 /**
  * 事象。対応フロー 1 本。
  *

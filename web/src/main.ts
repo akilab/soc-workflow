@@ -10,19 +10,28 @@ import "./app.css";
 
 import { Api, ApiError } from "./api";
 import { $ } from "./dom";
+import { EditScreen } from "./screens/edit";
 import { EventsScreen } from "./screens/events";
-import { closeModal, toast } from "./ui";
+import { closeModal } from "./ui";
 
-type Screen = "events" | "edit" | "tasks" | "contacts";
+type Screen = "events" | "edit";
 
 class App {
   private readonly api = new Api();
   private readonly events: EventsScreen;
+  private readonly edit: EditScreen;
+
+  /** いま出ている画面。データが入れ替わったとき、どちらを描き直すかを決める。 */
+  private screen: Screen = "events";
 
   constructor() {
     this.events = new EventsScreen({
       api: this.api,
       onOpen: (key) => this.openEvent(key),
+    });
+    this.edit = new EditScreen({
+      api: this.api,
+      onBack: () => this.show("events"),
     });
 
     // データが入れ替わったら描き直す。書き込みのたびに api が呼ぶ。
@@ -44,18 +53,19 @@ class App {
   }
 
   private render(): void {
-    this.events.render();
+    if (this.screen === "edit") this.edit.render();
+    else this.events.render();
   }
 
   private show(screen: Screen): void {
+    this.screen = screen;
     document.body.className = `screen-${screen}`;
     this.render();
   }
 
   private openEvent(key: string): void {
-    // 編集ビューはこれから移植する。今は開けることだけ確かめられればよい。
-    const ev = this.api.db.events.find((e) => e.key === key);
-    toast(ev ? `「${ev.title}」— 編集ビューは移植中です` : "事象が見つかりません");
+    this.screen = "edit";
+    this.edit.open(key); // body の class は編集ビュー側が決める（試走で切り替わるため）
   }
 
   private bindGlobal(): void {
