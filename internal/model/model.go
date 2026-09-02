@@ -250,3 +250,45 @@ func (e *Event) Decision(key string) *Decision {
 	}
 	return nil
 }
+
+// ---------------------------------------------------------------------------
+// 値の妥当性。
+// 列挙のような値はここで一括して見る。ハンドラごとに書くと、
+// 種類を足したときに直し漏れる場所ができる。
+// ---------------------------------------------------------------------------
+
+// Valid は担当として使える値かを返す。空（未指定）も許す。
+func (t Tier) Valid() bool {
+	switch t {
+	case TierNone, Tier1, Tier2, Tier3:
+		return true
+	}
+	return false
+}
+
+// Valid は連絡先の区分として使える値かを返す。
+func (k ContactKind) Valid() bool {
+	switch k {
+	case KindEscalation, KindInternal, KindCustomer, KindExternal:
+		return true
+	}
+	return false
+}
+
+// Valid は重大度として使える値かを返す。
+func (s Severity) Valid() bool {
+	switch s {
+	case S1, S2, S3:
+		return true
+	}
+	return false
+}
+
+// Valid は連絡手段として使える値かを返す。
+func (v Via) Valid() bool {
+	switch v {
+	case ViaPhone, ViaTeams, ViaElgana, ViaMail:
+		return true
+	}
+	return false
+}
