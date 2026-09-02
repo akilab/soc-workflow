@@ -144,6 +144,28 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .tag.sla{background:var(--panel3);color:var(--dim);border:1px solid var(--line);font-family:var(--mono)}
 .tag.esc{background:rgba(255,107,107,.16);color:var(--s1);border:1px solid var(--s1)}
 .tag.cond{background:rgba(169,123,255,.16);color:#bfa0ff;border:1px solid var(--dec)}
+.tag.tier{background:transparent;color:var(--tc);border:1px solid var(--tc);font-family:var(--mono)}
+.tag.cust{background:rgba(255,92,138,.18);color:#ff8fb0;border:1px solid #ff5c8a}
+
+/* 連絡先 — 手順の中に置く。別紙を探させない。 */
+.v-contacts{margin-top:12px;border:1px solid var(--line);border-radius:9px;
+  background:var(--panel2);padding:9px 11px 10px}
+.v-contacts>b{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);font-weight:700;margin-bottom:7px}
+.v-ct{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;padding:5px 0;
+  border-top:1px solid var(--line-soft)}
+.v-ct:first-of-type{border-top:none}
+.v-ct>i{flex:none;font-style:normal;width:22px;height:22px;border-radius:6px;
+  background:color-mix(in srgb, var(--vc) 20%, transparent);border:1px solid var(--vc);
+  color:var(--vc);font-size:11px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;align-self:center}
+.v-ct .nm{font-size:13.5px;font-weight:700;color:var(--fg)}
+.v-ct .val{font-family:var(--mono);font-size:14px;color:var(--cur);
+  background:var(--panel3);border:1px solid var(--line);border-radius:5px;padding:1px 8px;
+  user-select:all}
+.v-ct em{font-style:normal;font-size:10.5px;color:var(--kc);border:1px solid var(--kc);
+  border-radius:4px;padding:0 6px}
+.v-ct .nt{flex-basis:100%;font-size:11.5px;color:var(--faint);line-height:1.6;padding-left:31px}
 
 .v-godone{margin-top:12px;background:var(--cur);border:none;color:#1a1405;border-radius:8px;
   padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans)}
@@ -182,9 +204,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
      中央 … フローキャンバス
      右   … インスペクタ ⇄ タスクパレット（タブで切り替え）
    ================================================================== */
-#scEvents,#scEdit,#scTasks{display:none}
-body.screen-events #scEvents{display:block}
-body.screen-tasks  #scTasks{display:block}
+#scEvents,#scEdit,#scTasks,#scContacts{display:none}
+body.screen-events   #scEvents{display:block}
+body.screen-tasks    #scTasks{display:block}
+body.screen-contacts #scContacts{display:block}
 body.screen-edit  #scEdit{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 body.screen-edit{overflow:hidden}
 body.screen-run   #scEdit{display:block}
@@ -589,6 +612,63 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .bulk .act button:hover{border-color:var(--cur);color:var(--cur)}
 .bulk .act button.dgr:hover{border-color:var(--s1);color:var(--s1)}
 .ol-row.sel-multi{background:rgba(255,201,60,.09);box-shadow:inset 0 0 0 1px rgba(255,201,60,.3)}
+
+/* ---------- 担当（Tier）と連絡先 ---------- */
+.ol-f .tier{color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 3px;font-size:9px}
+.ol-f .cust{color:#ff5c8a}
+.cnode .f-tier{color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 4px}
+.cnode .f-ct{display:inline-flex;gap:3px;align-items:center}
+.cnode .f-ct i{font-style:normal;width:14px;height:14px;border-radius:4px;font-size:9px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
+
+.ins .ct-row{display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line-soft)}
+.ins .ct-row:first-of-type{border-top:none}
+.ins .ct-row i{flex:none;font-style:normal;width:20px;height:20px;border-radius:5px;font-size:10px;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
+.ins .ct-row b{font-size:12.5px;font-weight:700;white-space:nowrap}
+.ins .ct-row span{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ins .sect.ct{background:rgba(90,209,230,.05)}
+.ins .sect.ct>h4{color:#5ad1e6}
+
+/* 連絡先を選ぶモーダル */
+.ctpick{display:flex;flex-direction:column;gap:6px}
+.ctp{display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);
+  border-radius:8px;padding:9px 11px;cursor:pointer;transition:border-color .15s}
+.ctp:hover{border-color:#404a5e}
+.ctp:has(input:checked){border-color:var(--cur);background:var(--cur-bg)}
+.ctp input{accent-color:var(--cur);flex:none}
+.ctp i{flex:none;font-style:normal;width:24px;height:24px;border-radius:6px;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
+.ctp b{font-size:13.5px;white-space:nowrap}
+.ctp span{flex:1;min-width:0;font-family:var(--mono);font-size:12px;color:var(--dim)}
+.ctp em{font-style:normal;font-size:10.5px;color:var(--kc);border:1px solid var(--kc);
+  border-radius:4px;padding:0 6px;flex:none}
+
+/* ---------- 一覧の行（タスク／連絡先） ---------- */
+.rw{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) 130px minmax(0,1.1fr) 128px;
+  gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);
+  border-left:3px solid var(--pc,var(--line));border-radius:9px;padding:12px 14px;margin-bottom:8px;
+  transition:border-color .15s,background .15s}
+.rw:hover{border-color:#404a5e;background:var(--panel2)}
+@media(max-width:1100px){.rw{grid-template-columns:1fr 1fr}}
+.rw .k{display:block;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--faint);font-weight:700;margin-bottom:3px}
+.rw .v{font-size:13.5px;line-height:1.5;word-break:break-word}
+.rw .v.mono{font-family:var(--mono);font-size:12.5px;color:var(--cur)}
+.rw .v.dim{color:var(--dim);font-size:12.5px}
+.rw .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;
+  border:1px solid var(--bc,var(--line));color:var(--bc,var(--dim));border-radius:6px;padding:2px 8px}
+.rw .badge i{font-style:normal;font-weight:700;font-size:11px}
+.rw .use b{display:block;font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.rw .use.on b{color:var(--cur)}
+.rw .use span{display:block;font-size:11px;color:var(--faint);line-height:1.55;margin-top:2px}
+.rw .acts{display:flex;gap:7px;justify-content:flex-end}
+.rw .note{grid-column:1/-1;font-size:11.5px;color:var(--faint);line-height:1.6;
+  border-top:1px solid var(--line-soft);padding-top:7px;margin-top:2px}
 </style>
 </head>
 
@@ -601,6 +681,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
     <div class="ed-spacer"></div>
     <button class="ed-tool" id="ewPhases">フェーズ設定</button>
     <button class="ed-tool" id="ewTasks">タスク一覧</button>
+    <button class="ed-tool" id="ewContacts">連絡先</button>
     <button class="ed-tool" id="ewExportAll">全事象を書き出し</button>
   </div>
   <div class="ew-body">
@@ -645,6 +726,45 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
       名称・補足はその場で書き換えられ、すべての事象に反映されます。
       フェーズを変えると、そのタスクを使っている事象のフロー図で列が移動します。
       どこかの事象で使われているタスクは削除できません。
+    </p>
+  </div>
+</div>
+
+<!-- ================= 連絡先画面 ================= -->
+<div id="scContacts">
+  <div class="tk-top">
+    <button class="ed-back" id="ctBack">← 事象一覧</button>
+    <h1 class="brand">連絡<b>先</b></h1>
+    <div class="ed-spacer"></div>
+    <input class="tk-search" id="ctSearch" type="text" placeholder="連絡先を検索…">
+    <button class="ed-tool pri" id="ctNew">＋ 新しい連絡先</button>
+  </div>
+  <div class="ew-body">
+    <h2 class="ew-h">連絡先 <span id="ctCount"></span></h2>
+    <div class="tk-bar">
+      <select id="ctKindF" title="区分">
+        <option value="all">すべての区分</option>
+        <option value="esc">エスカレ先</option>
+        <option value="internal">社内</option>
+        <option value="customer">お客様</option>
+        <option value="external">外部</option>
+      </select>
+      <select id="ctViaF" title="連絡手段">
+        <option value="all">すべての手段</option>
+        <option value="phone">電話</option>
+        <option value="teams">Teams</option>
+        <option value="elgana">Elgana</option>
+        <option value="mail">メール</option>
+      </select>
+      <span class="sp"></span>
+      <em id="ctStat"></em>
+    </div>
+    <div id="ctList"></div>
+    <p class="ed-note">
+      <b>連絡先は手順から参照される部品です。</b>
+      番号や宛先が変わったら、ここを直せば参照しているすべての手順に反映されます。
+      どの手順で使われているかは各行に出ます。使われている連絡先は削除できません。
+      試走モードと書き出し HTML では、手順の中に連絡先が表示されます。
     </p>
   </div>
 </div>
@@ -743,12 +863,33 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
      このブロックは外部の変数を一切参照しないこと。
      ================================================================== -->
 <script id="viewerJs">
+/* 連絡手段・区分・担当の定義。書き出しHTMLにもそのまま埋め込まれる。
+   Teams / Elgana はロゴが使えないので頭文字のバッジで表す。色は識別用の便宜的なもの。 */
+var VIA = {
+  teams:  {l:"Teams",  m:"T",        c:"#6264A7"},
+  elgana: {l:"Elgana", m:"E",        c:"#2ea3a5"},
+  mail:   {l:"メール",  m:"\u2709",  c:"#4aa8ff"},
+  phone:  {l:"電話",    m:"\u260E",  c:"#ff6b6b"}
+};
+var KIND = {
+  esc:      {l:"エスカレ先", c:"#ffb02e"},
+  internal: {l:"社内",       c:"#7d8798"},
+  customer: {l:"お客様",     c:"#ff5c8a"},
+  external: {l:"外部",       c:"#a97bff"}
+};
+var TIER = {
+  t1: {l:"Tier1", c:"#5ad1e6"},
+  t2: {l:"Tier2", c:"#ffb02e"},
+  t3: {l:"Tier3・CSIRT", c:"#ff6b6b"}
+};
+
 function mountViewer(root, DATA, opt){
   opt = opt || {};
   var uid = "v" + Math.floor(Math.random()*1e9).toString(36);
-  var phaseByKey = {}, taskByKey = {};
+  var phaseByKey = {}, taskByKey = {}, contactByKey = {};
   DATA.phases.forEach(function(p){ phaseByKey[p.key] = p; });
   DATA.tasks.forEach(function(t){ taskByKey[t.key] = t; });
+  (DATA.contacts || []).forEach(function(c){ contactByKey[c.key] = c; });
 
   var events = DATA.events;
   var solo = events.length < 2;
@@ -973,10 +1114,17 @@ function mountViewer(root, DATA, opt){
       if(vis !== false){ n++; total++; if(done[i]) fin++; }
       var mark = vis===false ? "&#8212;" : (done[i] ? "&#10003;" : n);
 
+      var cts = (st.contacts || []).map(function(k){ return contactByKey[k]; })
+                 .filter(function(c){ return !!c; });
       var tags = "";
       if(isCur) tags += '<span class="tag now">現在</span>';
+      if(st.tier && TIER[st.tier])
+        tags += '<span class="tag tier" style="--tc:' + TIER[st.tier].c + '">'
+              + TIER[st.tier].l + '</span>';
       if(st.sla) tags += '<span class="tag sla">SLA ' + esc(st.sla) + '</span>';
       if(st.escalate) tags += '<span class="tag esc">エスカレ判断</span>';
+      if(cts.some(function(c){ return c.kind === "customer"; }))
+        tags += '<span class="tag cust">お客様連絡</span>';
       (st.conditions||[]).forEach(function(c){
         /* どの質問への答えなのかをツールチップに持たせる */
         var q = "";
@@ -992,7 +1140,21 @@ function mountViewer(root, DATA, opt){
       row.innerHTML = '<div class="chk">' + mark + '</div><div class="bd">'
         + '<div class="ttl">' + esc(st.title) + tags + '</div>'
         + '<div class="path"><i>&#9679;</i> ' + esc(ph.name) + ' / ' + esc(tk.label) + '</div>'
-        + '<div class="dsc">' + (vis===false ? "この対応では対象外です。" : (st.detail||"")) + '</div></div>';
+        + '<div class="dsc">' + (vis===false ? "この対応では対象外です。" : (st.detail||"")) + '</div>'
+        + ((vis !== false && cts.length)
+           ? '<div class="v-contacts"><b>連絡先</b>' + cts.map(function(c){
+               var v = VIA[c.via] || {l:c.via, m:"?", c:"#7d8798"};
+               var kd = KIND[c.kind];
+               return '<div class="v-ct" style="--vc:' + v.c + '">'
+                 + '<i title="' + esc(v.l) + '">' + v.m + '</i>'
+                 + '<span class="nm">' + esc(c.name) + '</span>'
+                 + '<span class="val">' + esc(c.value) + '</span>'
+                 + (kd ? '<em style="--kc:' + kd.c + '">' + kd.l + '</em>' : '')
+                 + (c.note ? '<span class="nt">' + esc(c.note) + '</span>' : '')
+                 + '</div>';
+             }).join("") + '</div>'
+           : "")
+        + '</div>';
 
       var chk = row.querySelector(".chk");
       if(vis !== false && !st.decision){
@@ -1070,7 +1232,15 @@ function mountViewer(root, DATA, opt){
         return;
       }
       n++;
-      lines.push("  " + (done[i] ? "[x]" : "[ ]") + " " + n + ". " + st.title + (st.sla ? "（SLA " + st.sla + "）" : ""));
+      var head = "  " + (done[i] ? "[x]" : "[ ]") + " " + n + ". " + st.title;
+      if(st.tier && TIER[st.tier]) head += "［" + TIER[st.tier].l + "］";
+      if(st.sla) head += "（SLA " + st.sla + "）";
+      lines.push(head);
+      (st.contacts || []).forEach(function(k){
+        var c = contactByKey[k]; if(!c) return;
+        var v = VIA[c.via] || {l:c.via};
+        lines.push("        連絡: " + v.l + " " + c.name + " " + c.value);
+      });
     });
     var txt = lines.join("\n");
     var btn = $("copy"), old = btn.textContent;
@@ -1111,7 +1281,49 @@ function mountViewer(root, DATA, opt){
    「判断」「エスカレーション」は段階ではなく作業の種類なので列を持たせない。
    判断ステップは手順の属性（◆ と表示条件）で表現する。
    ============================================================ */
-function seed(){ return {
+/* タスクごとの既定の担当。SOC の一般的な役割分担に沿えた初期値で、
+   手順ごとに上書きできる。 */
+var TIER_DEFAULT = {
+  ack:"t1", dup:"t1", scope:"t1", detect:"t1", corr:"t1",
+  host:"t1", logs:"t1", ioc:"t1", user:"t1", tp:"t1", sev:"t1",
+  evid:"t2", persist:"t2", c2:"t2", lat:"t2", priv:"t2", data:"t2",
+  sbox:"t2", mhdr:"t2", contq:"t2",
+  iso:"t2", acct:"t2", block:"t2", pwd:"t2", sess:"t2", mfa:"t2", hashb:"t2", mailq:"t2",
+  scan:"t2", restore:"t2", reimg:"t2", patch:"t2", verify:"t2", watch:"t1", bizn:"t1",
+  esc:"t2", ticket:"t1", report:"t2", timeline:"t2", share:"t2", lesson:"t2",
+  legal:"t3", custn:"t3", retro:"t3"
+};
+function seed(){ var d = {
+  /* 連絡先マスタ — タスクと同じく部品として 1 か所で持つ。
+     番号が変わったらここだけ直せば、参照しているすべての手順に反映される。 */
+  contacts:[
+    {key:"csirt-tel", name:"CSIRT 当番",     via:"phone",  value:"内線 1234",
+     kind:"esc",      note:"24時間受付。夜間・休日は当直携帯へ転送される"},
+    {key:"csirt-tm",  name:"CSIRT チャネル", via:"teams",  value:"#csirt-incident",
+     kind:"esc",      note:"電話が繋がらない場合もここに記録を残す"},
+    {key:"lead-tel",  name:"SOC リーダー",   via:"phone",  value:"内線 1200",
+     kind:"esc",      note:"平日 9:00-18:00"},
+    {key:"soc-tm",    name:"SOC 連絡チャネル", via:"teams", value:"#soc-alerts",
+     kind:"internal", note:""},
+    {key:"it-elg",    name:"情報システム部", via:"elgana", value:"情シス運用グループ",
+     kind:"internal", note:"端末・アカウントの操作依頼はここ"},
+    {key:"pr-mail",   name:"広報",           via:"mail",   value:"pr@example.local",
+     kind:"internal", note:"公表判断が要る案件は必ず同報する"},
+    {key:"legal-mail",name:"法務",           via:"mail",   value:"legal@example.local",
+     kind:"internal", note:"報告義務の判断はここに仰ぐ"},
+    {key:"hr-tel",    name:"人事",           via:"phone",  value:"内線 1350",
+     kind:"internal", note:"内部不正の疑いがある場合"},
+    {key:"user-tel",  name:"利用者（本人）", via:"phone",  value:"資産台帳の連絡先",
+     kind:"internal", note:"侵害の疑いがあるときはメールを使わない"},
+    {key:"cust-tel",  name:"顧客窓口",       via:"phone",  value:"内線 2000",
+     kind:"customer", note:"カスタマーサポート経由で連絡する"},
+    {key:"cust-mail", name:"顧客通知メール", via:"mail",   value:"support@example.local",
+     kind:"customer", note:"文面は広報の確認を得てから送る"},
+    {key:"ir-tel",    name:"IR 事業者（契約先）", via:"phone", value:"03-0000-0000",
+     kind:"external", note:"24時間。契約番号 XXXX-YYYY を伝える"},
+    {key:"ppc-mail",  name:"個人情報保護委員会", via:"mail", value:"（届出フォーム）",
+     kind:"external", note:"速報は概ね 3〜5 日以内"}
+  ],
   phases:[
     {key:"recv",  name:"受信・確認", color:"var(--c1)"},
     {key:"triage",name:"情報収集",   color:"var(--c2)"},
@@ -1170,14 +1382,16 @@ function seed(){ return {
       S("ack","アラートを受領し、即座に上位へ一報する","<code>調査の完了を待たない</code>。S1 は第一報を優先する。","即時",1),
       S("iso","対象端末を隔離する","判定を待たずに隔離する。誤検知のコストより拡散のコストが桁違いに大きい。","即時",1),
       S("scope","影響範囲を把握する","共有フォルダ・バックアップ領域への到達有無を最優先で確認する。","15分"),
-      S("esc","CSIRT と経営に報告する","広報・法務にも同時に連絡する。公表判断が必要になる可能性がある。","30分",1),
+      K(S("esc","CSIRT と経営に報告する","広報・法務にも同時に連絡する。公表判断が必要になる可能性がある。","30分",1),"csirt-tel","csirt-tm","pr-mail","legal-mail"),
       S("block","横展開を遮断する","該当セグメントの通信制限、管理者アカウントの棚卸しを行う。"),
       S("logs","侵入経路を特定する","初期侵入から暗号化までの経路を再構成する。同じ経路が他にも開いている可能性が高い。"),
       D(S("restore","バックアップの健全性を確認する","<code>復旧前に、バックアップ自体が汚染されていないか検証する</code>。"),
         "bk","健全なバックアップは存在しますか？",[["yes","存在する"],["no","存在しない／汚染"]]),
-      C(S("esc","外部の専門機関へ支援を要請する","復旧手段が無い場合は、自組織だけで判断しない。契約している IR 事業者へ連絡する。",null,1),"bk","no"),
+      K(C(S("esc","外部の専門機関へ支援を要請する","復旧手段が無い場合は、自組織だけで判断しない。契約している IR 事業者へ連絡する。",null,1),"bk","no"),"ir-tel"),
       C(S("restore","バックアップから復旧する","復旧対象を業務優先度順に並べ、上から実施する。"),"bk","yes"),
       C(S("verify","復旧を確認する","業務部門による確認をもって完了とする。SOC の判断だけで完了にしない。"),"bk","yes"),
+      K(S("legal","法令報告の要否を判断する","個人情報の漏えい有無を法務と共同で判断する。<code>速報は概ね 3〜5 日以内</code>。判断しなかった場合もその根拠を残す。","1営業日",1),"legal-mail","ppc-mail"),
+      K(S("custn","影響を受けた顧客へ通知する","文面は広報の確認を得てから送る。二次被害を防ぐために、<code>何が起きたか</code>より<code>何をすべきか</code>を先に書く。","1営業日"),"cust-tel","cust-mail"),
       S("report","最終報告を作成する","時系列・影響・原因・再発防止をセットで。"),
       S("lesson","再発防止策を起票する","検知の遅れがあった箇所を特定し、ルールとバックアップ運用の両方を見直す。")
     ]},
@@ -1191,7 +1405,7 @@ function seed(){ return {
       C(S("iso","端末をネットワークから隔離する","EDR コンソールから隔離を実行。<code>利用者に必ず事前連絡する</code>（業務停止を伴うため）。","15分",1),"tp","yes"),
       C(S("acct","利用者アカウントを一時無効化する","横展開の兆候（他ホストへの認証試行）がある場合のみ。無い場合はこの手順は不要。"),"tp","yes"),
       C(S("block","C2 通信先をブロックする","プロキシと FW に IOC を登録する。登録した IOC は必ずチケットに記載する。"),"tp","yes"),
-      C(S("esc","CSIRT にエスカレーションする","ランサムウェアの兆候、または 3 台以上への感染拡大が見られる場合は<code>即時</code>。それ以外は 1 時間以内。",null,1),"tp","yes"),
+      K(C(S("esc","CSIRT にエスカレーションする","ランサムウェアの兆候、または 3 台以上への感染拡大が見られる場合は<code>即時</code>。それ以外は 1 時間以内。",null,1),"tp","yes"),"csirt-tel","csirt-tm"),
       C(S("scan","フルスキャンを実行する","隔離状態のまま実施。検出ゼロを 2 回連続で確認する。"),"tp","yes"),
       C(S("restore","端末を復旧する","永続化の痕跡があった場合は再イメージ。無ければ隔離解除で可。判断根拠を残す。"),"tp","yes"),
       C(S("lesson","検知ルールの調整を起票する","誤検知の場合はここへ。除外条件を検知チームに連携し、同じアラートが再発しないようにする。"),"tp","no"),
@@ -1202,13 +1416,13 @@ function seed(){ return {
       S("ack","アラートを受領する","対象アカウントと 2 地点のログイン時刻・IP を記録する。","5分"),
       S("logs","認証ログを時系列で並べる","直近 24 時間の全認証イベントを抽出する。成功・失敗の両方を含める。"),
       S("ioc","接続元 IP を評価する","VPN・プロキシ・Tor 出口ノードかを確認。会社支給の VPN であれば誤検知の可能性が高い。"),
-      D(S("user","利用者本人に確認する","<code>メールではなく電話で</code>連絡する。侵害されている場合、メールは攻撃者に読まれている。","30分"),
-        "own","本人による操作でしたか？",[["yes","本人の操作"],["no","心当たりなし"],["na","連絡がつかない"]]),
+      K(D(S("user","利用者本人に確認する","<code>メールではなく電話で</code>連絡する。侵害されている場合、メールは攻撃者に読まれている。","30分"),
+        "own","本人による操作でしたか？",[["yes","本人の操作"],["no","心当たりなし"],["na","連絡がつかない"]]),"user-tel"),
       C(S("acct","アカウントを無効化する","セッションも合わせて全て失効させる。無効化しただけでは既存セッションは切れない。","15分",1),"own","no"),
       C(S("acct","アカウントを一時停止する","連絡がつかない間は保守的に停止する。誤って止めた場合の解除手順を添えて通知する。"),"own","na"),
       C(S("pwd","認証情報をリセットする","本人確認のうえ実施。MFA の再登録も必須。<code>旧デバイスの MFA は必ず削除する</code>。"),"own","no"),
       C(S("logs","攻撃者の操作範囲を洗い出す","侵害されたアカウントでのメール送信・ファイルアクセス・権限変更を全て確認する。",null,1),"own","no"),
-      C(S("esc","CSIRT にエスカレーションする","管理者アカウント、または機密データへのアクセスがあった場合は即時。"),"own","no"),
+      K(C(S("esc","CSIRT にエスカレーションする","管理者アカウント、または機密データへのアクセスがあった場合は即時。"),"own","no"),"csirt-tel"),
       C(S("lesson","検知ルールの除外を検討する","正規の VPN 利用による誤検知が続く場合、拠点 IP を除外リストに追加する。"),"own","yes"),
       S("ticket","対応内容を記録する","連絡手段（電話）と応答者名を必ず残す。"),
       S("report","報告する","アカウント侵害は個人情報の観点で報告義務が生じることがある。法務の判断を仰ぐ。","4時間")
@@ -1218,7 +1432,7 @@ function seed(){ return {
       S("logs","転送内容を確認する","DLP のポリシー違反区分（個人情報・機密指定など）を確認する。"),
       D(S("user","業務上の正当性を確認する","上長経由で確認する。本人に直接聞くと、内部不正の場合に証拠隠滅を招く。","1時間"),
         "legit","業務上の正当な送信でしたか？",[["yes","正当な業務"],["no","正当性が確認できない"]]),
-      C(S("esc","人事・法務へエスカレーションする","内部不正の可能性がある場合、SOC 単独で本人に接触しない。手順を人事に引き継ぐ。",null,1),"legit","no"),
+      K(C(S("esc","人事・法務へエスカレーションする","内部不正の可能性がある場合、SOC 単独で本人に接触しない。手順を人事に引き継ぐ。",null,1),"legit","no"),"hr-tel","legal-mail"),
       C(S("acct","アクセス権を制限する","法務の指示に従う。証拠保全の観点から、独断でログを削除・変更しない。"),"legit","no"),
       C(S("lesson","ポリシーの調整を起票する","正当な業務が毎回アラートになるなら、例外承認のフローを整える。"),"legit","yes"),
       S("ticket","記録する","内部不正の疑いがある案件は、閲覧権限を絞って記録する。"),
@@ -1233,18 +1447,25 @@ function seed(){ return {
       C(S("block","送信元とリンク先をブロックする","メールゲートウェイとプロキシの両方に登録する。"),"ph","yes"),
       C(S("logs","クリック・入力の有無を確認する","プロキシログでリンク先へのアクセスを確認する。<code>クリックした利用者がいれば、不審ログインのフローへ移行する</code>。",null,1),"ph","yes"),
       C(S("acct","認証情報を入力した利用者を対処する","該当者がいる場合のみ。パスワードリセットと MFA 再登録を実施する。"),"ph","yes"),
-      C(S("user","同報者へ注意喚起する","開封・クリックしないよう周知。既にクリックした場合の申告窓口を明記する。"),"ph","yes"),
+      K(C(S("user","同報者へ注意喚起する","開封・クリックしないよう周知。既にクリックした場合の申告窓口を明記する。"),"ph","yes"),"it-elg","soc-tm"),
       S("user","報告者へ結果を返す","正規メールだった場合も、判断根拠を添えて丁寧に返す。次回の報告をためらわせない。"),
       S("ticket","記録する","同種の報告件数は、教育施策の効果測定に使う。"),
       C(S("lesson","教育コンテンツへ反映する","実際に来た検体は最良の教材になる。匿名化して訓練メールに転用する。"),"ph","yes")
     ]}
   ]
-};}
+};
+  /* タスクにも既定の担当を持たせる。手順に投入するときの初期値になる。 */
+  d.tasks.forEach(function(t){ t.tier = TIER_DEFAULT[t.key] || ""; });
+  return d;
+}
 /* データ記述用のヘルパー（種データの整形だけに使う） */
 function S(task,title,detail,sla,esc){
   return {id:nextId(), task:task, title:title, detail:detail||"", sla:sla||"",
-          escalate:!!esc, conditions:[], decision:null};
+          escalate:!!esc, tier:TIER_DEFAULT[task]||"", contacts:[],
+          conditions:[], decision:null};
 }
+/* 手順に連絡先を紐づける（種データの整形用） */
+function K(st){ st.contacts = Array.prototype.slice.call(arguments, 1); return st; }
 function D(st,key,label,opts){
   st.decision={key:key,label:label,options:opts.map(function(o){return {value:o[0],label:o[1]};})};
   return st;
@@ -1255,7 +1476,7 @@ var _id=0; function nextId(){ return "s" + (++_id); }
 /* ============ 状態 ============ */
 var SKEY = "soc-flow-editor-mock/v3";
 /* 種データのタスクを増やしたら上げる。保存済みデータにも不足分をマージするため。 */
-var SEED_VER = 2;
+var SEED_VER = 3;
 var DB, curEv = null, selStep = null, mode = "edit", viewer = null;
 var palQ = "", collapsed = {}, rightTab = "ins";
 var palSort = "use", palFilter = "all";       /* タスクパレットの並び順・絞り込み */
@@ -1289,15 +1510,24 @@ function persist(){
 /* PoC の間はタスクカタログが育ち続ける。保存済みのデータを捨てずに、
    まだ持っていないタスクだけを足す。事象と手順には触らない。 */
 function mergeSeedTasks(ver){
+  if(!DB.contacts) DB.contacts = [];
   if(ver >= SEED_VER) return;
-  var fresh = seed(), added = 0;
+  var fresh = seed(), added = 0, addedC = 0;
   fresh.tasks.forEach(function(t){
     var hasKey   = DB.tasks.some(function(x){ return x.key === t.key; });
     var hasPhase = DB.phases.some(function(p){ return p.key === t.phase; });
     if(!hasKey && hasPhase){ DB.tasks.push(t); added++; }
   });
+  fresh.contacts.forEach(function(c){
+    if(!DB.contacts.some(function(x){ return x.key === c.key; })){ DB.contacts.push(c); addedC++; }
+  });
+  /* 既存タスクに既定の担当が無ければ補う */
+  DB.tasks.forEach(function(t){ if(!t.tier) t.tier = TIER_DEFAULT[t.key] || ""; });
   persist();
-  if(added) setTimeout(function(){ toast("新しいタスクを " + added + " 件追加しました"); }, 700);
+  var msg = [];
+  if(added) msg.push("タスク " + added + " 件");
+  if(addedC) msg.push("連絡先 " + addedC + " 件");
+  if(msg.length) setTimeout(function(){ toast(msg.join(" / ") + "を追加しました"); }, 700);
 }
 function getEv(){ for(var i=0;i<DB.events.length;i++) if(DB.events[i].key===curEv) return DB.events[i]; return null; }
 function task(k){ for(var i=0;i<DB.tasks.length;i++) if(DB.tasks[i].key===k) return DB.tasks[i]; return null; }
@@ -1591,6 +1821,11 @@ function renderOutline(){
     el.style.setProperty("--pc", p.color);
     el.draggable = true; el.dataset.id = st.id;
     var f = "";
+    if(st.tier && TIER[st.tier])
+      f += '<span class="tier" style="--tc:' + TIER[st.tier].c + '">'
+         + TIER[st.tier].l.replace("・CSIRT", "") + '</span>';
+    if(stepContacts(st).some(function(c){ return c.kind === "customer"; }))
+      f += '<span class="cust" title="お客様連絡あり">&#9679;客</span>';
     if(st.decision){
       var n = evt.steps.filter(function(x){
         return (x.conditions||[]).some(function(c){ return c.key === st.decision.key; }); }).length;
@@ -1791,6 +2026,16 @@ function renderCanvas(){
           + (st.conditions.length > 1 ? " 他" : "") + '</span>';
       }
       if(st.escalate) flags += '<span class="f-esc" title="エスカレーション判断">! エスカレ</span>';
+      if(st.tier && TIER[st.tier])
+        flags += '<span class="f-tier" style="--tc:' + TIER[st.tier].c + '" title="担当">'
+               + TIER[st.tier].l.replace("・CSIRT", "") + '</span>';
+      var cts = stepContacts(st);
+      if(cts.length)
+        flags += '<span class="f-ct" title="' + esc(cts.map(function(c){
+            return (VIA[c.via]||{l:c.via}).l + " " + c.name + " " + c.value; }).join("\n")) + '">'
+          + cts.map(function(c){
+              var v = VIA[c.via] || {m:"?", c:"#7d8798"};
+              return '<i style="--vc:' + v.c + '">' + v.m + '</i>'; }).join("") + '</span>';
       if(st.sla) flags += '<span class="f-sla">' + esc(st.sla) + '</span>';
       el.innerHTML = '<span class="num">' + (i+1) + '</span>'
         + '<b>' + esc(st.title) + '</b><span class="tk">' + esc(t.label) + '</span>'
@@ -1984,10 +2229,28 @@ function renderInspector(){
     + '<label>手順のタイトル</label><input type="text" id="s_title" value="' + esc(st.title) + '">'
     + '<label>詳細</label><textarea id="s_detail">' + esc(st.detail) + '</textarea>'
     + '<p class="hint">&lt;code&gt; で囲んだ部分は強調表示されます。</p>'
-    + '<div class="row"><div><label>SLA</label>'
-      + '<input type="text" id="s_sla" placeholder="15分 / 即時" value="' + esc(st.sla) + '"></div>'
-    + '<div><label>エスカレーション</label><label class="chk" style="margin:0">'
-      + '<input type="checkbox" id="s_esc"' + (st.escalate?" checked":"") + '>判断が必要</label></div></div>'
+    + '<div class="row"><div><label>担当</label><select id="s_tier">'
+      + '<option value="">未指定</option>'
+      + ["t1","t2","t3"].map(function(k){
+          return '<option value="' + k + '"' + (st.tier===k?" selected":"") + '>'
+            + TIER[k].l + '</option>'; }).join("")
+      + '</select></div>'
+    + '<div><label>SLA</label>'
+      + '<input type="text" id="s_sla" placeholder="15分 / 即時" value="' + esc(st.sla) + '"></div></div>'
+    + '<label class="chk" style="margin-top:12px"><input type="checkbox" id="s_esc"'
+      + (st.escalate?" checked":"") + '>エスカレーション判断が必要</label>'
+    + '<div class="sect ct"><h4>連絡先 <button class="x" id="ct_add">＋</button></h4>'
+      + (stepContacts(st).length
+         ? stepContacts(st).map(function(c){
+             var v = VIA[c.via] || {m:"?", c:"#7d8798", l:c.via};
+             return '<div class="ct-row" style="--vc:' + v.c + '">'
+               + '<i title="' + esc(v.l) + '">' + v.m + '</i>'
+               + '<b>' + esc(c.name) + '</b><span>' + esc(c.value) + '</span>'
+               + '<button class="x" data-ctrm="' + esc(c.key) + '">&times;</button></div>';
+           }).join("")
+         : '<p class="hint" style="margin:0">連絡先はありません。</p>')
+      + '<p class="hint">試走モードと書き出し HTML では、この一覧が手順の中に表示されます。'
+      + '連絡先そのものの追加・修正は「連絡先」画面で行います。</p></div>'
     + '<div class="sect"><h4>表示条件（AND）</h4>'
       + (condHtml || '<p class="hint" style="margin:0 0 7px">常に表示されます。</p>')
       + '<button class="mini" id="c_add"' + (priors.length ? "" : " disabled") + '>'
@@ -2003,6 +2266,15 @@ function renderInspector(){
     st.sla = this.value; persist(); renderCanvas(); renderOutline(); });
   $("s_esc").addEventListener("change", function(){
     st.escalate = this.checked; persist(); renderCanvas(); renderOutline(); });
+  $("s_tier").addEventListener("change", function(){
+    st.tier = this.value; persist(); renderCanvas(); renderOutline(); });
+  $("ct_add").addEventListener("click", function(){ pickContacts(st); });
+  Array.prototype.forEach.call(box.querySelectorAll("[data-ctrm]"), function(b){
+    b.addEventListener("click", function(){
+      st.contacts = (st.contacts||[]).filter(function(k){ return k !== this.dataset.ctrm; }.bind(this));
+      persist(); renderAll();
+    });
+  });
   $("s_del").addEventListener("click", function(){
     evt.steps = evt.steps.filter(function(x){ return x.id !== st.id; });
     clearSel(); persist(); renderAll();
@@ -2066,6 +2338,36 @@ function renderInspector(){
       if(st.decision.options.length <= 2){ toast("選択肢は 2 つ以上必要です", true); return; }
       st.decision.options.splice(+this.dataset.ormv, 1); persist(); renderAll();
     });
+  });
+}
+
+/* 手順で連絡する相手を選ぶ。連絡先そのものの編集は「連絡先」画面。 */
+function pickContacts(st){
+  if(!DB.contacts.length){ toast("連絡先が登録されていません", true); return; }
+  var html = '<p class="ins hint" style="margin:0 0 12px">この手順で連絡する相手を選びます。'
+    + '選んだ相手は、試走モードと書き出し HTML で手順の中に表示されます。</p>'
+    + '<div class="ctpick">' + DB.contacts.map(function(c){
+        var v = VIA[c.via] || {m:"?", c:"#7d8798"}, kd = KIND[c.kind];
+        return '<label class="ctp" style="--vc:' + v.c + '">'
+          + '<input type="checkbox" value="' + esc(c.key) + '"'
+          + (((st.contacts||[]).indexOf(c.key) >= 0) ? " checked" : "") + '>'
+          + '<i>' + v.m + '</i><b>' + esc(c.name) + '</b>'
+          + '<span>' + esc(c.value) + '</span>'
+          + (kd ? '<em style="--kc:' + kd.c + '">' + kd.l + '</em>' : '') + '</label>';
+      }).join("") + '</div>';
+  openModal("連絡先を選ぶ", st.title, html,
+    '<button class="ed-tool" data-x="cancel">キャンセル</button>'
+    + '<button class="ed-tool pri" data-x="ok">決定</button>');
+  $("mFoot").querySelector('[data-x="cancel"]').addEventListener("click", closeModal);
+  $("mFoot").querySelector('[data-x="ok"]').addEventListener("click", function(){
+    var picked = [];
+    DB.contacts.forEach(function(c){
+      var cb = $("mBody").querySelector('input[value="' + c.key + '"]');
+      if(cb && cb.checked) picked.push(c.key);
+    });
+    st.contacts = picked;
+    closeModal(); persist(); renderAll();
+    toast(picked.length ? picked.length + " 件の連絡先を設定しました" : "連絡先を外しました");
   });
 }
 
@@ -2159,7 +2461,7 @@ function bulkDelete(){
 function addStep(taskKey){
   var evt = getEv(), t = task(taskKey);
   var st = {id:nextId(), task:taskKey, title:t.label, detail:"", sla:"", escalate:false,
-            conditions:[], decision:null};
+            tier:t.tier || "", contacts:[], conditions:[], decision:null};
   evt.steps.push(st);
   selIds = [st.id]; selAnchor = st.id; selStep = st.id;
   persist(); renderAll();
@@ -2351,43 +2653,50 @@ function showPaths(){
    タスクの追加・改名・フェーズ変更・削除は頻繁に使うので、
    モーダルではなく独立した画面にする。
    ============================================================ */
+function contact(k){
+  for(var i=0;i<(DB.contacts||[]).length;i++) if(DB.contacts[i].key === k) return DB.contacts[i];
+  return null;
+}
+function stepContacts(st){
+  return (st.contacts||[]).map(contact).filter(function(c){ return !!c; });
+}
+/* その連絡先がどの事象のどの手順で使われているか */
+function contactUsedBy(key){
+  var out = [];
+  DB.events.forEach(function(e){
+    e.steps.forEach(function(s){
+      if((s.contacts||[]).indexOf(key) >= 0) out.push({ev:e, st:s});
+    });
+  });
+  return out;
+}
 function usedBy(taskKey){
   return DB.events.filter(function(e){ return e.steps.some(function(s){ return s.task===taskKey; }); });
 }
+/* 一覧は読む形にして、編集はダイアログで行う。
+   項目が増えても行が崩れず、誤操作で書き換わることもない。 */
 function taskRow(t){
-  var evs = usedBy(t.key), p = phase(t.phase) || {color:"var(--line)"};
+  var evs = usedBy(t.key), p = phase(t.phase) || {color:"var(--line)", name:"?"};
+  var ti = TIER[t.tier];
   var row = document.createElement("div");
-  row.className = "tk-row";
+  row.className = "rw";
   row.style.setProperty("--pc", p.color);
   row.innerHTML =
-    '<div class="tk-f"><label>タスク名</label><input type="text" data-l value="' + esc(t.label) + '"></div>'
-    + '<div class="tk-f"><label>補足</label><input type="text" data-n value="' + esc(t.note||"") + '"'
-      + ' placeholder="ボックスに小さく表示されます"></div>'
-    + '<div class="tk-f"><label>フェーズ</label><select data-p>'
-      + DB.phases.map(function(x){
-          return '<option value="' + x.key + '"' + (x.key===t.phase ? " selected" : "") + '>'
-            + esc(x.name) + '</option>'; }).join("")
-      + '</select></div>'
-    + '<div class="tk-use' + (evs.length ? " used" : "") + '"><label>使用</label>'
+    '<div><span class="k">タスク名</span><span class="v">' + esc(t.label) + '</span></div>'
+    + '<div><span class="k">補足</span><span class="v dim">' + (esc(t.note||"") || "—") + '</span></div>'
+    + '<div><span class="k">フェーズ / 担当</span>'
+      + '<span class="badge" style="--bc:' + p.color + '">' + esc(p.name) + '</span>'
+      + (ti ? ' <span class="badge" style="--bc:' + ti.c + '">' + ti.l + '</span>' : '') + '</div>'
+    + '<div class="use' + (evs.length ? " on" : "") + '"><span class="k">使用</span>'
       + '<b>' + (evs.length ? evs.length + " 事象" : "未使用") + '</b>'
-      + '<span>' + (evs.length ? evs.map(function(e){ return esc(e.title); }).join("、") : "どの事象でも使われていません") + '</span></div>'
-    + '<div class="tk-act"><button class="ed-tool sm dgr" data-del'
-      + (evs.length ? ' disabled title="' + evs.length + ' 事象で使用中のため削除できません"' : "") + '>削除</button></div>';
+      + '<span>' + (evs.length ? evs.map(function(e){ return esc(e.title); }).join("、")
+                               : "どの事象でも使われていません") + '</span></div>'
+    + '<div class="acts"><button class="ed-tool sm" data-edit>編集</button>'
+      + '<button class="ed-tool sm dgr" data-del'
+      + (evs.length ? ' disabled title="' + evs.length + ' 事象で使用中のため削除できません"' : "")
+      + '>削除</button></div>';
 
-  row.querySelector("[data-l]").addEventListener("change", function(){
-    var v = this.value.trim();
-    if(!v){ this.value = t.label; toast("タスク名は空にできません", true); return; }
-    t.label = v; persist(); toast("保存しました");
-  });
-  row.querySelector("[data-n]").addEventListener("change", function(){
-    t.note = this.value.trim(); persist(); toast("保存しました");
-  });
-  row.querySelector("[data-p]").addEventListener("change", function(){
-    var sel = this.value;
-    t.phase = sel; persist(); renderTasksScreen();
-    toast(evs.length ? "フェーズを変更しました（" + evs.length + " 事象のフロー図で列が移動します）"
-                     : "フェーズを変更しました");
-  });
+  row.querySelector("[data-edit]").addEventListener("click", function(){ editTask(t); });
   if(!evs.length) row.querySelector("[data-del]").addEventListener("click", function(){
     confirmModal({
       title:"タスクを削除", sub:t.label, danger:true, okLabel:"削除する",
@@ -2399,6 +2708,28 @@ function taskRow(t){
     });
   });
   return row;
+}
+function editTask(t){
+  var evs = usedBy(t.key);
+  askModal({
+    title:"タスクを編集", sub:t.label,
+    fields:[
+      {k:"label", label:"タスク名", value:t.label, required:true},
+      {k:"note",  label:"補足",     value:t.note || "", placeholder:"ボックスに小さく表示されます"},
+      {k:"phase", label:"フェーズ", type:"select", value:t.phase,
+       options:DB.phases.map(function(p){ return {v:p.key, l:p.name}; }),
+       hint:evs.length ? evs.length + " 事象のフロー図で列が移動します。" : ""},
+      {k:"tier",  label:"既定の担当", type:"select", value:t.tier || "",
+       options:[{v:"", l:"未指定"}].concat(["t1","t2","t3"].map(function(k){
+         return {v:k, l:TIER[k].l}; })),
+       hint:"このタスクを手順に投入したときの初期値です。手順ごとに変えられます。"}
+    ],
+    okLabel:"保存",
+    onOk:function(v){
+      t.label = v.label; t.note = v.note; t.phase = v.phase; t.tier = v.tier;
+      persist(); renderTasksScreen(); toast("保存しました");
+    }
+  });
 }
 function renderTasksScreen(){
   var box = $("tkList"); box.innerHTML = "";
@@ -2431,6 +2762,110 @@ function renderTasksScreen(){
   $("tkSort").classList.toggle("on", tkSort !== "use");
   $("tkFilter").classList.toggle("on", tkFilter !== "all");
 }
+/* ============================================================
+   画面 4: 連絡先
+   ============================================================ */
+var ctQ = "", ctKindF = "all", ctViaF = "all";
+function contactRow(c){
+  var v = VIA[c.via] || {l:c.via, m:"?", c:"#7d8798"}, kd = KIND[c.kind];
+  var uses = contactUsedBy(c.key);
+  var row = document.createElement("div");
+  row.className = "rw";
+  row.style.setProperty("--pc", v.c);
+  var evNames = [];
+  uses.forEach(function(u){ if(evNames.indexOf(u.ev.title) < 0) evNames.push(u.ev.title); });
+  row.innerHTML =
+    '<div><span class="k">名称</span><span class="v">' + esc(c.name) + '</span></div>'
+    + '<div><span class="k">宛先</span><span class="v mono">' + esc(c.value) + '</span></div>'
+    + '<div><span class="k">手段 / 区分</span>'
+      + '<span class="badge" style="--bc:' + v.c + '"><i>' + v.m + '</i>' + esc(v.l) + '</span>'
+      + (kd ? ' <span class="badge" style="--bc:' + kd.c + '">' + kd.l + '</span>' : '') + '</div>'
+    + '<div class="use' + (uses.length ? " on" : "") + '"><span class="k">使用</span>'
+      + '<b>' + (uses.length ? uses.length + " 手順" : "未使用") + '</b>'
+      + '<span>' + (evNames.length ? esc(evNames.join("、")) : "どの手順でも使われていません") + '</span></div>'
+    + '<div class="acts"><button class="ed-tool sm" data-edit>編集</button>'
+      + '<button class="ed-tool sm dgr" data-del'
+      + (uses.length ? ' disabled title="' + uses.length + ' 手順で使用中のため削除できません"' : "")
+      + '>削除</button></div>'
+    + (c.note ? '<div class="note">' + esc(c.note) + '</div>' : '');
+
+  row.querySelector("[data-edit]").addEventListener("click", function(){ editContact(c); });
+  if(!uses.length) row.querySelector("[data-del]").addEventListener("click", function(){
+    confirmModal({
+      title:"連絡先を削除", sub:c.name, danger:true, okLabel:"削除する",
+      message:"「" + esc(c.name) + "」を削除します。<br>どの手順でも使われていないため、影響はありません。",
+      onOk:function(){
+        DB.contacts = DB.contacts.filter(function(x){ return x.key !== c.key; });
+        persist(); renderContactsScreen(); toast("削除しました");
+      }
+    });
+  });
+  return row;
+}
+function contactFields(c){
+  return [
+    {k:"name",  label:"名称", value:c ? c.name : "", required:true,
+     placeholder:"例: CSIRT 当番"},
+    {k:"via",   label:"連絡手段", type:"select", value:c ? c.via : "phone",
+     options:["phone","teams","elgana","mail"].map(function(v){ return {v:v, l:VIA[v].l}; })},
+    {k:"value", label:"宛先", value:c ? c.value : "", required:true,
+     placeholder:"例: 内線 1234 / #soc-alerts / soc@example.local",
+     hint:"試走モードと書き出し HTML に、この文字列がそのまま出ます。"},
+    {k:"kind",  label:"区分", type:"select", value:c ? c.kind : "internal",
+     options:["esc","internal","customer","external"].map(function(v){ return {v:v, l:KIND[v].l}; }),
+     hint:"「お客様」を選ぶと、その手順に顧客連絡のマークが付きます。"},
+    {k:"note",  label:"補足", value:c ? c.note || "" : "",
+     placeholder:"例: 24時間受付。夜間は当直携帯へ転送"}
+  ];
+}
+function newContact(){
+  askModal({
+    title:"新しい連絡先", sub:"手順から参照される部品になります",
+    fields:contactFields(null), okLabel:"作成",
+    onOk:function(v){
+      DB.contacts.push({key:"c" + Date.now().toString(36), name:v.name, via:v.via,
+                        value:v.value, kind:v.kind, note:v.note});
+      persist(); renderContactsScreen(); toast("連絡先「" + v.name + "」を作成しました");
+    }
+  });
+}
+function editContact(c){
+  var uses = contactUsedBy(c.key);
+  var f = contactFields(c);
+  if(uses.length) f[2].hint = uses.length + " 手順で参照されています。ここを直せば全てに反映されます。";
+  askModal({
+    title:"連絡先を編集", sub:c.name, fields:f, okLabel:"保存",
+    onOk:function(v){
+      c.name = v.name; c.via = v.via; c.value = v.value; c.kind = v.kind; c.note = v.note;
+      persist(); renderContactsScreen(); toast("保存しました");
+    }
+  });
+}
+function renderContactsScreen(){
+  var box = $("ctList"); box.innerHTML = "";
+  var q = ctQ.trim().toLowerCase(), hit = 0;
+  DB.contacts.forEach(function(c){
+    if(ctKindF !== "all" && c.kind !== ctKindF) return;
+    if(ctViaF !== "all" && c.via !== ctViaF) return;
+    if(q && (c.name + " " + c.value + " " + (c.note||"")).toLowerCase().indexOf(q) < 0) return;
+    hit++;
+    box.appendChild(contactRow(c));
+  });
+  if(!hit) box.innerHTML = '<p class="pal-empty">条件に一致する連絡先はありません。</p>';
+  var narrowed = !!q || ctKindF !== "all" || ctViaF !== "all";
+  $("ctCount").textContent = narrowed ? (hit + " / " + DB.contacts.length + " 件")
+                                      : (DB.contacts.length + " 件");
+  var used = DB.contacts.filter(function(c){ return contactUsedBy(c.key).length; }).length;
+  $("ctStat").textContent = "使用中 " + used + " / 未使用 " + (DB.contacts.length - used);
+  $("ctKindF").classList.toggle("on", ctKindF !== "all");
+  $("ctViaF").classList.toggle("on", ctViaF !== "all");
+}
+function openContactsScreen(){
+  document.body.className = "screen-contacts";
+  if(viewer){ viewer.destroy(); viewer = null; $("runRoot").innerHTML = ""; }
+  renderContactsScreen();
+}
+
 function openTasksScreen(){
   document.body.className = "screen-tasks";
   if(viewer){ viewer.destroy(); viewer = null; $("runRoot").innerHTML = ""; }
@@ -2532,6 +2967,7 @@ function showPhases(){
 function repaintAll(){
   if(document.body.classList.contains("screen-events")) renderEventsScreen();
   else if(document.body.classList.contains("screen-tasks")) renderTasksScreen();
+  else if(document.body.classList.contains("screen-contacts")) renderContactsScreen();
   else if(document.body.classList.contains("screen-edit")) renderAll();
 }
 
@@ -2539,7 +2975,7 @@ function repaintAll(){
 function buildExportHTML(events, title){
   var css = document.getElementById("viewerCss").textContent;
   var js  = document.getElementById("viewerJs").textContent;
-  var data = {phases:DB.phases, tasks:DB.tasks, events:events};
+  var data = {phases:DB.phases, tasks:DB.tasks, contacts:DB.contacts, events:events};
   var json = JSON.stringify(data).replace(/</g, "\\u003c");
   return '<!DOCTYPE html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n'
     + '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
@@ -2583,7 +3019,8 @@ function setMode(m){
   if(m === "run"){
     if(viewer) viewer.destroy();
     /* 試走の進捗は保存しない（storageKey を渡さない）＝編集の下書きを汚さない */
-    viewer = mountViewer($("runRoot"), {phases:DB.phases, tasks:DB.tasks, events:DB.events},
+    viewer = mountViewer($("runRoot"),
+      {phases:DB.phases, tasks:DB.tasks, contacts:DB.contacts, events:DB.events},
       {event:curEv, note:"提案用モックです。内容はダミーで、実運用の手順ではありません。"});
   }else{
     if(viewer){ viewer.destroy(); viewer = null; }
@@ -2632,6 +3069,12 @@ function renderAll(){
 /* ============ 配線 ============ */
 $("ewPhases").addEventListener("click", showPhases);
 $("ewTasks").addEventListener("click", openTasksScreen);
+$("ewContacts").addEventListener("click", openContactsScreen);
+$("ctBack").addEventListener("click", backToEvents);
+$("ctNew").addEventListener("click", newContact);
+$("ctSearch").addEventListener("input", function(){ ctQ = this.value; renderContactsScreen(); });
+$("ctKindF").addEventListener("change", function(){ ctKindF = this.value; renderContactsScreen(); });
+$("ctViaF").addEventListener("change", function(){ ctViaF = this.value; renderContactsScreen(); });
 $("tkBack").addEventListener("click", backToEvents);
 $("tkNew").addEventListener("click", function(){ newTask(DB.phases[0].key); });
 $("tkPhases").addEventListener("click", showPhases);
@@ -2670,7 +3113,8 @@ Array.prototype.forEach.call(document.querySelectorAll(".ed-modes button"), func
 document.addEventListener("keydown", function(e){
   if(e.key !== "Escape") return;
   if($("mask").classList.contains("on")){ closeModal(); return; }
-  if(document.body.classList.contains("screen-tasks")){ backToEvents(); return; }
+  if(document.body.classList.contains("screen-tasks")
+     || document.body.classList.contains("screen-contacts")){ backToEvents(); return; }
   if(document.body.classList.contains("screen-edit")){
     if(selIds.length){ clearSel(); renderAll(); } else backToEvents();
   }
