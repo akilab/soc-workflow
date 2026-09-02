@@ -2399,7 +2399,8 @@ function paintEditorWires(nodes){
   var out = '<defs>'
     + '<marker id="eah" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="8.5" markerHeight="7"'
       + ' orient="auto"><path d="M0,0 L10,4 L0,8 z"/></marker>'
-    + '<marker id="eah-hot" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="10" markerHeight="8"'
+    /* 大きさは通常と揃える。強調は色だけで足りるし、矢印が膨らむと図が騒がしくなる。 */
+    + '<marker id="eah-hot" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="8.5" markerHeight="7"'
       + ' orient="auto"><path d="M0,0 L10,4 L0,8 z"/></marker>'
     + '</defs>';
   var back = 0;
