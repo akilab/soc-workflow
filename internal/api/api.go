@@ -41,6 +41,9 @@ func (s *Server) Routes() *http.ServeMux {
 
 	mux.HandleFunc("GET /api/db", s.getDB)
 
+	mux.HandleFunc("GET /api/export.html", s.exportAll)
+	mux.HandleFunc("GET /api/events/{key}/export.html", s.exportOne)
+
 	mux.HandleFunc("POST /api/phases", s.createPhase)
 	mux.HandleFunc("PUT /api/phases/order", s.orderPhases)
 	mux.HandleFunc("PUT /api/phases/{key}", s.updatePhase)

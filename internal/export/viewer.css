@@ -1,0 +1,255 @@
+:root{
+  --bg:#0a0c11; --panel:#12161e; --panel2:#181d27; --panel3:#1f2531;
+  --line:#2b3242; --line-soft:#212734;
+  --fg:#f0f3f8; --dim:#aab4c6; --faint:#7d8798;
+
+  --cur:#ffc93c;  --cur-bg:rgba(255,201,60,.13);
+  --ok:#3ddc97;   --ok-bg:rgba(61,220,151,.13);
+  --skip:#6b7383;
+  --s1:#ff6b6b;   --s2:#ffb02e;   --s3:#5ad1e6;
+  --dec:#a97bff;
+
+  /* フェーズ（カテゴリ）の色 — 列・ボックス・パレット・レーンで一貫して使う */
+  --c1:#ff5c8a; --c2:#4aa8ff; --c3:#a97bff; --c4:#ffb02e; --c5:#2ee6a8; --c6:#5ad1e6;
+  --c7:#ff8a4c; --c8:#8ce36b; --c9:#e36bd0; --c10:#7c8cff;
+
+  /* 明るさ切り替えのために、直に書いていた色もトークンにする */
+  --hover:#404a5e;          /* ホバー時の枠線 */
+  --wire:#77839a;           /* フロー図の接続線 */
+  --onCur:#1a1405;          /* --cur の上に載せる文字 */
+  --onOk:#04241a;           /* --ok の上に載せる文字 */
+  --topbg:rgba(10,12,17,.96);
+  --maskbg:rgba(5,7,11,.82);
+  --shadow:rgba(0,0,0,.45);
+  --decFg:#bfa0ff;          /* 判断色の文字（地の明暗で変える） */
+  --custFg:#ff8fb0;         /* 顧客連絡の文字 */
+
+  --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+  --sans:"Meiryo UI","Hiragino Sans","Helvetica Neue","Noto Sans JP","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.7;
+  -webkit-font-smoothing:antialiased}
+
+.v-top{position:sticky;top:0;z-index:20;background:var(--topbg);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;
+  justify-content:space-between;gap:26px;flex-wrap:wrap}
+.v-top h1{margin:0;font-size:18px;font-weight:700;white-space:nowrap}
+.v-top h1 b{color:var(--cur)}
+.v-now{flex:1;min-width:240px;font-size:14px;color:var(--dim)}
+.v-now b{color:var(--fg)}
+.v-meters{display:flex;gap:26px;align-items:center}
+.v-meter .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.v-meter .val{font-family:var(--mono);font-size:23px;line-height:1.25;font-weight:700}
+.v-bar{height:7px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px;width:170px}
+.v-bar i{display:block;height:100%;background:var(--ok);width:0%;transition:width .3s}
+
+.v-main{display:grid;grid-template-columns:310px minmax(0,1fr);gap:18px;padding:18px 28px 0;align-items:start}
+.v-main.solo{grid-template-columns:minmax(0,1fr)}
+.v-main.solo .v-evs{display:none}
+@media(max-width:1150px){.v-main{grid-template-columns:1fr}}
+
+.v-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+.v-card>h3{margin:0 0 11px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--faint);font-weight:700}
+
+.v-ev{width:100%;text-align:left;background:var(--panel2);color:inherit;border:1px solid var(--line);
+  border-radius:9px;padding:11px 12px;margin-bottom:8px;cursor:pointer;font-family:var(--sans);
+  display:flex;gap:10px;align-items:flex-start;transition:border-color .16s,background .16s}
+.v-ev:hover{border-color:var(--hover);background:var(--panel3)}
+.v-ev.on{border-color:var(--cur);background:var(--cur-bg)}
+.v-ev.on b{color:var(--cur)}
+.v-ev b{display:block;font-size:14px;font-weight:700;line-height:1.5}
+.v-ev span.sub{display:block;font-size:12px;color:var(--dim);line-height:1.55;margin-top:2px}
+.sev{flex:none;font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;
+  border-radius:4px;margin-top:2px;letter-spacing:.03em}
+.sev.S1{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
+.sev.S2{background:color-mix(in srgb, var(--s2) 16%, transparent);color:var(--s2);border:1px solid var(--s2)}
+.sev.S3{background:color-mix(in srgb, var(--s3) 16%, transparent);color:var(--s3);border:1px solid var(--s3)}
+
+.v-stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px 22px;overflow-x:auto}
+/* 左右の余白は、後戻りの線を通すためのレーン。下の余白（迂回路）と同じ役割。 */
+.v-grid{position:relative;display:flex;gap:46px;min-width:1330px;padding:0 26px 104px}
+.v-col{flex:1 1 0;min-width:178px;display:flex;flex-direction:column;gap:18px}
+.v-col>h2{margin:0 0 6px;font-size:11px;letter-spacing:.13em;font-weight:700;white-space:nowrap;
+  color:var(--pc,var(--faint));padding-bottom:6px;border-bottom:2px solid var(--pc,var(--line));opacity:.9}
+
+/* フェーズ色は左のバーで常に見えるようにし、状態は枠線・地色・記号で示す。
+   （色だけに頼らないという設計判断を守りつつ、カテゴリ色を消さない） */
+.v-node{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc,var(--line));
+  border-radius:8px;padding:10px 12px 10px 13px;cursor:pointer;position:relative;
+  transition:opacity .18s,border-color .18s,background .18s,box-shadow .18s}
+.v-node .n{font-size:13.5px;display:block;line-height:1.5;font-weight:600}
+.v-node .t{font-size:11px;color:var(--faint);display:block;line-height:1.45;margin-top:2px}
+.v-node .mk{position:absolute;top:8px;right:9px;font-family:var(--mono);font-size:12px;font-weight:700}
+.v-node:hover{background:var(--panel3)}
+.v-node.done{border-color:var(--ok);background:var(--ok-bg)}
+.v-node.done .mk{color:var(--ok)}
+.v-node.cur{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px color-mix(in srgb, var(--cur) 18%, transparent)}
+.v-node.cur .mk{color:var(--cur)}
+.v-node.skip{opacity:.32;border-style:dashed;background:transparent}
+.v-node.skip .mk{color:var(--skip)}
+.v-node .dec{position:absolute;bottom:7px;right:9px;font-size:11px;color:var(--dec)}
+
+.v-wires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.v-wires path.w{fill:none;stroke:var(--cur);stroke-width:2;opacity:.85;stroke-linecap:round}
+.v-wires path.w.done{stroke:var(--ok)}
+.v-wires path.w.pend{stroke:var(--faint);stroke-dasharray:5 4;opacity:.7}
+.v-wires circle{fill:var(--bg);stroke:var(--cur);stroke-width:1.6}
+.v-wires circle.done{stroke:var(--ok)} .v-wires circle.pend{stroke:var(--faint)}
+.v-wires text{fill:var(--cur);font-family:var(--mono);font-size:11px;font-weight:700;
+  text-anchor:middle;dominant-baseline:central}
+.v-wires text.done{fill:var(--ok)} .v-wires text.pend{fill:var(--faint)}
+
+.v-steps{margin:18px 28px 60px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:18px 22px 22px}
+.v-steps>header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.v-steps h2{margin:0;font-size:18px}
+.v-steps h2 small{display:block;font-size:13px;color:var(--dim);font-weight:400;margin-top:3px}
+.v-acts{display:flex;gap:9px}
+.v-btn{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
+  padding:8px 15px;font-size:13px;cursor:pointer;font-family:var(--sans)}
+.v-btn:hover{border-color:var(--hover);background:var(--panel3)}
+.v-btn.p{border-color:var(--ok);color:var(--ok)}
+.v-th{flex:none;white-space:nowrap}
+
+.v-s{display:flex;gap:14px;padding:15px 12px;border-top:1px solid var(--line-soft);
+  border-radius:9px;transition:background .18s}
+.v-s:first-of-type{border-top:none}
+.v-s.current{background:var(--cur-bg);border-top-color:transparent;box-shadow:inset 4px 0 0 var(--cur)}
+.v-s .chk{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--line);
+  background:var(--panel2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:13px;font-weight:700;color:var(--faint);margin-top:2px}
+.v-s .chk:hover{border-color:var(--cur);color:var(--cur)}
+.v-s.current .chk{border-color:var(--cur);color:var(--cur)}
+.v-s.done .chk{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.v-s .bd{flex:1;min-width:0}
+.v-s .ttl{font-size:15.5px;font-weight:700;line-height:1.6}
+.v-s.current .ttl{color:var(--cur)}
+.v-s.done .ttl{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--faint)}
+.v-s .path{font-size:12px;color:var(--faint);margin:2px 0 7px}
+.v-s .path i{font-style:normal;color:var(--pc,var(--faint))}
+.v-s .dsc{font-size:13.5px;color:var(--dim);line-height:1.85}
+.v-s .dsc code{font-family:var(--mono);font-size:12.5px;background:var(--panel3);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--fg)}
+.v-s.skipped{opacity:.34}
+.v-s.skipped .ttl{text-decoration:line-through}
+
+.tag{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;
+  margin-left:8px;vertical-align:middle;white-space:nowrap}
+.tag.now{background:var(--cur);color:var(--onCur);border:1px solid var(--cur)}
+.tag.sla{background:var(--panel3);color:var(--dim);border:1px solid var(--line);font-family:var(--mono)}
+.tag.esc{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
+.tag.cond{background:color-mix(in srgb, var(--dec) 16%, transparent);color:var(--decFg);border:1px solid var(--dec)}
+.tag.tier{background:transparent;color:var(--tc);border:1px solid var(--tc);font-family:var(--mono)}
+.tag.cust{background:color-mix(in srgb, var(--c1) 18%, transparent);color:var(--custFg);border:1px solid #ff5c8a}
+
+/* 連絡先 — 手順の中に置く。別紙を探させない。
+   グループ単位で、連絡順に並べる。 */
+.v-contacts{margin-top:12px;border:1px solid var(--line);border-radius:9px;
+  background:var(--panel2);padding:9px 11px 11px}
+.v-contacts>b{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);font-weight:700;margin-bottom:8px}
+.v-cg{border-top:1px solid var(--line-soft);padding:9px 0 3px}
+.v-cg:first-of-type{border-top:none;padding-top:0}
+.v-cgh{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
+.v-cgh .nm{font-size:13.5px;font-weight:700;color:var(--fg)}
+.v-cgh em{font-style:normal;font-size:10.5px;color:var(--kc);border:1px solid var(--kc);
+  border-radius:4px;padding:0 6px}
+.v-cgh u{text-decoration:none;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.v-cgn{font-size:11.5px;color:var(--dim);line-height:1.65;margin:0 0 6px}
+.v-cm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:3px 0}
+.v-cm .no{flex:none;width:19px;height:19px;border-radius:50%;background:var(--panel3);
+  border:1px solid var(--line);font-family:var(--mono);font-size:10px;font-weight:700;
+  color:var(--dim);display:flex;align-items:center;justify-content:center}
+.v-cm.first .no{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
+.v-cm .who{font-size:13px;font-weight:600;min-width:74px}
+.v-cm .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:13px;
+  color:var(--fg);background:var(--panel3);border:1px solid var(--vc);border-radius:6px;
+  padding:1px 8px 1px 3px;user-select:all}
+.v-cm .ch i{font-style:normal;width:17px;height:17px;border-radius:4px;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 24%, transparent);color:var(--vc);user-select:none}
+/* ロゴを使う手段は、色を付けた四角で囲まず、そのまま出す */
+.v-cm .ch i.ico{background:none;width:16px;height:16px}
+.vico{width:100%;height:100%;display:block;color:var(--vc)}
+.v-cm .mnt{flex-basis:100%;font-size:11px;color:var(--faint);padding-left:27px;line-height:1.55}
+
+.v-godone{margin-top:12px;background:var(--cur);border:none;color:var(--onCur);border-radius:8px;
+  padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans)}
+.v-godone:hover{filter:brightness(1.08)}
+
+.v-ask{margin-top:12px;padding:14px 16px;background:var(--panel2);border:2px solid var(--dec);border-radius:9px}
+.v-ask p{margin:0 0 10px;font-size:14.5px;font-weight:700}
+.v-ask .opts{display:flex;gap:10px;flex-wrap:wrap}
+.v-ask button{background:var(--panel3);border:2px solid var(--line);color:var(--fg);border-radius:8px;
+  padding:9px 18px;font-size:14px;cursor:pointer;font-family:var(--sans)}
+.v-ask button:hover{border-color:var(--dec)}
+.v-ask button.on{border-color:var(--dec);background:color-mix(in srgb, var(--dec) 22%, transparent);color:var(--decFg);font-weight:700}
+
+.v-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--dim)}
+.v-legend span{display:flex;align-items:center;gap:6px}
+.v-legend i{font-family:var(--mono);font-weight:700;font-size:13px;font-style:normal}
+.v-note{margin:18px 0 0;font-size:12.5px;color:var(--faint);line-height:1.75}
+.v-empty{color:var(--faint);font-size:14px;margin:18px 0 6px}
+
+
+/* ================= 明るさ ================= */
+/* 明示的に選ばれていればそれに従い、選ばれていなければ OS の設定に従う。 */
+:root[data-theme="light"]{
+  --bg:#eef1f6; --panel:#ffffff; --panel2:#f5f7fb; --panel3:#e8edf5;
+  --line:#ccd5e2; --line-soft:#e4e9f1;
+  --fg:#131924; --dim:#48566b; --faint:#76839a;
+
+  --cur:#a86a00;  --cur-bg:color-mix(in srgb, #a86a00 12%, transparent);
+  --ok:#0f8a4f;   --ok-bg:color-mix(in srgb, #0f8a4f 12%, transparent);
+  --skip:#8a94a6;
+  --s1:#c62828;   --s2:#a15c00;   --s3:#00718f;
+  --dec:#6a35d9;
+
+  --c1:#c2185b; --c2:#0b62d0; --c3:#6a35d9; --c4:#a15c00; --c5:#0f8a63;
+  --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
+
+  --hover:#9aa7bb;
+  --wire:#8b98ad;
+  --onCur:#ffffff;
+  --onOk:#ffffff;
+  --topbg:rgba(255,255,255,.94);
+  --maskbg:rgba(28,36,50,.42);
+  --shadow:rgba(22,32,52,.16);
+  --decFg:#5b21b6;
+  --custFg:#b3175a;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+  --bg:#eef1f6; --panel:#ffffff; --panel2:#f5f7fb; --panel3:#e8edf5;
+  --line:#ccd5e2; --line-soft:#e4e9f1;
+  --fg:#131924; --dim:#48566b; --faint:#76839a;
+
+  --cur:#a86a00;  --cur-bg:color-mix(in srgb, #a86a00 12%, transparent);
+  --ok:#0f8a4f;   --ok-bg:color-mix(in srgb, #0f8a4f 12%, transparent);
+  --skip:#8a94a6;
+  --s1:#c62828;   --s2:#a15c00;   --s3:#00718f;
+  --dec:#6a35d9;
+
+  --c1:#c2185b; --c2:#0b62d0; --c3:#6a35d9; --c4:#a15c00; --c5:#0f8a63;
+  --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
+
+  --hover:#9aa7bb;
+  --wire:#8b98ad;
+  --onCur:#ffffff;
+  --onOk:#ffffff;
+  --topbg:rgba(255,255,255,.94);
+  --maskbg:rgba(28,36,50,.42);
+  --shadow:rgba(22,32,52,.16);
+  --decFg:#5b21b6;
+  --custFg:#b3175a;
+}
+}
+/* ロゴは地の明暗に関わらず本来の色のままにする */
+:root[data-theme="light"] .vico{color:var(--vc)}
+
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
