@@ -83,7 +83,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 
 .v-stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;
   padding:16px 18px 22px;overflow-x:auto}
-.v-grid{position:relative;display:flex;gap:46px;min-width:1330px;padding-bottom:104px}
+/* 左右の余白は、後戻りの線を通すためのレーン。下の余白（迂回路）と同じ役割。 */
+.v-grid{position:relative;display:flex;gap:46px;min-width:1330px;padding:0 26px 104px}
 .v-col{flex:1 1 0;min-width:178px;display:flex;flex-direction:column;gap:18px}
 .v-col>h2{margin:0 0 6px;font-size:11px;letter-spacing:.13em;font-weight:700;white-space:nowrap;
   color:var(--pc,var(--faint));padding-bottom:6px;border-bottom:2px solid var(--pc,var(--line));opacity:.9}
@@ -427,7 +428,8 @@ body.resizing{cursor:col-resize;user-select:none}
 
 /* ---------- キャンバス（中央・上） ---------- */
 .canvas{position:relative;overflow:auto;flex:1 1 auto;padding:14px 16px 16px;min-height:0}
-.cgrid{position:relative;display:flex;gap:32px;padding-bottom:24px;min-height:100%}
+/* 左右の余白は、後戻りの線を通すためのレーン。 */
+.cgrid{position:relative;display:flex;gap:32px;padding:0 22px 24px;min-height:100%}
 .ccol{flex:1 1 0;min-width:166px;display:flex;flex-direction:column;gap:16px;position:relative;
   border-radius:9px;padding:0 4px 4px;transition:background .18s,box-shadow .18s,opacity .18s}
 /* 見出しは縦スクロールしても消えないよう固定する */
@@ -1270,8 +1272,9 @@ function mountViewer(root, DATA, opt){
         var dx = Math.max(26, (x2-x1)*0.45);
         d = "M " + x1 + " " + y1 + " C " + (x1+dx) + " " + y1 + ", " + (x2-dx) + " " + y2 + ", " + x2 + " " + y2;
       }else{
-        var gx = Math.min(grid.clientWidth-6, x1+OUT);
-        var hx = Math.max(-12, x2-IN);
+        /* 左右のレーンの内側に収める。外へ出すと切れる。 */
+        var gx = Math.min(grid.clientWidth-8, x1+OUT);
+        var hx = Math.max(8, x2-IN);
         var gy = gapLane(a, b, box);
         if(gy !== null){
           d = ortho([[x1,y1],[gx,y1],[gx,gy],[hx,gy],[hx,y2],[x2,y2]], 9);
@@ -1817,7 +1820,11 @@ function task(k){ for(var i=0;i<DB.tasks.length;i++) if(DB.tasks[i].key===k) ret
 function phase(k){ for(var i=0;i<DB.phases.length;i++) if(DB.phases[i].key===k) return DB.phases[i]; return null; }
 function phaseOfStep(st){ var t = task(st.task); return t ? phase(t.phase) : null; }
 /* 列の最小幅。フェーズ数に応じて決めるので、列が減れば横スクロールも減る。 */
-function gridMinWidth(){ var n = DB.phases.length; return (n*166 + (n-1)*32) + "px"; }
+function gridMinWidth(){
+  /* 列の幅 + 列間 + 左右のレーン（22px × 2） */
+  var n = DB.phases.length;
+  return (n*166 + (n-1)*32 + 44) + "px";
+}
 
 /* 判断ごとに色系統を割り当てる（分岐の見分けに使う） */
 function decisionOf(evt, key){
@@ -2423,7 +2430,8 @@ function paintEditorWires(nodes){
       var dx = Math.max(24, (x2-x1)*0.45);
       d = "M " + x1 + " " + y1 + " C " + (x1+dx) + " " + y1 + ", " + (x2-dx) + " " + y2 + ", " + x2 + " " + y2;
     }else{
-      var gx = Math.min(grid.clientWidth-6, x1+24), hx = Math.max(-10, x2-24);
+      /* 左右のレーンの内側に収める。外へ出すと切れる。 */
+      var gx = Math.min(grid.clientWidth-8, x1+18), hx = Math.max(6, x2-18);
       var gy = gapLane(seq[k].el, seq[k+1].el);
       if(gy !== null){
         d = ortho([[x1,y1],[gx,y1],[gx,gy],[hx,gy],[hx,y2],[x2,y2]], 9);
