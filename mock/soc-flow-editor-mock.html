@@ -467,7 +467,16 @@ body.dragging .ccol.drop .ghost{display:flex}
 .cwires>path{stroke:var(--wire);stroke-width:2;opacity:.62;fill:none;
   transition:opacity .16s,stroke .16s,stroke-width .16s}
 .cwires.focus>path{opacity:.2}
-.cwires>path.hot{stroke:var(--cur);stroke-width:2.8;opacity:1}
+/* 選択・ホバー中の線だけ、進む向きに破線を流す。
+   「常時動くものは置かない」原則があるので、選択している間だけに限る。
+   試走モードと書き出し HTML には入れない。 */
+.cwires>path.hot{stroke:var(--cur);stroke-width:2.8;opacity:1;
+  stroke-dasharray:9 7;animation:wire-flow 900ms linear infinite}
+@keyframes wire-flow{from{stroke-dashoffset:0}to{stroke-dashoffset:-16}}
+@media (prefers-reduced-motion: reduce){
+  /* 動きを止めるだけだと破線が残って読みにくいので、実線に戻す */
+  .cwires>path.hot{stroke-dasharray:none}
+}
 /* 矢印の色は CSS で持たせる。属性だとテーマ切り替えに追従しない。 */
 .cwires marker path{fill:var(--wire)}
 .cwires #eah-hot path{fill:var(--cur)}
