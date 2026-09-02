@@ -715,7 +715,12 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 /* ---------- 担当（Tier）と連絡先 ---------- */
 .ol-f .tier{color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 3px;font-size:9px}
 .ol-f .cust{color:#ff5c8a}
-.cnode .f-tier{color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 4px}
+/* 担当はタイトルの上に置く。手順の性質を示す記号とは別の種類の情報なので、
+   同じ行に並べると「エスカレ先が Tier1」のように読み違えられる。 */
+.cnode .who{display:block;width:fit-content;margin:0 0 5px;font-family:var(--mono);
+  font-size:9.5px;font-weight:700;line-height:1.6;letter-spacing:.04em;
+  color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 6px;
+  background:color-mix(in srgb, var(--tc) 12%, transparent)}
 .cnode .f-ct{display:inline-flex;gap:3px;align-items:center}
 .cnode .f-ct i{font-style:normal;width:14px;height:14px;border-radius:4px;font-size:9px;
   display:inline-flex;align-items:center;justify-content:center;
@@ -1332,8 +1337,10 @@ function mountViewer(root, DATA, opt){
                  .filter(function(g){ return !!g; });
       var tags = "";
       if(isCur) tags += '<span class="tag now">現在</span>';
+      /* 「担当」と書いておかないと、隣の「エスカレ判断」と並んだときに
+         エスカレ先だと読み違えられる。 */
       if(st.tier && TIER[st.tier])
-        tags += '<span class="tag tier" style="--tc:' + TIER[st.tier].c + '">'
+        tags += '<span class="tag tier" style="--tc:' + TIER[st.tier].c + '">担当 '
               + TIER[st.tier].l + '</span>';
       if(st.sla) tags += '<span class="tag sla">SLA ' + esc(st.sla) + '</span>';
       if(st.escalate) tags += '<span class="tag esc">エスカレ判断</span>';
@@ -2319,9 +2326,6 @@ function renderCanvas(){
           + (st.conditions.length > 1 ? " 他" : "") + '</span>';
       }
       if(st.escalate) flags += '<span class="f-esc" title="エスカレーション判断">! エスカレ</span>';
-      if(st.tier && TIER[st.tier])
-        flags += '<span class="f-tier" style="--tc:' + TIER[st.tier].c + '" title="担当">'
-               + TIER[st.tier].l.replace("・CSIRT", "") + '</span>';
       var cts = stepContacts(st);
       if(cts.length){
         var vias = {}, tip = [];
@@ -2336,7 +2340,12 @@ function renderCanvas(){
                 + viaMark(d) + '</i>'; }).join("") + '</span>';
       }
       if(st.sla) flags += '<span class="f-sla">' + esc(st.sla) + '</span>';
+      /* 担当はタイトルの上。「自分の手順か」を先に判断できるようにする。
+         手順の性質（判断・条件・エスカレ・SLA）とは別の種類の情報なので行を分ける。 */
       el.innerHTML = '<span class="num">' + (i+1) + '</span>'
+        + (st.tier && TIER[st.tier]
+           ? '<span class="who" style="--tc:' + TIER[st.tier].c + '" title="この手順の担当">'
+             + TIER[st.tier].l.replace("・CSIRT", "") + '</span>' : '')
         + '<b>' + esc(st.title) + '</b><span class="tk">' + esc(t.label) + '</span>'
         + (flags ? '<span class="flags">' + flags + '</span>' : '');
       el.addEventListener("click", function(e){ setSel(st.id, e); setTab("ins"); renderAll(); });
