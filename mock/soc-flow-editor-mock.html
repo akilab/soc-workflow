@@ -147,25 +147,33 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .tag.tier{background:transparent;color:var(--tc);border:1px solid var(--tc);font-family:var(--mono)}
 .tag.cust{background:rgba(255,92,138,.18);color:#ff8fb0;border:1px solid #ff5c8a}
 
-/* 連絡先 — 手順の中に置く。別紙を探させない。 */
+/* 連絡先 — 手順の中に置く。別紙を探させない。
+   グループ単位で、連絡順に並べる。 */
 .v-contacts{margin-top:12px;border:1px solid var(--line);border-radius:9px;
-  background:var(--panel2);padding:9px 11px 10px}
+  background:var(--panel2);padding:9px 11px 11px}
 .v-contacts>b{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--faint);font-weight:700;margin-bottom:7px}
-.v-ct{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;padding:5px 0;
-  border-top:1px solid var(--line-soft)}
-.v-ct:first-of-type{border-top:none}
-.v-ct>i{flex:none;font-style:normal;width:22px;height:22px;border-radius:6px;
-  background:color-mix(in srgb, var(--vc) 20%, transparent);border:1px solid var(--vc);
-  color:var(--vc);font-size:11px;font-weight:700;display:flex;align-items:center;
-  justify-content:center;align-self:center}
-.v-ct .nm{font-size:13.5px;font-weight:700;color:var(--fg)}
-.v-ct .val{font-family:var(--mono);font-size:14px;color:var(--cur);
-  background:var(--panel3);border:1px solid var(--line);border-radius:5px;padding:1px 8px;
-  user-select:all}
-.v-ct em{font-style:normal;font-size:10.5px;color:var(--kc);border:1px solid var(--kc);
+  color:var(--faint);font-weight:700;margin-bottom:8px}
+.v-cg{border-top:1px solid var(--line-soft);padding:9px 0 3px}
+.v-cg:first-of-type{border-top:none;padding-top:0}
+.v-cgh{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
+.v-cgh .nm{font-size:13.5px;font-weight:700;color:var(--fg)}
+.v-cgh em{font-style:normal;font-size:10.5px;color:var(--kc);border:1px solid var(--kc);
   border-radius:4px;padding:0 6px}
-.v-ct .nt{flex-basis:100%;font-size:11.5px;color:var(--faint);line-height:1.6;padding-left:31px}
+.v-cgh u{text-decoration:none;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.v-cgn{font-size:11.5px;color:var(--dim);line-height:1.65;margin:0 0 6px}
+.v-cm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:3px 0}
+.v-cm .no{flex:none;width:19px;height:19px;border-radius:50%;background:var(--panel3);
+  border:1px solid var(--line);font-family:var(--mono);font-size:10px;font-weight:700;
+  color:var(--dim);display:flex;align-items:center;justify-content:center}
+.v-cm.first .no{background:var(--cur);border-color:var(--cur);color:#1a1405}
+.v-cm .who{font-size:13px;font-weight:600;min-width:74px}
+.v-cm .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:13px;
+  color:var(--fg);background:var(--panel3);border:1px solid var(--vc);border-radius:6px;
+  padding:1px 8px 1px 3px;user-select:all}
+.v-cm .ch i{font-style:normal;width:17px;height:17px;border-radius:4px;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 24%, transparent);color:var(--vc);user-select:none}
+.v-cm .mnt{flex-basis:100%;font-size:11px;color:var(--faint);padding-left:27px;line-height:1.55}
 
 .v-godone{margin-top:12px;background:var(--cur);border:none;color:#1a1405;border-radius:8px;
   padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans)}
@@ -624,6 +632,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 
 .ins .ct-row{display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line-soft)}
 .ins .ct-row:first-of-type{border-top:none}
+.ins .ct-row .vs{flex:none;display:flex;gap:3px}
 .ins .ct-row i{flex:none;font-style:normal;width:20px;height:20px;border-radius:5px;font-size:10px;
   display:flex;align-items:center;justify-content:center;
   background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
@@ -669,6 +678,47 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .rw .acts{display:flex;gap:7px;justify-content:flex-end}
 .rw .note{grid-column:1/-1;font-size:11.5px;color:var(--faint);line-height:1.6;
   border-top:1px solid var(--line-soft);padding-top:7px;margin-top:2px}
+
+/* ---------- 連絡先グループ ---------- */
+.cg{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--kc,var(--line));
+  border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.cg-h{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.cg-h b{font-size:15.5px;font-weight:700}
+.cg-h .kind{font-size:11.5px;color:var(--kc);border:1px solid var(--kc);border-radius:5px;padding:1px 8px}
+.cg-h .cnt{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+.cg-h .use{font-family:var(--mono);font-size:11.5px;color:var(--dim);
+  border:1px solid var(--line);border-radius:5px;padding:1px 8px}
+.cg-h .use.on{color:var(--cur);border-color:var(--cur)}
+.cg-h .sp{flex:1}
+.cg-note{font-size:12px;color:var(--dim);line-height:1.7;margin:7px 0 0}
+.cg-uses{font-size:11.5px;color:var(--faint);line-height:1.65;margin:4px 0 0}
+.cg-mem{margin-top:11px;border-top:1px solid var(--line-soft);padding-top:9px}
+.cg-mem>h5{margin:0 0 7px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--faint);font-weight:700}
+.mem{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 9px;border-radius:8px;
+  background:var(--panel2);border:1px solid var(--line);margin-bottom:6px}
+.mem .no{flex:none;width:20px;height:20px;border-radius:50%;background:var(--panel3);
+  border:1px solid var(--line);font-family:var(--mono);font-size:10px;font-weight:700;
+  color:var(--dim);display:flex;align-items:center;justify-content:center}
+.mem.first .no{background:var(--cur);border-color:var(--cur);color:#1a1405}
+.mem .who{font-size:13.5px;font-weight:600;min-width:90px}
+.mem .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:12.5px;
+  color:var(--fg);background:var(--panel3);border:1px solid var(--vc);border-radius:6px;padding:1px 8px 1px 3px}
+.mem .ch i{font-style:normal;width:16px;height:16px;border-radius:4px;font-size:9.5px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 24%, transparent);color:var(--vc)}
+.mem .mnt{flex-basis:100%;font-size:11px;color:var(--faint);padding-left:30px;line-height:1.55}
+.mem .sp{flex:1}
+.mem .ops{display:flex;gap:5px}
+.mem .ops button{background:var(--panel3);border:1px solid var(--line);color:var(--dim);
+  border-radius:5px;min-width:24px;height:24px;padding:0 6px;font-size:11px;cursor:pointer;
+  font-family:var(--sans)}
+.mem .ops button:hover:not(:disabled){border-color:var(--cur);color:var(--cur)}
+.mem .ops button.dgr:hover{border-color:var(--s1);color:var(--s1)}
+.mem .ops button:disabled{opacity:.3;cursor:default}
+.cg-add{width:100%;background:none;border:1px dashed var(--line);color:var(--faint);border-radius:7px;
+  padding:7px;font-size:12px;cursor:pointer;font-family:var(--sans)}
+.cg-add:hover{border-color:var(--ok);color:var(--ok)}
 </style>
 </head>
 
@@ -737,7 +787,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
     <h1 class="brand">連絡<b>先</b></h1>
     <div class="ed-spacer"></div>
     <input class="tk-search" id="ctSearch" type="text" placeholder="連絡先を検索…">
-    <button class="ed-tool pri" id="ctNew">＋ 新しい連絡先</button>
+    <button class="ed-tool pri" id="ctNew">＋ 新しいグループ</button>
   </div>
   <div class="ew-body">
     <h2 class="ew-h">連絡先 <span id="ctCount"></span></h2>
@@ -761,10 +811,12 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
     </div>
     <div id="ctList"></div>
     <p class="ed-note">
-      <b>連絡先は手順から参照される部品です。</b>
-      番号や宛先が変わったら、ここを直せば参照しているすべての手順に反映されます。
-      どの手順で使われているかは各行に出ます。使われている連絡先は削除できません。
-      試走モードと書き出し HTML では、手順の中に連絡先が表示されます。
+      <b>連絡先はカテゴリ（グループ）ごとに、連絡順のメンバーを持ちます。</b>
+      「管理職に連絡」は 1 番から順に掛けて、繋がらなければ次へ——という運用をそのまま表します。
+      グループ名は組織の呼び方に合わせて自由に変えられます。
+      1 人が電話・Teams・Elgana・メールを複数持てます（入力した手段だけが表示されます）。
+      番号が変わったらここを直せば、参照しているすべての手順に反映されます。
+      使われているグループは削除できません。
     </p>
   </div>
 </div>
@@ -886,10 +938,19 @@ var TIER = {
 function mountViewer(root, DATA, opt){
   opt = opt || {};
   var uid = "v" + Math.floor(Math.random()*1e9).toString(36);
-  var phaseByKey = {}, taskByKey = {}, contactByKey = {};
+  var phaseByKey = {}, taskByKey = {}, groupByKey = {};
   DATA.phases.forEach(function(p){ phaseByKey[p.key] = p; });
   DATA.tasks.forEach(function(t){ taskByKey[t.key] = t; });
-  (DATA.contacts || []).forEach(function(c){ contactByKey[c.key] = c; });
+  (DATA.contactGroups || []).forEach(function(g){ groupByKey[g.key] = g; });
+
+  /* メンバーが持っている連絡手段のうち、入力されているものだけを並べる。
+     1 人が電話と Teams の両方を持つのは普通なので、手段は欄で持つ。 */
+  function channels(m){
+    var out = [];
+    [["phone", m.tel], ["teams", m.teams], ["elgana", m.elgana], ["mail", m.mail]]
+      .forEach(function(p){ if(p[1]) out.push({via:p[0], value:p[1]}); });
+    return out;
+  }
 
   var events = DATA.events;
   var solo = events.length < 2;
@@ -1114,8 +1175,8 @@ function mountViewer(root, DATA, opt){
       if(vis !== false){ n++; total++; if(done[i]) fin++; }
       var mark = vis===false ? "&#8212;" : (done[i] ? "&#10003;" : n);
 
-      var cts = (st.contacts || []).map(function(k){ return contactByKey[k]; })
-                 .filter(function(c){ return !!c; });
+      var cts = (st.contacts || []).map(function(k){ return groupByKey[k]; })
+                 .filter(function(g){ return !!g; });
       var tags = "";
       if(isCur) tags += '<span class="tag now">現在</span>';
       if(st.tier && TIER[st.tier])
@@ -1123,7 +1184,7 @@ function mountViewer(root, DATA, opt){
               + TIER[st.tier].l + '</span>';
       if(st.sla) tags += '<span class="tag sla">SLA ' + esc(st.sla) + '</span>';
       if(st.escalate) tags += '<span class="tag esc">エスカレ判断</span>';
-      if(cts.some(function(c){ return c.kind === "customer"; }))
+      if(cts.some(function(g){ return g.kind === "customer"; }))
         tags += '<span class="tag cust">お客様連絡</span>';
       (st.conditions||[]).forEach(function(c){
         /* どの質問への答えなのかをツールチップに持たせる */
@@ -1142,15 +1203,27 @@ function mountViewer(root, DATA, opt){
         + '<div class="path"><i>&#9679;</i> ' + esc(ph.name) + ' / ' + esc(tk.label) + '</div>'
         + '<div class="dsc">' + (vis===false ? "この対応では対象外です。" : (st.detail||"")) + '</div>'
         + ((vis !== false && cts.length)
-           ? '<div class="v-contacts"><b>連絡先</b>' + cts.map(function(c){
-               var v = VIA[c.via] || {l:c.via, m:"?", c:"#7d8798"};
-               var kd = KIND[c.kind];
-               return '<div class="v-ct" style="--vc:' + v.c + '">'
-                 + '<i title="' + esc(v.l) + '">' + v.m + '</i>'
-                 + '<span class="nm">' + esc(c.name) + '</span>'
-                 + '<span class="val">' + esc(c.value) + '</span>'
-                 + (kd ? '<em style="--kc:' + kd.c + '">' + kd.l + '</em>' : '')
-                 + (c.note ? '<span class="nt">' + esc(c.note) + '</span>' : '')
+           ? '<div class="v-contacts"><b>連絡先</b>' + cts.map(function(g){
+               var kd = KIND[g.kind], ms = g.members || [];
+               return '<div class="v-cg">'
+                 + '<div class="v-cgh"><span class="nm">' + esc(g.name) + '</span>'
+                   + (kd ? '<em style="--kc:' + kd.c + '">' + kd.l + '</em>' : '')
+                   + (ms.length > 1 ? '<u>連絡順に上から ' + ms.length + ' 名</u>' : '')
+                 + '</div>'
+                 + (g.note ? '<p class="v-cgn">' + esc(g.note) + '</p>' : '')
+                 + ms.map(function(m, mi){
+                     var chs = channels(m);
+                     return '<div class="v-cm' + (mi === 0 && ms.length > 1 ? " first" : "") + '">'
+                       + (ms.length > 1 ? '<span class="no">' + (mi+1) + '</span>' : '')
+                       + '<span class="who">' + esc(m.name) + '</span>'
+                       + chs.map(function(ch){
+                           var v = VIA[ch.via] || {l:ch.via, m:"?", c:"#7d8798"};
+                           return '<span class="ch" style="--vc:' + v.c + '" title="' + esc(v.l) + '">'
+                             + '<i>' + v.m + '</i>' + esc(ch.value) + '</span>';
+                         }).join("")
+                       + (m.note ? '<span class="mnt">' + esc(m.note) + '</span>' : '')
+                       + '</div>';
+                   }).join("")
                  + '</div>';
              }).join("") + '</div>'
            : "")
@@ -1237,9 +1310,15 @@ function mountViewer(root, DATA, opt){
       if(st.sla) head += "（SLA " + st.sla + "）";
       lines.push(head);
       (st.contacts || []).forEach(function(k){
-        var c = contactByKey[k]; if(!c) return;
-        var v = VIA[c.via] || {l:c.via};
-        lines.push("        連絡: " + v.l + " " + c.name + " " + c.value);
+        var g = groupByKey[k]; if(!g) return;
+        lines.push("        連絡先: " + g.name
+          + ((g.members||[]).length > 1 ? "（連絡順）" : ""));
+        (g.members || []).forEach(function(m, mi){
+          var cs = channels(m).map(function(ch){
+            return (VIA[ch.via] || {l:ch.via}).l + " " + ch.value; }).join(" / ");
+          lines.push("          " + ((g.members.length > 1) ? (mi+1) + ". " : "- ")
+            + m.name + (cs ? "  " + cs : ""));
+        });
       });
     });
     var txt = lines.join("\n");
@@ -1296,33 +1375,72 @@ var TIER_DEFAULT = {
 function seed(){ var d = {
   /* 連絡先マスタ — タスクと同じく部品として 1 か所で持つ。
      番号が変わったらここだけ直せば、参照しているすべての手順に反映される。 */
-  contacts:[
-    {key:"csirt-tel", name:"CSIRT 当番",     via:"phone",  value:"内線 1234",
-     kind:"esc",      note:"24時間受付。夜間・休日は当直携帯へ転送される"},
-    {key:"csirt-tm",  name:"CSIRT チャネル", via:"teams",  value:"#csirt-incident",
-     kind:"esc",      note:"電話が繋がらない場合もここに記録を残す"},
-    {key:"lead-tel",  name:"SOC リーダー",   via:"phone",  value:"内線 1200",
-     kind:"esc",      note:"平日 9:00-18:00"},
-    {key:"soc-tm",    name:"SOC 連絡チャネル", via:"teams", value:"#soc-alerts",
-     kind:"internal", note:""},
-    {key:"it-elg",    name:"情報システム部", via:"elgana", value:"情シス運用グループ",
-     kind:"internal", note:"端末・アカウントの操作依頼はここ"},
-    {key:"pr-mail",   name:"広報",           via:"mail",   value:"pr@example.local",
-     kind:"internal", note:"公表判断が要る案件は必ず同報する"},
-    {key:"legal-mail",name:"法務",           via:"mail",   value:"legal@example.local",
-     kind:"internal", note:"報告義務の判断はここに仰ぐ"},
-    {key:"hr-tel",    name:"人事",           via:"phone",  value:"内線 1350",
-     kind:"internal", note:"内部不正の疑いがある場合"},
-    {key:"user-tel",  name:"利用者（本人）", via:"phone",  value:"資産台帳の連絡先",
-     kind:"internal", note:"侵害の疑いがあるときはメールを使わない"},
-    {key:"cust-tel",  name:"顧客窓口",       via:"phone",  value:"内線 2000",
-     kind:"customer", note:"カスタマーサポート経由で連絡する"},
-    {key:"cust-mail", name:"顧客通知メール", via:"mail",   value:"support@example.local",
-     kind:"customer", note:"文面は広報の確認を得てから送る"},
-    {key:"ir-tel",    name:"IR 事業者（契約先）", via:"phone", value:"03-0000-0000",
-     kind:"external", note:"24時間。契約番号 XXXX-YYYY を伝える"},
-    {key:"ppc-mail",  name:"個人情報保護委員会", via:"mail", value:"（届出フォーム）",
-     kind:"external", note:"速報は概ね 3〜5 日以内"}
+  /* 連絡先グループ — カテゴリごとに、連絡順のメンバーを持つ。
+     手順が参照するのはグループ。夜間は 1 番から順に掛ける、という運用をそのまま表す。
+     グループ名は組織に合わせて自由に変えられる。 */
+  contactGroups:[
+    {key:"mgr", name:"管理職（夜間一次連絡）", kind:"esc",
+     note:"夜間・休日はここが一次連絡先。1 番から順に掛け、繋がらなければ次へ。",
+     members:[
+       {name:"課長A", tel:"090-0000-0001", teams:"@mgr-a", elgana:"", mail:"", note:"月・火の当番"},
+       {name:"課長B", tel:"090-0000-0002", teams:"@mgr-b", elgana:"", mail:"", note:""},
+       {name:"課長C", tel:"090-0000-0003", teams:"", elgana:"", mail:"", note:""},
+       {name:"課長D", tel:"090-0000-0004", teams:"@mgr-d", elgana:"", mail:"", note:""},
+       {name:"課長E", tel:"090-0000-0005", teams:"", elgana:"", mail:"", note:"海外出張中は 1 番へ"}
+     ]},
+    {key:"tier2", name:"Tier2 アナリスト", kind:"esc",
+     note:"詳細分析・封じ込めの実施担当。オペレータと管理職の双方から連絡する。",
+     members:[
+       {name:"アナリストA", tel:"内線 1210", teams:"@an-a", elgana:"", mail:"", note:"マルウェア解析"},
+       {name:"アナリストB", tel:"内線 1211", teams:"@an-b", elgana:"", mail:"", note:"ログ分析"},
+       {name:"アナリストC", tel:"内線 1212", teams:"@an-c", elgana:"", mail:"", note:""}
+     ]},
+    {key:"tier3", name:"Tier3・CSIRT", kind:"esc",
+     note:"24時間受付。夜間・休日は当直携帯へ転送される。",
+     members:[
+       {name:"CSIRT 当番", tel:"内線 1234", teams:"", elgana:"", mail:"", note:"まずここへ"},
+       {name:"CSIRT リード", tel:"090-0000-0010", teams:"@csirt-lead", elgana:"", mail:"", note:""},
+       {name:"フォレンジック担当", tel:"内線 1240", teams:"", elgana:"", mail:"", note:"証拠保全の相談"}
+     ]},
+    {key:"csirt-ch", name:"CSIRT チャネル", kind:"esc",
+     note:"電話が繋がらない場合もここに記録を残す。",
+     members:[{name:"#csirt-incident", tel:"", teams:"#csirt-incident", elgana:"", mail:"", note:""}]},
+    {key:"soc-ch", name:"SOC 連絡チャネル", kind:"internal", note:"",
+     members:[{name:"#soc-alerts", tel:"", teams:"#soc-alerts", elgana:"", mail:"", note:""}]},
+    {key:"it", name:"情報システム部", kind:"internal",
+     note:"端末・アカウントの操作依頼はここ。",
+     members:[{name:"情シス運用グループ", tel:"内線 1500", teams:"", elgana:"情シス運用グループ", mail:"", note:""}]},
+    {key:"pr", name:"広報", kind:"internal",
+     note:"公表判断が要る案件は必ず同報する。",
+     members:[{name:"広報窓口", tel:"内線 1600", teams:"", elgana:"", mail:"pr@example.local", note:""}]},
+    {key:"legal", name:"法務", kind:"internal",
+     note:"報告義務の判断はここに仰ぐ。",
+     members:[{name:"法務窓口", tel:"内線 1610", teams:"", elgana:"", mail:"legal@example.local", note:""}]},
+    {key:"hr", name:"人事", kind:"internal",
+     note:"内部不正の疑いがある場合。SOC 単独で本人に接触しない。",
+     members:[{name:"人事労務", tel:"内線 1350", teams:"", elgana:"", mail:"", note:""}]},
+    {key:"enduser", name:"利用者（本人）", kind:"internal",
+     note:"侵害の疑いがあるときはメールを使わない。資産台帳の連絡先を引く。",
+     members:[{name:"該当利用者", tel:"資産台帳の連絡先", teams:"", elgana:"", mail:"", note:""}]},
+    {key:"cust-x", name:"顧客X 連絡先", kind:"customer",
+     note:"優先順に連絡する。1 番が不在なら 2 番へ。夜間は 3 番の代表窓口のみ。",
+     members:[
+       {name:"情報システム部長", tel:"090-0000-1001", teams:"", elgana:"", mail:"", note:"日中優先"},
+       {name:"情シス担当", tel:"090-0000-1002", teams:"", elgana:"", mail:"it@custx.example", note:""},
+       {name:"代表窓口", tel:"03-0000-1000", teams:"", elgana:"", mail:"", note:"24時間"}
+     ]},
+    {key:"cust-y", name:"顧客Y 連絡先", kind:"customer",
+     note:"メール優先。電話は日中のみ。",
+     members:[
+       {name:"セキュリティ窓口", tel:"", teams:"", elgana:"", mail:"security@custy.example", note:""},
+       {name:"情報システム課", tel:"03-0000-2000", teams:"", elgana:"", mail:"", note:"平日 9-17"}
+     ]},
+    {key:"ir", name:"IR 事業者（契約先）", kind:"external",
+     note:"24時間。契約番号 XXXX-YYYY を伝える。",
+     members:[{name:"IR 受付", tel:"03-0000-0000", teams:"", elgana:"", mail:"ir@vendor.example", note:""}]},
+    {key:"ppc", name:"個人情報保護委員会", kind:"external",
+     note:"速報は概ね 3〜5 日以内。",
+     members:[{name:"届出窓口", tel:"", teams:"", elgana:"", mail:"（届出フォーム）", note:""}]}
   ],
   phases:[
     {key:"recv",  name:"受信・確認", color:"var(--c1)"},
@@ -1379,19 +1497,19 @@ function seed(){ var d = {
   ],
   events:[
     {key:"ransom", severity:"S1", title:"ランサムウェアの疑い", sub:"大量のファイル暗号化・拡張子変更を検知", steps:[
-      S("ack","アラートを受領し、即座に上位へ一報する","<code>調査の完了を待たない</code>。S1 は第一報を優先する。","即時",1),
+      K(S("ack","アラートを受領し、即座に上位へ一報する","<code>調査の完了を待たない</code>。S1 は第一報を優先する。","即時",1),"mgr"),
       S("iso","対象端末を隔離する","判定を待たずに隔離する。誤検知のコストより拡散のコストが桁違いに大きい。","即時",1),
       S("scope","影響範囲を把握する","共有フォルダ・バックアップ領域への到達有無を最優先で確認する。","15分"),
-      K(S("esc","CSIRT と経営に報告する","広報・法務にも同時に連絡する。公表判断が必要になる可能性がある。","30分",1),"csirt-tel","csirt-tm","pr-mail","legal-mail"),
+      K(S("esc","CSIRT と経営に報告する","広報・法務にも同時に連絡する。公表判断が必要になる可能性がある。","30分",1),"tier3","csirt-ch","pr","legal"),
       S("block","横展開を遮断する","該当セグメントの通信制限、管理者アカウントの棚卸しを行う。"),
       S("logs","侵入経路を特定する","初期侵入から暗号化までの経路を再構成する。同じ経路が他にも開いている可能性が高い。"),
       D(S("restore","バックアップの健全性を確認する","<code>復旧前に、バックアップ自体が汚染されていないか検証する</code>。"),
         "bk","健全なバックアップは存在しますか？",[["yes","存在する"],["no","存在しない／汚染"]]),
-      K(C(S("esc","外部の専門機関へ支援を要請する","復旧手段が無い場合は、自組織だけで判断しない。契約している IR 事業者へ連絡する。",null,1),"bk","no"),"ir-tel"),
+      K(C(S("esc","外部の専門機関へ支援を要請する","復旧手段が無い場合は、自組織だけで判断しない。契約している IR 事業者へ連絡する。",null,1),"bk","no"),"ir"),
       C(S("restore","バックアップから復旧する","復旧対象を業務優先度順に並べ、上から実施する。"),"bk","yes"),
       C(S("verify","復旧を確認する","業務部門による確認をもって完了とする。SOC の判断だけで完了にしない。"),"bk","yes"),
-      K(S("legal","法令報告の要否を判断する","個人情報の漏えい有無を法務と共同で判断する。<code>速報は概ね 3〜5 日以内</code>。判断しなかった場合もその根拠を残す。","1営業日",1),"legal-mail","ppc-mail"),
-      K(S("custn","影響を受けた顧客へ通知する","文面は広報の確認を得てから送る。二次被害を防ぐために、<code>何が起きたか</code>より<code>何をすべきか</code>を先に書く。","1営業日"),"cust-tel","cust-mail"),
+      K(S("legal","法令報告の要否を判断する","個人情報の漏えい有無を法務と共同で判断する。<code>速報は概ね 3〜5 日以内</code>。判断しなかった場合もその根拠を残す。","1営業日",1),"legal","ppc"),
+      K(S("custn","影響を受けた顧客へ通知する","文面は広報の確認を得てから送る。二次被害を防ぐために、<code>何が起きたか</code>より<code>何をすべきか</code>を先に書く。","1営業日"),"cust-x","cust-y"),
       S("report","最終報告を作成する","時系列・影響・原因・再発防止をセットで。"),
       S("lesson","再発防止策を起票する","検知の遅れがあった箇所を特定し、ルールとバックアップ運用の両方を見直す。")
     ]},
@@ -1405,7 +1523,7 @@ function seed(){ var d = {
       C(S("iso","端末をネットワークから隔離する","EDR コンソールから隔離を実行。<code>利用者に必ず事前連絡する</code>（業務停止を伴うため）。","15分",1),"tp","yes"),
       C(S("acct","利用者アカウントを一時無効化する","横展開の兆候（他ホストへの認証試行）がある場合のみ。無い場合はこの手順は不要。"),"tp","yes"),
       C(S("block","C2 通信先をブロックする","プロキシと FW に IOC を登録する。登録した IOC は必ずチケットに記載する。"),"tp","yes"),
-      K(C(S("esc","CSIRT にエスカレーションする","ランサムウェアの兆候、または 3 台以上への感染拡大が見られる場合は<code>即時</code>。それ以外は 1 時間以内。",null,1),"tp","yes"),"csirt-tel","csirt-tm"),
+      K(C(S("esc","CSIRT にエスカレーションする","ランサムウェアの兆候、または 3 台以上への感染拡大が見られる場合は<code>即時</code>。それ以外は 1 時間以内。",null,1),"tp","yes"),"tier3","csirt-ch"),
       C(S("scan","フルスキャンを実行する","隔離状態のまま実施。検出ゼロを 2 回連続で確認する。"),"tp","yes"),
       C(S("restore","端末を復旧する","永続化の痕跡があった場合は再イメージ。無ければ隔離解除で可。判断根拠を残す。"),"tp","yes"),
       C(S("lesson","検知ルールの調整を起票する","誤検知の場合はここへ。除外条件を検知チームに連携し、同じアラートが再発しないようにする。"),"tp","no"),
@@ -1417,12 +1535,12 @@ function seed(){ var d = {
       S("logs","認証ログを時系列で並べる","直近 24 時間の全認証イベントを抽出する。成功・失敗の両方を含める。"),
       S("ioc","接続元 IP を評価する","VPN・プロキシ・Tor 出口ノードかを確認。会社支給の VPN であれば誤検知の可能性が高い。"),
       K(D(S("user","利用者本人に確認する","<code>メールではなく電話で</code>連絡する。侵害されている場合、メールは攻撃者に読まれている。","30分"),
-        "own","本人による操作でしたか？",[["yes","本人の操作"],["no","心当たりなし"],["na","連絡がつかない"]]),"user-tel"),
+        "own","本人による操作でしたか？",[["yes","本人の操作"],["no","心当たりなし"],["na","連絡がつかない"]]),"enduser"),
       C(S("acct","アカウントを無効化する","セッションも合わせて全て失効させる。無効化しただけでは既存セッションは切れない。","15分",1),"own","no"),
       C(S("acct","アカウントを一時停止する","連絡がつかない間は保守的に停止する。誤って止めた場合の解除手順を添えて通知する。"),"own","na"),
       C(S("pwd","認証情報をリセットする","本人確認のうえ実施。MFA の再登録も必須。<code>旧デバイスの MFA は必ず削除する</code>。"),"own","no"),
       C(S("logs","攻撃者の操作範囲を洗い出す","侵害されたアカウントでのメール送信・ファイルアクセス・権限変更を全て確認する。",null,1),"own","no"),
-      K(C(S("esc","CSIRT にエスカレーションする","管理者アカウント、または機密データへのアクセスがあった場合は即時。"),"own","no"),"csirt-tel"),
+      K(C(S("esc","CSIRT にエスカレーションする","管理者アカウント、または機密データへのアクセスがあった場合は即時。"),"own","no"),"tier3"),
       C(S("lesson","検知ルールの除外を検討する","正規の VPN 利用による誤検知が続く場合、拠点 IP を除外リストに追加する。"),"own","yes"),
       S("ticket","対応内容を記録する","連絡手段（電話）と応答者名を必ず残す。"),
       S("report","報告する","アカウント侵害は個人情報の観点で報告義務が生じることがある。法務の判断を仰ぐ。","4時間")
@@ -1432,7 +1550,7 @@ function seed(){ var d = {
       S("logs","転送内容を確認する","DLP のポリシー違反区分（個人情報・機密指定など）を確認する。"),
       D(S("user","業務上の正当性を確認する","上長経由で確認する。本人に直接聞くと、内部不正の場合に証拠隠滅を招く。","1時間"),
         "legit","業務上の正当な送信でしたか？",[["yes","正当な業務"],["no","正当性が確認できない"]]),
-      K(C(S("esc","人事・法務へエスカレーションする","内部不正の可能性がある場合、SOC 単独で本人に接触しない。手順を人事に引き継ぐ。",null,1),"legit","no"),"hr-tel","legal-mail"),
+      K(C(S("esc","人事・法務へエスカレーションする","内部不正の可能性がある場合、SOC 単独で本人に接触しない。手順を人事に引き継ぐ。",null,1),"legit","no"),"hr","legal"),
       C(S("acct","アクセス権を制限する","法務の指示に従う。証拠保全の観点から、独断でログを削除・変更しない。"),"legit","no"),
       C(S("lesson","ポリシーの調整を起票する","正当な業務が毎回アラートになるなら、例外承認のフローを整える。"),"legit","yes"),
       S("ticket","記録する","内部不正の疑いがある案件は、閲覧権限を絞って記録する。"),
@@ -1447,7 +1565,7 @@ function seed(){ var d = {
       C(S("block","送信元とリンク先をブロックする","メールゲートウェイとプロキシの両方に登録する。"),"ph","yes"),
       C(S("logs","クリック・入力の有無を確認する","プロキシログでリンク先へのアクセスを確認する。<code>クリックした利用者がいれば、不審ログインのフローへ移行する</code>。",null,1),"ph","yes"),
       C(S("acct","認証情報を入力した利用者を対処する","該当者がいる場合のみ。パスワードリセットと MFA 再登録を実施する。"),"ph","yes"),
-      K(C(S("user","同報者へ注意喚起する","開封・クリックしないよう周知。既にクリックした場合の申告窓口を明記する。"),"ph","yes"),"it-elg","soc-tm"),
+      K(C(S("user","同報者へ注意喚起する","開封・クリックしないよう周知。既にクリックした場合の申告窓口を明記する。"),"ph","yes"),"it","soc-ch"),
       S("user","報告者へ結果を返す","正規メールだった場合も、判断根拠を添えて丁寧に返す。次回の報告をためらわせない。"),
       S("ticket","記録する","同種の報告件数は、教育施策の効果測定に使う。"),
       C(S("lesson","教育コンテンツへ反映する","実際に来た検体は最良の教材になる。匿名化して訓練メールに転用する。"),"ph","yes")
@@ -1476,7 +1594,7 @@ var _id=0; function nextId(){ return "s" + (++_id); }
 /* ============ 状態 ============ */
 var SKEY = "soc-flow-editor-mock/v3";
 /* 種データのタスクを増やしたら上げる。保存済みデータにも不足分をマージするため。 */
-var SEED_VER = 3;
+var SEED_VER = 4;
 var DB, curEv = null, selStep = null, mode = "edit", viewer = null;
 var palQ = "", collapsed = {}, rightTab = "ins";
 var palSort = "use", palFilter = "all";       /* タスクパレットの並び順・絞り込み */
@@ -1510,7 +1628,20 @@ function persist(){
 /* PoC の間はタスクカタログが育ち続ける。保存済みのデータを捨てずに、
    まだ持っていないタスクだけを足す。事象と手順には触らない。 */
 function mergeSeedTasks(ver){
-  if(!DB.contacts) DB.contacts = [];
+  /* 旧形式（連絡先が個人のフラットな一覧）を、1 人だけのグループに移行する。
+     キーは変えないので、手順からの参照はそのまま生きる。 */
+  if(DB.contacts && !DB.contactGroups){
+    DB.contactGroups = DB.contacts.map(function(c){
+      var m = {name:c.name, tel:"", teams:"", elgana:"", mail:"", note:""};
+      if(c.via === "phone") m.tel = c.value;
+      else if(c.via === "teams") m.teams = c.value;
+      else if(c.via === "elgana") m.elgana = c.value;
+      else m.mail = c.value;
+      return {key:c.key, name:c.name, kind:c.kind, note:c.note || "", members:[m]};
+    });
+    delete DB.contacts;
+  }
+  if(!DB.contactGroups) DB.contactGroups = [];
   if(ver >= SEED_VER) return;
   var fresh = seed(), added = 0, addedC = 0;
   fresh.tasks.forEach(function(t){
@@ -1518,15 +1649,16 @@ function mergeSeedTasks(ver){
     var hasPhase = DB.phases.some(function(p){ return p.key === t.phase; });
     if(!hasKey && hasPhase){ DB.tasks.push(t); added++; }
   });
-  fresh.contacts.forEach(function(c){
-    if(!DB.contacts.some(function(x){ return x.key === c.key; })){ DB.contacts.push(c); addedC++; }
+  fresh.contactGroups.forEach(function(g){
+    if(!DB.contactGroups.some(function(x){ return x.key === g.key; })){
+      DB.contactGroups.push(g); addedC++; }
   });
   /* 既存タスクに既定の担当が無ければ補う */
   DB.tasks.forEach(function(t){ if(!t.tier) t.tier = TIER_DEFAULT[t.key] || ""; });
   persist();
   var msg = [];
   if(added) msg.push("タスク " + added + " 件");
-  if(addedC) msg.push("連絡先 " + addedC + " 件");
+  if(addedC) msg.push("連絡先グループ " + addedC + " 件");
   if(msg.length) setTimeout(function(){ toast(msg.join(" / ") + "を追加しました"); }, 700);
 }
 function getEv(){ for(var i=0;i<DB.events.length;i++) if(DB.events[i].key===curEv) return DB.events[i]; return null; }
@@ -2030,12 +2162,17 @@ function renderCanvas(){
         flags += '<span class="f-tier" style="--tc:' + TIER[st.tier].c + '" title="担当">'
                + TIER[st.tier].l.replace("・CSIRT", "") + '</span>';
       var cts = stepContacts(st);
-      if(cts.length)
-        flags += '<span class="f-ct" title="' + esc(cts.map(function(c){
-            return (VIA[c.via]||{l:c.via}).l + " " + c.name + " " + c.value; }).join("\n")) + '">'
-          + cts.map(function(c){
-              var v = VIA[c.via] || {m:"?", c:"#7d8798"};
-              return '<i style="--vc:' + v.c + '">' + v.m + '</i>'; }).join("") + '</span>';
+      if(cts.length){
+        var vias = {}, tip = [];
+        cts.forEach(function(g){
+          groupVias(g).forEach(function(v){ vias[v] = 1; });
+          tip.push(g.name + "（" + (g.members||[]).length + " 名）");
+        });
+        flags += '<span class="f-ct" title="' + esc(tip.join("\n")) + '">'
+          + Object.keys(vias).map(function(v){
+              var d = VIA[v] || {m:"?", c:"#7d8798"};
+              return '<i style="--vc:' + d.c + '">' + d.m + '</i>'; }).join("") + '</span>';
+      }
       if(st.sla) flags += '<span class="f-sla">' + esc(st.sla) + '</span>';
       el.innerHTML = '<span class="num">' + (i+1) + '</span>'
         + '<b>' + esc(st.title) + '</b><span class="tk">' + esc(t.label) + '</span>'
@@ -2241,16 +2378,20 @@ function renderInspector(){
       + (st.escalate?" checked":"") + '>エスカレーション判断が必要</label>'
     + '<div class="sect ct"><h4>連絡先 <button class="x" id="ct_add">＋</button></h4>'
       + (stepContacts(st).length
-         ? stepContacts(st).map(function(c){
-             var v = VIA[c.via] || {m:"?", c:"#7d8798", l:c.via};
-             return '<div class="ct-row" style="--vc:' + v.c + '">'
-               + '<i title="' + esc(v.l) + '">' + v.m + '</i>'
-               + '<b>' + esc(c.name) + '</b><span>' + esc(c.value) + '</span>'
-               + '<button class="x" data-ctrm="' + esc(c.key) + '">&times;</button></div>';
+         ? stepContacts(st).map(function(g){
+             var kd = KIND[g.kind], n = (g.members||[]).length;
+             return '<div class="ct-row">'
+               + '<span class="vs">' + groupVias(g).map(function(v){
+                   var d = VIA[v] || {m:"?", c:"#7d8798"};
+                   return '<i style="--vc:' + d.c + '">' + d.m + '</i>'; }).join("") + '</span>'
+               + '<b>' + esc(g.name) + '</b>'
+               + '<span>' + n + ' 名' + (kd ? " / " + kd.l : "") + '</span>'
+               + '<button class="x" data-ctrm="' + esc(g.key) + '">&times;</button></div>';
            }).join("")
          : '<p class="hint" style="margin:0">連絡先はありません。</p>')
-      + '<p class="hint">試走モードと書き出し HTML では、この一覧が手順の中に表示されます。'
-      + '連絡先そのものの追加・修正は「連絡先」画面で行います。</p></div>'
+      + '<p class="hint">試走モードと書き出し HTML では、グループのメンバーが'
+      + '<b>連絡順に</b>手順の中に表示されます。'
+      + 'グループとメンバーの編集は「連絡先」画面で行います。</p></div>'
     + '<div class="sect"><h4>表示条件（AND）</h4>'
       + (condHtml || '<p class="hint" style="margin:0 0 7px">常に表示されます。</p>')
       + '<button class="mini" id="c_add"' + (priors.length ? "" : " disabled") + '>'
@@ -2343,16 +2484,20 @@ function renderInspector(){
 
 /* 手順で連絡する相手を選ぶ。連絡先そのものの編集は「連絡先」画面。 */
 function pickContacts(st){
-  if(!DB.contacts.length){ toast("連絡先が登録されていません", true); return; }
-  var html = '<p class="ins hint" style="margin:0 0 12px">この手順で連絡する相手を選びます。'
-    + '選んだ相手は、試走モードと書き出し HTML で手順の中に表示されます。</p>'
-    + '<div class="ctpick">' + DB.contacts.map(function(c){
-        var v = VIA[c.via] || {m:"?", c:"#7d8798"}, kd = KIND[c.kind];
-        return '<label class="ctp" style="--vc:' + v.c + '">'
-          + '<input type="checkbox" value="' + esc(c.key) + '"'
-          + (((st.contacts||[]).indexOf(c.key) >= 0) ? " checked" : "") + '>'
-          + '<i>' + v.m + '</i><b>' + esc(c.name) + '</b>'
-          + '<span>' + esc(c.value) + '</span>'
+  if(!DB.contactGroups.length){ toast("連絡先が登録されていません", true); return; }
+  var html = '<p class="ins hint" style="margin:0 0 12px">この手順で連絡するグループを選びます。'
+    + 'メンバーは連絡順に、試走モードと書き出し HTML で手順の中に表示されます。</p>'
+    + '<div class="ctpick">' + DB.contactGroups.map(function(g){
+        var kd = KIND[g.kind], ms = g.members || [];
+        return '<label class="ctp">'
+          + '<input type="checkbox" value="' + esc(g.key) + '"'
+          + (((st.contacts||[]).indexOf(g.key) >= 0) ? " checked" : "") + '>'
+          + '<span class="vs">' + groupVias(g).map(function(v){
+              var d = VIA[v] || {m:"?", c:"#7d8798"};
+              return '<i style="--vc:' + d.c + '">' + d.m + '</i>'; }).join("") + '</span>'
+          + '<b>' + esc(g.name) + '</b>'
+          + '<span>' + ms.slice(0, 3).map(function(m){ return esc(m.name); }).join("、")
+            + (ms.length > 3 ? " 他 " + (ms.length - 3) + " 名" : "") + '</span>'
           + (kd ? '<em style="--kc:' + kd.c + '">' + kd.l + '</em>' : '') + '</label>';
       }).join("") + '</div>';
   openModal("連絡先を選ぶ", st.title, html,
@@ -2361,9 +2506,9 @@ function pickContacts(st){
   $("mFoot").querySelector('[data-x="cancel"]').addEventListener("click", closeModal);
   $("mFoot").querySelector('[data-x="ok"]').addEventListener("click", function(){
     var picked = [];
-    DB.contacts.forEach(function(c){
-      var cb = $("mBody").querySelector('input[value="' + c.key + '"]');
-      if(cb && cb.checked) picked.push(c.key);
+    DB.contactGroups.forEach(function(g){
+      var cb = $("mBody").querySelector('input[value="' + g.key + '"]');
+      if(cb && cb.checked) picked.push(g.key);
     });
     st.contacts = picked;
     closeModal(); persist(); renderAll();
@@ -2653,14 +2798,31 @@ function showPaths(){
    タスクの追加・改名・フェーズ変更・削除は頻繁に使うので、
    モーダルではなく独立した画面にする。
    ============================================================ */
-function contact(k){
-  for(var i=0;i<(DB.contacts||[]).length;i++) if(DB.contacts[i].key === k) return DB.contacts[i];
+function group(k){
+  for(var i=0;i<(DB.contactGroups||[]).length;i++)
+    if(DB.contactGroups[i].key === k) return DB.contactGroups[i];
   return null;
 }
 function stepContacts(st){
-  return (st.contacts||[]).map(contact).filter(function(c){ return !!c; });
+  return (st.contacts||[]).map(group).filter(function(g){ return !!g; });
 }
-/* その連絡先がどの事象のどの手順で使われているか */
+/* メンバーが持つ連絡手段のうち、入力されているものだけ */
+function memberChannels(m){
+  var out = [];
+  [["phone", m.tel], ["teams", m.teams], ["elgana", m.elgana], ["mail", m.mail]]
+    .forEach(function(p){ if(p[1]) out.push({via:p[0], value:p[1]}); });
+  return out;
+}
+/* グループ全体で使われている手段の種類 */
+function groupVias(g){
+  var seen = {}, out = [];
+  (g.members||[]).forEach(function(m){
+    memberChannels(m).forEach(function(c){
+      if(!seen[c.via]){ seen[c.via] = 1; out.push(c.via); } });
+  });
+  return out;
+}
+/* そのグループがどの事象のどの手順で使われているか */
 function contactUsedBy(key){
   var out = [];
   DB.events.forEach(function(e){
@@ -2766,97 +2928,186 @@ function renderTasksScreen(){
    画面 4: 連絡先
    ============================================================ */
 var ctQ = "", ctKindF = "all", ctViaF = "all";
-function contactRow(c){
-  var v = VIA[c.via] || {l:c.via, m:"?", c:"#7d8798"}, kd = KIND[c.kind];
-  var uses = contactUsedBy(c.key);
-  var row = document.createElement("div");
-  row.className = "rw";
-  row.style.setProperty("--pc", v.c);
-  var evNames = [];
-  uses.forEach(function(u){ if(evNames.indexOf(u.ev.title) < 0) evNames.push(u.ev.title); });
-  row.innerHTML =
-    '<div><span class="k">名称</span><span class="v">' + esc(c.name) + '</span></div>'
-    + '<div><span class="k">宛先</span><span class="v mono">' + esc(c.value) + '</span></div>'
-    + '<div><span class="k">手段 / 区分</span>'
-      + '<span class="badge" style="--bc:' + v.c + '"><i>' + v.m + '</i>' + esc(v.l) + '</span>'
-      + (kd ? ' <span class="badge" style="--bc:' + kd.c + '">' + kd.l + '</span>' : '') + '</div>'
-    + '<div class="use' + (uses.length ? " on" : "") + '"><span class="k">使用</span>'
-      + '<b>' + (uses.length ? uses.length + " 手順" : "未使用") + '</b>'
-      + '<span>' + (evNames.length ? esc(evNames.join("、")) : "どの手順でも使われていません") + '</span></div>'
-    + '<div class="acts"><button class="ed-tool sm" data-edit>編集</button>'
-      + '<button class="ed-tool sm dgr" data-del'
-      + (uses.length ? ' disabled title="' + uses.length + ' 手順で使用中のため削除できません"' : "")
-      + '>削除</button></div>'
-    + (c.note ? '<div class="note">' + esc(c.note) + '</div>' : '');
+function memberLine(g, m, i){
+  var el = document.createElement("div");
+  el.className = "mem" + (i === 0 && g.members.length > 1 ? " first" : "");
+  el.innerHTML =
+    (g.members.length > 1 ? '<span class="no">' + (i+1) + '</span>' : '')
+    + '<span class="who">' + esc(m.name) + '</span>'
+    + memberChannels(m).map(function(ch){
+        var v = VIA[ch.via] || {m:"?", c:"#7d8798", l:ch.via};
+        return '<span class="ch" style="--vc:' + v.c + '" title="' + esc(v.l) + '">'
+          + '<i>' + v.m + '</i>' + esc(ch.value) + '</span>';
+      }).join("")
+    + '<span class="sp"></span>'
+    + '<span class="ops">'
+      + '<button data-up' + (i === 0 ? " disabled" : "") + ' title="上へ">&#9650;</button>'
+      + '<button data-dn' + (i === g.members.length-1 ? " disabled" : "") + ' title="下へ">&#9660;</button>'
+      + '<button data-ed>編集</button>'
+      + '<button data-rm class="dgr" title="削除">&times;</button></span>'
+    + (m.note ? '<span class="mnt">' + esc(m.note) + '</span>' : '');
 
-  row.querySelector("[data-edit]").addEventListener("click", function(){ editContact(c); });
-  if(!uses.length) row.querySelector("[data-del]").addEventListener("click", function(){
+  el.querySelector("[data-up]").addEventListener("click", function(){
+    if(i === 0) return;
+    g.members.splice(i-1, 0, g.members.splice(i, 1)[0]);
+    persist(); renderContactsScreen(); toast("連絡順を入れ替えました");
+  });
+  el.querySelector("[data-dn]").addEventListener("click", function(){
+    if(i === g.members.length-1) return;
+    g.members.splice(i+1, 0, g.members.splice(i, 1)[0]);
+    persist(); renderContactsScreen(); toast("連絡順を入れ替えました");
+  });
+  el.querySelector("[data-ed]").addEventListener("click", function(){ editMember(g, m); });
+  el.querySelector("[data-rm]").addEventListener("click", function(){
     confirmModal({
-      title:"連絡先を削除", sub:c.name, danger:true, okLabel:"削除する",
-      message:"「" + esc(c.name) + "」を削除します。<br>どの手順でも使われていないため、影響はありません。",
+      title:"メンバーを削除", sub:g.name + " / " + m.name, danger:true, okLabel:"削除する",
+      message:"「" + esc(m.name) + "」を「" + esc(g.name) + "」から外します。",
       onOk:function(){
-        DB.contacts = DB.contacts.filter(function(x){ return x.key !== c.key; });
+        g.members = g.members.filter(function(x){ return x !== m; });
         persist(); renderContactsScreen(); toast("削除しました");
       }
     });
   });
-  return row;
+  return el;
 }
-function contactFields(c){
+function memberFields(m){
   return [
-    {k:"name",  label:"名称", value:c ? c.name : "", required:true,
-     placeholder:"例: CSIRT 当番"},
-    {k:"via",   label:"連絡手段", type:"select", value:c ? c.via : "phone",
-     options:["phone","teams","elgana","mail"].map(function(v){ return {v:v, l:VIA[v].l}; })},
-    {k:"value", label:"宛先", value:c ? c.value : "", required:true,
-     placeholder:"例: 内線 1234 / #soc-alerts / soc@example.local",
-     hint:"試走モードと書き出し HTML に、この文字列がそのまま出ます。"},
-    {k:"kind",  label:"区分", type:"select", value:c ? c.kind : "internal",
-     options:["esc","internal","customer","external"].map(function(v){ return {v:v, l:KIND[v].l}; }),
-     hint:"「お客様」を選ぶと、その手順に顧客連絡のマークが付きます。"},
-    {k:"note",  label:"補足", value:c ? c.note || "" : "",
-     placeholder:"例: 24時間受付。夜間は当直携帯へ転送"}
+    {k:"name",   label:"名前・役割", value:m ? m.name : "", required:true,
+     placeholder:"例: 課長A / CSIRT 当番 / 代表窓口"},
+    {k:"tel",    label:"電話",   value:m ? m.tel || "" : "",    placeholder:"例: 090-0000-0000 / 内線 1234"},
+    {k:"teams",  label:"Teams",  value:m ? m.teams || "" : "",  placeholder:"例: @user / #channel"},
+    {k:"elgana", label:"Elgana", value:m ? m.elgana || "" : "", placeholder:"例: 運用グループ"},
+    {k:"mail",   label:"メール", value:m ? m.mail || "" : "",   placeholder:"例: soc@example.local"},
+    {k:"note",   label:"補足",   value:m ? m.note || "" : "",
+     placeholder:"例: 平日 9-18 / 不在時は次の番号へ",
+     hint:"入力した手段だけが、試走モードと書き出し HTML に並びます。"}
   ];
 }
-function newContact(){
+function addMember(g){
   askModal({
-    title:"新しい連絡先", sub:"手順から参照される部品になります",
-    fields:contactFields(null), okLabel:"作成",
+    title:"メンバーを追加", sub:g.name + "（" + (g.members.length + 1) + " 番目）",
+    fields:memberFields(null), okLabel:"追加",
     onOk:function(v){
-      DB.contacts.push({key:"c" + Date.now().toString(36), name:v.name, via:v.via,
-                        value:v.value, kind:v.kind, note:v.note});
-      persist(); renderContactsScreen(); toast("連絡先「" + v.name + "」を作成しました");
+      g.members.push({name:v.name, tel:v.tel, teams:v.teams, elgana:v.elgana,
+                      mail:v.mail, note:v.note});
+      persist(); renderContactsScreen(); toast("「" + v.name + "」を追加しました");
     }
   });
 }
-function editContact(c){
-  var uses = contactUsedBy(c.key);
-  var f = contactFields(c);
-  if(uses.length) f[2].hint = uses.length + " 手順で参照されています。ここを直せば全てに反映されます。";
+function editMember(g, m){
   askModal({
-    title:"連絡先を編集", sub:c.name, fields:f, okLabel:"保存",
+    title:"メンバーを編集", sub:g.name + " / " + m.name,
+    fields:memberFields(m), okLabel:"保存",
     onOk:function(v){
-      c.name = v.name; c.via = v.via; c.value = v.value; c.kind = v.kind; c.note = v.note;
+      m.name = v.name; m.tel = v.tel; m.teams = v.teams;
+      m.elgana = v.elgana; m.mail = v.mail; m.note = v.note;
       persist(); renderContactsScreen(); toast("保存しました");
     }
   });
 }
+function groupFields(g){
+  return [
+    {k:"name", label:"グループ名", value:g ? g.name : "", required:true,
+     placeholder:"例: 管理職（夜間一次連絡） / Tier2 アナリスト / 顧客X 連絡先",
+     hint:"組織の呼び方に合わせて自由に付けられます。"},
+    {k:"kind", label:"区分", type:"select", value:g ? g.kind : "esc",
+     options:["esc","internal","customer","external"].map(function(v){ return {v:v, l:KIND[v].l}; }),
+     hint:"「お客様」を選ぶと、参照する手順に顧客連絡のマークが付きます。"},
+    {k:"note", label:"補足", value:g ? g.note || "" : "",
+     placeholder:"例: 1 番から順に掛け、繋がらなければ次へ"}
+  ];
+}
+function newGroup(){
+  askModal({
+    title:"新しい連絡先グループ", sub:"管理職・Tier2・顧客別などのカテゴリ",
+    fields:groupFields(null), okLabel:"作成",
+    onOk:function(v){
+      var g = {key:"g" + Date.now().toString(36), name:v.name, kind:v.kind,
+               note:v.note, members:[]};
+      DB.contactGroups.push(g);
+      persist(); renderContactsScreen();
+      toast("「" + v.name + "」を作成しました。メンバーを追加してください");
+    }
+  });
+}
+function editGroup(g){
+  var uses = contactUsedBy(g.key);
+  var f = groupFields(g);
+  if(uses.length) f[0].hint = uses.length + " 手順から参照されています。ここを直せば全てに反映されます。";
+  askModal({
+    title:"グループを編集", sub:g.name, fields:f, okLabel:"保存",
+    onOk:function(v){
+      g.name = v.name; g.kind = v.kind; g.note = v.note;
+      persist(); renderContactsScreen(); toast("保存しました");
+    }
+  });
+}
+function groupCard(g){
+  var kd = KIND[g.kind] || {l:g.kind, c:"var(--line)"};
+  var uses = contactUsedBy(g.key);
+  var evNames = [];
+  uses.forEach(function(u){ if(evNames.indexOf(u.ev.title) < 0) evNames.push(u.ev.title); });
+  var card = document.createElement("div");
+  card.className = "cg";
+  card.style.setProperty("--kc", kd.c);
+  card.innerHTML =
+    '<div class="cg-h"><b>' + esc(g.name) + '</b>'
+      + '<span class="kind">' + kd.l + '</span>'
+      + '<span class="cnt">' + g.members.length + ' 名</span>'
+      + '<span class="use' + (uses.length ? " on" : "") + '">'
+        + (uses.length ? uses.length + " 手順で使用" : "未使用") + '</span>'
+      + '<span class="sp"></span>'
+      + '<button class="ed-tool sm" data-ed>編集</button>'
+      + '<button class="ed-tool sm dgr" data-rm'
+        + (uses.length ? ' disabled title="' + uses.length + ' 手順で使用中のため削除できません"' : "")
+        + '>削除</button></div>'
+    + (g.note ? '<p class="cg-note">' + esc(g.note) + '</p>' : '')
+    + (evNames.length ? '<p class="cg-uses">使用: ' + esc(evNames.join("、")) + '</p>' : '')
+    + '<div class="cg-mem"><h5>' + (g.members.length > 1 ? "メンバー（連絡順）" : "メンバー") + '</h5>'
+      + '<div data-mem></div>'
+      + '<button class="cg-add" data-add>＋ メンバーを追加</button></div>';
+
+  var box = card.querySelector("[data-mem]");
+  if(!g.members.length)
+    box.innerHTML = '<p class="pal-empty" style="margin:0 0 6px">メンバーがいません。</p>';
+  g.members.forEach(function(m, i){ box.appendChild(memberLine(g, m, i)); });
+
+  card.querySelector("[data-ed]").addEventListener("click", function(){ editGroup(g); });
+  card.querySelector("[data-add]").addEventListener("click", function(){ addMember(g); });
+  if(!uses.length) card.querySelector("[data-rm]").addEventListener("click", function(){
+    confirmModal({
+      title:"グループを削除", sub:g.name, danger:true, okLabel:"削除する",
+      message:"「" + esc(g.name) + "」を、メンバー " + g.members.length
+        + " 名ごと削除します。<br>どの手順でも使われていないため、影響はありません。",
+      onOk:function(){
+        DB.contactGroups = DB.contactGroups.filter(function(x){ return x.key !== g.key; });
+        persist(); renderContactsScreen(); toast("削除しました");
+      }
+    });
+  });
+  return card;
+}
 function renderContactsScreen(){
   var box = $("ctList"); box.innerHTML = "";
-  var q = ctQ.trim().toLowerCase(), hit = 0;
-  DB.contacts.forEach(function(c){
-    if(ctKindF !== "all" && c.kind !== ctKindF) return;
-    if(ctViaF !== "all" && c.via !== ctViaF) return;
-    if(q && (c.name + " " + c.value + " " + (c.note||"")).toLowerCase().indexOf(q) < 0) return;
-    hit++;
-    box.appendChild(contactRow(c));
+  var q = ctQ.trim().toLowerCase(), hit = 0, members = 0;
+  DB.contactGroups.forEach(function(g){
+    if(ctKindF !== "all" && g.kind !== ctKindF) return;
+    if(ctViaF !== "all" && groupVias(g).indexOf(ctViaF) < 0) return;
+    if(q){
+      var hay = g.name + " " + (g.note||"") + " " + (g.members||[]).map(function(m){
+        return m.name + " " + m.tel + " " + m.teams + " " + m.elgana + " " + m.mail; }).join(" ");
+      if(hay.toLowerCase().indexOf(q) < 0) return;
+    }
+    hit++; members += g.members.length;
+    box.appendChild(groupCard(g));
   });
   if(!hit) box.innerHTML = '<p class="pal-empty">条件に一致する連絡先はありません。</p>';
   var narrowed = !!q || ctKindF !== "all" || ctViaF !== "all";
-  $("ctCount").textContent = narrowed ? (hit + " / " + DB.contacts.length + " 件")
-                                      : (DB.contacts.length + " 件");
-  var used = DB.contacts.filter(function(c){ return contactUsedBy(c.key).length; }).length;
-  $("ctStat").textContent = "使用中 " + used + " / 未使用 " + (DB.contacts.length - used);
+  $("ctCount").textContent = narrowed
+    ? (hit + " / " + DB.contactGroups.length + " グループ")
+    : (DB.contactGroups.length + " グループ・" + members + " 名");
+  var used = DB.contactGroups.filter(function(g){ return contactUsedBy(g.key).length; }).length;
+  $("ctStat").textContent = "使用中 " + used + " / 未使用 " + (DB.contactGroups.length - used);
   $("ctKindF").classList.toggle("on", ctKindF !== "all");
   $("ctViaF").classList.toggle("on", ctViaF !== "all");
 }
@@ -2975,7 +3226,7 @@ function repaintAll(){
 function buildExportHTML(events, title){
   var css = document.getElementById("viewerCss").textContent;
   var js  = document.getElementById("viewerJs").textContent;
-  var data = {phases:DB.phases, tasks:DB.tasks, contacts:DB.contacts, events:events};
+  var data = {phases:DB.phases, tasks:DB.tasks, contactGroups:DB.contactGroups, events:events};
   var json = JSON.stringify(data).replace(/</g, "\\u003c");
   return '<!DOCTYPE html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n'
     + '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
@@ -3020,7 +3271,7 @@ function setMode(m){
     if(viewer) viewer.destroy();
     /* 試走の進捗は保存しない（storageKey を渡さない）＝編集の下書きを汚さない */
     viewer = mountViewer($("runRoot"),
-      {phases:DB.phases, tasks:DB.tasks, contacts:DB.contacts, events:DB.events},
+      {phases:DB.phases, tasks:DB.tasks, contactGroups:DB.contactGroups, events:DB.events},
       {event:curEv, note:"提案用モックです。内容はダミーで、実運用の手順ではありません。"});
   }else{
     if(viewer){ viewer.destroy(); viewer = null; }
@@ -3071,7 +3322,7 @@ $("ewPhases").addEventListener("click", showPhases);
 $("ewTasks").addEventListener("click", openTasksScreen);
 $("ewContacts").addEventListener("click", openContactsScreen);
 $("ctBack").addEventListener("click", backToEvents);
-$("ctNew").addEventListener("click", newContact);
+$("ctNew").addEventListener("click", newGroup);
 $("ctSearch").addEventListener("input", function(){ ctQ = this.value; renderContactsScreen(); });
 $("ctKindF").addEventListener("change", function(){ ctKindF = this.value; renderContactsScreen(); });
 $("ctViaF").addEventListener("change", function(){ ctViaF = this.value; renderContactsScreen(); });
