@@ -26,6 +26,17 @@
   --c1:#ff5c8a; --c2:#4aa8ff; --c3:#a97bff; --c4:#ffb02e; --c5:#2ee6a8; --c6:#5ad1e6;
   --c7:#ff8a4c; --c8:#8ce36b; --c9:#e36bd0; --c10:#7c8cff;
 
+  /* 明るさ切り替えのために、直に書いていた色もトークンにする */
+  --hover:#404a5e;          /* ホバー時の枠線 */
+  --wire:#77839a;           /* フロー図の接続線 */
+  --onCur:#1a1405;          /* --cur の上に載せる文字 */
+  --onOk:#04241a;           /* --ok の上に載せる文字 */
+  --topbg:rgba(10,12,17,.96);
+  --maskbg:rgba(5,7,11,.82);
+  --shadow:rgba(0,0,0,.45);
+  --decFg:#bfa0ff;          /* 判断色の文字（地の明暗で変える） */
+  --custFg:#ff8fb0;         /* 顧客連絡の文字 */
+
   --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
   --sans:"Meiryo UI","Hiragino Sans","Helvetica Neue","Noto Sans JP","Segoe UI",sans-serif;
 }
@@ -34,7 +45,7 @@ html,body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.7;
   -webkit-font-smoothing:antialiased}
 
-.v-top{position:sticky;top:0;z-index:20;background:rgba(10,12,17,.96);backdrop-filter:blur(8px);
+.v-top{position:sticky;top:0;z-index:20;background:var(--topbg);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;
   justify-content:space-between;gap:26px;flex-wrap:wrap}
 .v-top h1{margin:0;font-size:18px;font-weight:700;white-space:nowrap}
@@ -59,16 +70,16 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-ev{width:100%;text-align:left;background:var(--panel2);color:inherit;border:1px solid var(--line);
   border-radius:9px;padding:11px 12px;margin-bottom:8px;cursor:pointer;font-family:var(--sans);
   display:flex;gap:10px;align-items:flex-start;transition:border-color .16s,background .16s}
-.v-ev:hover{border-color:#404a5e;background:var(--panel3)}
+.v-ev:hover{border-color:var(--hover);background:var(--panel3)}
 .v-ev.on{border-color:var(--cur);background:var(--cur-bg)}
 .v-ev.on b{color:var(--cur)}
 .v-ev b{display:block;font-size:14px;font-weight:700;line-height:1.5}
 .v-ev span.sub{display:block;font-size:12px;color:var(--dim);line-height:1.55;margin-top:2px}
 .sev{flex:none;font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;
   border-radius:4px;margin-top:2px;letter-spacing:.03em}
-.sev.S1{background:rgba(255,107,107,.16);color:var(--s1);border:1px solid var(--s1)}
-.sev.S2{background:rgba(255,176,46,.16);color:var(--s2);border:1px solid var(--s2)}
-.sev.S3{background:rgba(90,209,230,.16);color:var(--s3);border:1px solid var(--s3)}
+.sev.S1{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
+.sev.S2{background:color-mix(in srgb, var(--s2) 16%, transparent);color:var(--s2);border:1px solid var(--s2)}
+.sev.S3{background:color-mix(in srgb, var(--s3) 16%, transparent);color:var(--s3);border:1px solid var(--s3)}
 
 .v-stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;
   padding:16px 18px 22px;overflow-x:auto}
@@ -88,7 +99,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-node:hover{background:var(--panel3)}
 .v-node.done{border-color:var(--ok);background:var(--ok-bg)}
 .v-node.done .mk{color:var(--ok)}
-.v-node.cur{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px rgba(255,201,60,.18)}
+.v-node.cur{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px color-mix(in srgb, var(--cur) 18%, transparent)}
 .v-node.cur .mk{color:var(--cur)}
 .v-node.skip{opacity:.32;border-style:dashed;background:transparent}
 .v-node.skip .mk{color:var(--skip)}
@@ -113,8 +124,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-acts{display:flex;gap:9px}
 .v-btn{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
   padding:8px 15px;font-size:13px;cursor:pointer;font-family:var(--sans)}
-.v-btn:hover{border-color:#404a5e;background:var(--panel3)}
+.v-btn:hover{border-color:var(--hover);background:var(--panel3)}
 .v-btn.p{border-color:var(--ok);color:var(--ok)}
+.v-th{flex:none;white-space:nowrap}
 
 .v-s{display:flex;gap:14px;padding:15px 12px;border-top:1px solid var(--line-soft);
   border-radius:9px;transition:background .18s}
@@ -140,12 +152,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 
 .tag{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;
   margin-left:8px;vertical-align:middle;white-space:nowrap}
-.tag.now{background:var(--cur);color:#1a1405;border:1px solid var(--cur)}
+.tag.now{background:var(--cur);color:var(--onCur);border:1px solid var(--cur)}
 .tag.sla{background:var(--panel3);color:var(--dim);border:1px solid var(--line);font-family:var(--mono)}
-.tag.esc{background:rgba(255,107,107,.16);color:var(--s1);border:1px solid var(--s1)}
-.tag.cond{background:rgba(169,123,255,.16);color:#bfa0ff;border:1px solid var(--dec)}
+.tag.esc{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
+.tag.cond{background:color-mix(in srgb, var(--dec) 16%, transparent);color:var(--decFg);border:1px solid var(--dec)}
 .tag.tier{background:transparent;color:var(--tc);border:1px solid var(--tc);font-family:var(--mono)}
-.tag.cust{background:rgba(255,92,138,.18);color:#ff8fb0;border:1px solid #ff5c8a}
+.tag.cust{background:color-mix(in srgb, var(--c1) 18%, transparent);color:var(--custFg);border:1px solid #ff5c8a}
 
 /* 連絡先 — 手順の中に置く。別紙を探させない。
    グループ単位で、連絡順に並べる。 */
@@ -165,7 +177,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-cm .no{flex:none;width:19px;height:19px;border-radius:50%;background:var(--panel3);
   border:1px solid var(--line);font-family:var(--mono);font-size:10px;font-weight:700;
   color:var(--dim);display:flex;align-items:center;justify-content:center}
-.v-cm.first .no{background:var(--cur);border-color:var(--cur);color:#1a1405}
+.v-cm.first .no{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
 .v-cm .who{font-size:13px;font-weight:600;min-width:74px}
 .v-cm .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:13px;
   color:var(--fg);background:var(--panel3);border:1px solid var(--vc);border-radius:6px;
@@ -178,7 +190,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .vico{width:100%;height:100%;display:block;color:var(--vc)}
 .v-cm .mnt{flex-basis:100%;font-size:11px;color:var(--faint);padding-left:27px;line-height:1.55}
 
-.v-godone{margin-top:12px;background:var(--cur);border:none;color:#1a1405;border-radius:8px;
+.v-godone{margin-top:12px;background:var(--cur);border:none;color:var(--onCur);border-radius:8px;
   padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans)}
 .v-godone:hover{filter:brightness(1.08)}
 
@@ -188,13 +200,69 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-ask button{background:var(--panel3);border:2px solid var(--line);color:var(--fg);border-radius:8px;
   padding:9px 18px;font-size:14px;cursor:pointer;font-family:var(--sans)}
 .v-ask button:hover{border-color:var(--dec)}
-.v-ask button.on{border-color:var(--dec);background:rgba(169,123,255,.22);color:#d5bfff;font-weight:700}
+.v-ask button.on{border-color:var(--dec);background:color-mix(in srgb, var(--dec) 22%, transparent);color:var(--decFg);font-weight:700}
 
 .v-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--dim)}
 .v-legend span{display:flex;align-items:center;gap:6px}
 .v-legend i{font-family:var(--mono);font-weight:700;font-size:13px;font-style:normal}
 .v-note{margin:18px 0 0;font-size:12.5px;color:var(--faint);line-height:1.75}
 .v-empty{color:var(--faint);font-size:14px;margin:18px 0 6px}
+
+
+/* ================= 明るさ ================= */
+/* 明示的に選ばれていればそれに従い、選ばれていなければ OS の設定に従う。 */
+:root[data-theme="light"]{
+  --bg:#eef1f6; --panel:#ffffff; --panel2:#f5f7fb; --panel3:#e8edf5;
+  --line:#ccd5e2; --line-soft:#e4e9f1;
+  --fg:#131924; --dim:#48566b; --faint:#76839a;
+
+  --cur:#a86a00;  --cur-bg:color-mix(in srgb, #a86a00 12%, transparent);
+  --ok:#0f8a4f;   --ok-bg:color-mix(in srgb, #0f8a4f 12%, transparent);
+  --skip:#8a94a6;
+  --s1:#c62828;   --s2:#a15c00;   --s3:#00718f;
+  --dec:#6a35d9;
+
+  --c1:#c2185b; --c2:#0b62d0; --c3:#6a35d9; --c4:#a15c00; --c5:#0f8a63;
+  --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
+
+  --hover:#9aa7bb;
+  --wire:#8b98ad;
+  --onCur:#ffffff;
+  --onOk:#ffffff;
+  --topbg:rgba(255,255,255,.94);
+  --maskbg:rgba(28,36,50,.42);
+  --shadow:rgba(22,32,52,.16);
+  --decFg:#5b21b6;
+  --custFg:#b3175a;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+  --bg:#eef1f6; --panel:#ffffff; --panel2:#f5f7fb; --panel3:#e8edf5;
+  --line:#ccd5e2; --line-soft:#e4e9f1;
+  --fg:#131924; --dim:#48566b; --faint:#76839a;
+
+  --cur:#a86a00;  --cur-bg:color-mix(in srgb, #a86a00 12%, transparent);
+  --ok:#0f8a4f;   --ok-bg:color-mix(in srgb, #0f8a4f 12%, transparent);
+  --skip:#8a94a6;
+  --s1:#c62828;   --s2:#a15c00;   --s3:#00718f;
+  --dec:#6a35d9;
+
+  --c1:#c2185b; --c2:#0b62d0; --c3:#6a35d9; --c4:#a15c00; --c5:#0f8a63;
+  --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
+
+  --hover:#9aa7bb;
+  --wire:#8b98ad;
+  --onCur:#ffffff;
+  --onOk:#ffffff;
+  --topbg:rgba(255,255,255,.94);
+  --maskbg:rgba(28,36,50,.42);
+  --shadow:rgba(22,32,52,.16);
+  --decFg:#5b21b6;
+  --custFg:#b3175a;
+}
+}
+/* ロゴは地の明暗に関わらず本来の色のままにする */
+:root[data-theme="light"] .vico{color:var(--vc)}
 
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
 </style>
@@ -230,10 +298,10 @@ body.resizing{cursor:col-resize;user-select:none}
 .ed-spacer{flex:1}
 .ed-tool{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
   padding:7px 14px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap}
-.ed-tool:hover{border-color:#404a5e;background:var(--panel3)}
+.ed-tool:hover{border-color:var(--hover);background:var(--panel3)}
 .ed-tool.warn{border-color:var(--s2);color:var(--s2)}
 .ed-tool.good{border-color:var(--ok);color:var(--ok)}
-.ed-tool.pri{background:var(--ok);border-color:var(--ok);color:#04241a;font-weight:700}
+.ed-tool.pri{background:var(--ok);border-color:var(--ok);color:var(--onOk);font-weight:700}
 .ed-tool.pri:hover{filter:brightness(1.08);background:var(--ok)}
 .ed-tool.sm{padding:4px 9px;font-size:11.5px}
 .ed-note{margin:16px 0 30px;font-size:12px;color:var(--faint);line-height:1.85}
@@ -245,7 +313,7 @@ body.resizing{cursor:col-resize;user-select:none}
   border:1px solid var(--line);border-radius:4px;padding:2px 6px;margin-left:9px;vertical-align:2px}
 
 /* ================= 事象ウィンドウ ================= */
-.ew-top{position:sticky;top:0;z-index:30;background:rgba(10,12,17,.97);backdrop-filter:blur(8px);
+.ew-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:11px}
 .ew-body{max-width:1360px;margin:0 auto;padding:26px 30px 40px}
 .ew-h{margin:0 0 16px;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);
@@ -256,7 +324,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .ew-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 17px 13px;
   cursor:pointer;position:relative;transition:border-color .18s,background .18s,transform .18s,box-shadow .18s}
 .ew-card:hover{border-color:var(--cur);background:var(--panel2);transform:translateY(-2px);
-  box-shadow:0 10px 28px rgba(0,0,0,.35)}
+  box-shadow:0 10px 28px var(--shadow)}
 .ew-card .ew-hd{display:flex;gap:10px;align-items:flex-start;margin-bottom:5px}
 .ew-card .ew-hd b{font-size:15.5px;font-weight:700;line-height:1.5;flex:1;min-width:0}
 .ew-card:hover .ew-hd b{color:var(--cur)}
@@ -279,7 +347,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .ew-card:hover .ew-acts{opacity:1}
 .ew-acts button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--dim);
   border-radius:6px;padding:5px 0;font-size:11.5px;cursor:pointer;font-family:var(--sans)}
-.ew-acts button:hover{border-color:#404a5e;color:var(--fg)}
+.ew-acts button:hover{border-color:var(--hover);color:var(--fg)}
 .ew-acts button.dg:hover{border-color:var(--s1);color:var(--s1)}
 
 .ew-new{background:none;border:1px dashed var(--line);border-radius:12px;color:var(--faint);
@@ -289,7 +357,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .ew-new u{text-decoration:none;font-size:26px;line-height:1}
 
 /* ================= 編集ビュー ================= */
-.ed-top{position:sticky;top:0;z-index:30;background:rgba(10,12,17,.97);backdrop-filter:blur(8px);
+.ed-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);padding:10px 18px;display:flex;align-items:center;gap:13px;flex:none}
 .ed-back{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:8px;
   padding:7px 13px;font-size:12.5px;cursor:pointer;font-family:var(--sans);white-space:nowrap}
@@ -299,7 +367,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .ed-modes{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px}
 .ed-modes button{background:none;border:none;color:var(--dim);font-family:var(--sans);font-size:13px;
   padding:6px 17px;border-radius:6px;cursor:pointer;font-weight:600}
-.ed-modes button.on{background:var(--cur);color:#1a1405;font-weight:700}
+.ed-modes button.on{background:var(--cur);color:var(--onCur);font-weight:700}
 
 .ed-body{display:grid;grid-template-columns:var(--wl,244px) 7px minmax(0,1fr) 7px var(--wr,324px);
   gap:0;padding:12px 16px 14px;flex:1 1 auto;min-height:0}
@@ -322,7 +390,7 @@ body.resizing{cursor:col-resize;user-select:none}
   position:relative;transition:background .14s,box-shadow .14s;border-left:3px solid transparent;
   user-select:none}
 .ol-row:hover{background:var(--panel2)}
-.ol-row.sel{background:var(--cur-bg);box-shadow:inset 0 0 0 1px rgba(255,201,60,.4)}
+.ol-row.sel{background:var(--cur-bg);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cur) 40%, transparent)}
 .ol-row.drag{opacity:.35}
 .ol-row.over{box-shadow:inset 0 2px 0 var(--cur)}
 .ol-row.d1{margin-left:6px}
@@ -347,7 +415,7 @@ body.resizing{cursor:col-resize;user-select:none}
   color:var(--dim);line-height:1.55}
 .ol-q b{font-weight:400}
 .ol-q .qn{flex:none;font-family:var(--mono);font-size:9px;font-weight:700;color:var(--dec);
-  border:1px solid var(--dec);border-radius:4px;padding:0 4px;background:rgba(169,123,255,.12)}
+  border:1px solid var(--dec);border-radius:4px;padding:0 4px;background:color-mix(in srgb, var(--dec) 12%, transparent)}
 .ol-grp{display:flex;gap:6px;align-items:center;margin:6px 0 3px;padding:3px 9px 3px 7px;
   font-size:11px;font-weight:700;color:var(--oc);border-left:2px solid var(--oc);
   background:color-mix(in srgb, var(--oc) 9%, transparent);border-radius:0 6px 6px 0}
@@ -368,7 +436,7 @@ body.resizing{cursor:col-resize;user-select:none}
   display:flex;justify-content:space-between;align-items:baseline;gap:6px;
   position:sticky;top:-14px;z-index:3;background:var(--panel)}
 .ccol>h2 u{text-decoration:none;font-family:var(--mono);font-size:9.5px;opacity:.7}
-body.dragging .ccol.drop{background:rgba(255,201,60,.06);box-shadow:inset 0 0 0 2px rgba(255,201,60,.4)}
+body.dragging .ccol.drop{background:color-mix(in srgb, var(--cur) 6%, transparent);box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--cur) 40%, transparent)}
 body.dragging .ccol:not(.drop){opacity:.35}
 .ccol .ghost{border:1px dashed var(--cur);border-radius:8px;height:52px;display:none;
   align-items:center;justify-content:center;font-size:11px;color:var(--cur)}
@@ -378,27 +446,31 @@ body.dragging .ccol.drop .ghost{display:flex}
   border-radius:8px;padding:9px 11px 9px 12px;cursor:pointer;position:relative;
   transition:border-color .16s,background .16s,box-shadow .16s,transform .16s}
 .cnode:hover{background:var(--panel3)}
-.cnode.sel{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px rgba(255,201,60,.2)}
+.cnode.sel{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px color-mix(in srgb, var(--cur) 20%, transparent)}
 .cnode.new{animation:pop .32s ease-out}
 @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
 .cnode .num{position:absolute;top:-7px;left:-7px;width:19px;height:19px;border-radius:50%;
   background:var(--panel3);border:1px solid var(--line);font-family:var(--mono);font-size:10px;
   font-weight:700;color:var(--dim);display:flex;align-items:center;justify-content:center}
-.cnode.sel .num{background:var(--cur);border-color:var(--cur);color:#1a1405}
+.cnode.sel .num{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
 .cnode b{display:block;font-size:13px;font-weight:600;line-height:1.5;word-break:break-word}
 .cnode span.tk{display:block;font-size:10.5px;color:var(--faint);line-height:1.4;margin-top:2px}
 /* フラグはタイトルの下に置く。絶対配置だと長い SLA が文字に重なる。 */
 .cnode .flags{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:6px;
   padding-top:5px;border-top:1px solid var(--line-soft);font-size:10px;font-family:var(--mono)}
-.cnode .f-dec{color:var(--dec)} .cnode .f-cond{color:#bfa0ff}
+.cnode .f-dec{color:var(--dec)} .cnode .f-cond{color:var(--decFg)}
 .cnode .f-esc{color:var(--s1);font-weight:700}
 .cnode .f-sla{color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:0 5px}
 .cwires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
-/* 既定の線は少し明るく。選択・ホバー中は、繋がる線だけを残して他を沈める。 */
-.cwires path{stroke:#77839a;stroke-width:2;opacity:.62;fill:none;
+/* 既定の線は少し明るく。選択・ホバー中は、繋がる線だけを残して他を沈める。
+   セレクタを直接の子に限定しないと、矢印（marker 内の path）まで fill:none になって消える。 */
+.cwires>path{stroke:var(--wire);stroke-width:2;opacity:.62;fill:none;
   transition:opacity .16s,stroke .16s,stroke-width .16s}
-.cwires.focus path{opacity:.2}
-.cwires path.hot{stroke:var(--cur);stroke-width:2.8;opacity:1}
+.cwires.focus>path{opacity:.2}
+.cwires>path.hot{stroke:var(--cur);stroke-width:2.8;opacity:1}
+/* 矢印の色は CSS で持たせる。属性だとテーマ切り替えに追従しない。 */
+.cwires marker path{fill:var(--wire)}
+.cwires #eah-hot path{fill:var(--cur)}
 .cempty{color:var(--faint);font-size:13px;padding:40px 0;text-align:center;line-height:2}
 .cempty b{display:block;color:var(--dim);font-size:14px;margin-bottom:4px}
 
@@ -441,7 +513,7 @@ body.dragging .ccol.drop .ghost{display:flex}
 .pal-t{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--pc);
   border-radius:7px;padding:7px 9px;margin-bottom:6px;cursor:grab;position:relative;
   transition:border-color .15s,background .15s,transform .12s}
-.pal-t:hover{background:var(--panel3);border-color:#404a5e;transform:translateX(2px)}
+.pal-t:hover{background:var(--panel3);border-color:var(--hover);transform:translateX(2px)}
 .pal-t:active{cursor:grabbing}
 .pal-t.drag{opacity:.4}
 .pal-t b{display:block;font-size:12.5px;font-weight:600;line-height:1.45;padding-right:58px}
@@ -476,7 +548,7 @@ body.dragging .ccol.drop .ghost{display:flex}
   background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
 .ins .chk input{accent-color:var(--s1)}
 .ins .sect{border:1px solid var(--line);border-radius:9px;padding:11px 12px;margin-top:13px;
-  background:rgba(169,123,255,.05)}
+  background:color-mix(in srgb, var(--dec) 5%, transparent)}
 .ins .sect>h4{margin:0 0 8px;font-size:11px;letter-spacing:.09em;color:var(--dec);font-weight:700;
   display:flex;justify-content:space-between;align-items:center}
 .ins .cond{display:flex;gap:6px;margin-bottom:6px;align-items:center}
@@ -499,12 +571,12 @@ body.dragging .ccol.drop .ghost{display:flex}
 .ins .taskref b{color:var(--fg);font-size:12.5px;display:block}
 
 /* ---------- モーダル ---------- */
-.mask{position:fixed;inset:0;background:rgba(5,7,11,.82);backdrop-filter:blur(4px);z-index:80;
+.mask{position:fixed;inset:0;background:var(--maskbg);backdrop-filter:blur(4px);z-index:80;
   display:none;align-items:center;justify-content:center;padding:26px}
 .mask.on{display:flex}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;
   max-width:1080px;max-height:100%;display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:0 24px 70px rgba(0,0,0,.6)}
+  box-shadow:0 24px 70px var(--shadow)}
 .modal>header{padding:15px 20px;border-bottom:1px solid var(--line);display:flex;
   align-items:center;justify-content:space-between;gap:16px}
 .modal>header h2{margin:0;font-size:16px}
@@ -550,8 +622,8 @@ body.dragging .ccol.drop .ghost{display:flex}
   margin-bottom:9px;background:var(--panel2);align-items:flex-start}
 .issue i{font-style:normal;font-family:var(--mono);font-weight:700;font-size:12px;flex:none;
   border-radius:5px;padding:2px 7px;margin-top:1px}
-.issue.err i{background:rgba(255,107,107,.16);color:var(--s1);border:1px solid var(--s1)}
-.issue.wrn i{background:rgba(255,176,46,.16);color:var(--s2);border:1px solid var(--s2)}
+.issue.err i{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
+.issue.wrn i{background:color-mix(in srgb, var(--s2) 16%, transparent);color:var(--s2);border:1px solid var(--s2)}
 .issue b{display:block;font-size:13.5px;line-height:1.55}
 .issue span{display:block;font-size:12px;color:var(--dim);line-height:1.7;margin-top:2px}
 .okmsg{color:var(--ok);font-size:14px;padding:20px 0;text-align:center}
@@ -560,11 +632,11 @@ body.dragging .ccol.drop .ghost{display:flex}
 #runWrap{display:none}
 body.screen-run #runWrap{display:block}   /* これが無く、試走モードが真っ白だった */
 .runbar{margin:12px 20px 0;padding:9px 14px;border:1px dashed var(--dec);border-radius:9px;
-  font-size:12.5px;color:#c7b0ff;background:rgba(169,123,255,.07);line-height:1.7}
+  font-size:12.5px;color:var(--decFg);background:color-mix(in srgb, var(--dec) 7%, transparent);line-height:1.7}
 
 
 /* ================= タスク管理画面 ================= */
-.tk-top{position:sticky;top:0;z-index:30;background:rgba(10,12,17,.97);backdrop-filter:blur(8px);
+.tk-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:11px}
 .tk-search{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
   padding:7px 12px;font-size:13px;font-family:var(--sans);width:240px}
@@ -602,7 +674,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .cfm em{font-style:normal;color:var(--s2)}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:100;
   background:var(--panel3);border:1px solid var(--ok);border-radius:9px;padding:10px 20px;
-  font-size:13px;color:var(--fg);box-shadow:0 12px 34px rgba(0,0,0,.55);opacity:0;
+  font-size:13px;color:var(--fg);box-shadow:0 12px 34px var(--shadow);opacity:0;
   transition:opacity .18s,transform .18s;pointer-events:none;max-width:80vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.warn{border-color:var(--s2);color:var(--s2)}
@@ -627,7 +699,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   border-radius:8px;padding:9px;font-size:13px;cursor:pointer;font-family:var(--sans)}
 .bulk .act button:hover{border-color:var(--cur);color:var(--cur)}
 .bulk .act button.dgr:hover{border-color:var(--s1);color:var(--s1)}
-.ol-row.sel-multi{background:rgba(255,201,60,.09);box-shadow:inset 0 0 0 1px rgba(255,201,60,.3)}
+.ol-row.sel-multi{background:color-mix(in srgb, var(--cur) 9%, transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cur) 30%, transparent)}
 
 /* ---------- 担当（Tier）と連絡先 ---------- */
 .ol-f .tier{color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 3px;font-size:9px}
@@ -648,14 +720,14 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .ins .ct-row b{font-size:12.5px;font-weight:700;white-space:nowrap}
 .ins .ct-row span{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:var(--dim);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ins .sect.ct{background:rgba(90,209,230,.05)}
+.ins .sect.ct{background:color-mix(in srgb, var(--s3) 5%, transparent)}
 .ins .sect.ct>h4{color:#5ad1e6}
 
 /* 連絡先を選ぶモーダル */
 .ctpick{display:flex;flex-direction:column;gap:6px}
 .ctp{display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);
   border-radius:8px;padding:9px 11px;cursor:pointer;transition:border-color .15s}
-.ctp:hover{border-color:#404a5e}
+.ctp:hover{border-color:var(--hover)}
 .ctp:has(input:checked){border-color:var(--cur);background:var(--cur-bg)}
 .ctp input{accent-color:var(--cur);flex:none}
 .ctp i{flex:none;font-style:normal;width:24px;height:24px;border-radius:6px;font-size:11px;font-weight:700;
@@ -671,7 +743,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);
   border-left:3px solid var(--pc,var(--line));border-radius:9px;padding:12px 14px;margin-bottom:8px;
   transition:border-color .15s,background .15s}
-.rw:hover{border-color:#404a5e;background:var(--panel2)}
+.rw:hover{border-color:var(--hover);background:var(--panel2)}
 @media(max-width:1100px){.rw{grid-template-columns:1fr 1fr}}
 .rw .k{display:block;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
   color:var(--faint);font-weight:700;margin-bottom:3px}
@@ -709,7 +781,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .mem .no{flex:none;width:20px;height:20px;border-radius:50%;background:var(--panel3);
   border:1px solid var(--line);font-family:var(--mono);font-size:10px;font-weight:700;
   color:var(--dim);display:flex;align-items:center;justify-content:center}
-.mem.first .no{background:var(--cur);border-color:var(--cur);color:#1a1405}
+.mem.first .no{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
 .mem .who{font-size:13.5px;font-weight:600;min-width:90px}
 .mem .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:12.5px;
   color:var(--fg);background:var(--panel3);border:1px solid var(--vc);border-radius:6px;padding:1px 8px 1px 3px}
@@ -738,6 +810,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   <div class="ew-top">
     <h1 class="brand">SOC <b>Workflow</b><em>EDITOR MOCK</em></h1>
     <div class="ed-spacer"></div>
+    <button class="ed-tool" data-th type="button"></button>
     <button class="ed-tool" id="ewPhases">フェーズ設定</button>
     <button class="ed-tool" id="ewTasks">タスク一覧</button>
     <button class="ed-tool" id="ewContacts">連絡先</button>
@@ -760,6 +833,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
     <h1 class="brand">タスク<b>管理</b></h1>
     <div class="ed-spacer"></div>
     <input class="tk-search" id="tkSearch" type="text" placeholder="タスクを検索…">
+    <button class="ed-tool" data-th type="button"></button>
     <button class="ed-tool" id="tkPhases">フェーズ設定</button>
     <button class="ed-tool pri" id="tkNew">＋ 新しいタスク</button>
   </div>
@@ -796,6 +870,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
     <h1 class="brand">連絡<b>先</b></h1>
     <div class="ed-spacer"></div>
     <input class="tk-search" id="ctSearch" type="text" placeholder="連絡先を検索…">
+    <button class="ed-tool" data-th type="button"></button>
     <button class="ed-tool pri" id="ctNew">＋ 新しいグループ</button>
   </div>
   <div class="ew-body">
@@ -837,6 +912,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
     <button class="ed-back" id="btnBack">← 事象一覧</button>
     <div class="ed-title" id="edTitle"></div>
     <div class="ed-spacer"></div>
+    <button class="ed-tool" data-th type="button"></button>
     <button class="ed-tool" id="btnCheck">検証</button>
     <button class="ed-tool" id="btnPaths">経路一覧</button>
     <div class="ed-modes">
@@ -941,6 +1017,40 @@ var VIA = {
 };
 /* アイコンの中身。書き出し HTML でも外部を読まないよう、sprite ごと埋め込む。 */
 var VIA_SPRITE = "<svg id=\"via-sprite\" aria-hidden=\"true\" style=\"position:absolute;width:0;height:0;overflow:hidden\"><symbol id=\"ico-teams\" viewBox=\"0 0 17 17\"><g clip-path=\"url(#clip0_1967_29308)\"><path d=\"M8.43555 7.19922H13.63C15.0644 7.19922 16.2272 8.36457 16.2272 9.80209V14.1402C16.2272 15.5777 15.0644 16.7431 13.63 16.7431C12.1956 16.7431 11.0328 15.5777 11.0328 14.1402V9.80209C11.0328 8.36457 9.86995 7.19922 8.43555 7.19922Z\" fill=\"url(#paint0_radial_1967_29308)\"/><path d=\"M2.37598 8.9349C2.37598 7.49738 3.5388 6.33203 4.9732 6.33203H8.43616C9.87056 6.33203 11.0334 7.49738 11.0334 8.9349V14.1406C11.0334 15.5782 12.1962 16.7435 13.6306 16.7435L6.70464 16.7435C4.31398 16.7435 2.37598 14.8012 2.37598 12.4053V8.9349Z\" fill=\"url(#paint1_radial_1967_29308)\"/><path d=\"M2.37598 8.9349C2.37598 7.49738 3.5388 6.33203 4.9732 6.33203H8.43616C9.87056 6.33203 11.0334 7.49738 11.0334 8.9349V14.1406C11.0334 15.5782 12.1962 16.7435 13.6306 16.7435L6.70464 16.7435C4.31398 16.7435 2.37598 14.8012 2.37598 12.4053V8.9349Z\" fill=\"url(#paint2_linear_1967_29308)\" fill-opacity=\"0.7\"/><path d=\"M2.37598 8.9349C2.37598 7.49738 3.5388 6.33203 4.9732 6.33203H8.43616C9.87056 6.33203 11.0334 7.49738 11.0334 8.9349V14.1406C11.0334 15.5782 12.1962 16.7435 13.6306 16.7435L6.70464 16.7435C4.31398 16.7435 2.37598 14.8012 2.37598 12.4053V8.9349Z\" fill=\"url(#paint3_radial_1967_29308)\" fill-opacity=\"0.7\"/><path d=\"M13.1985 6.3303C14.3939 6.3303 15.3629 5.35917 15.3629 4.16124C15.3629 2.96332 14.3939 1.99219 13.1985 1.99219C12.0032 1.99219 11.0342 2.96332 11.0342 4.16124C11.0342 5.35917 12.0032 6.3303 13.1985 6.3303Z\" fill=\"url(#paint4_radial_1967_29308)\"/><path d=\"M13.1985 6.3303C14.3939 6.3303 15.3629 5.35917 15.3629 4.16124C15.3629 2.96332 14.3939 1.99219 13.1985 1.99219C12.0032 1.99219 11.0342 2.96332 11.0342 4.16124C11.0342 5.35917 12.0032 6.3303 13.1985 6.3303Z\" fill=\"url(#paint5_radial_1967_29308)\" fill-opacity=\"0.46\"/><path d=\"M13.1985 6.3303C14.3939 6.3303 15.3629 5.35917 15.3629 4.16124C15.3629 2.96332 14.3939 1.99219 13.1985 1.99219C12.0032 1.99219 11.0342 2.96332 11.0342 4.16124C11.0342 5.35917 12.0032 6.3303 13.1985 6.3303Z\" fill=\"url(#paint6_radial_1967_29308)\" fill-opacity=\"0.4\"/><path d=\"M6.70464 5.46355C8.13904 5.46355 9.30185 4.2982 9.30185 2.86068C9.30185 1.42316 8.13904 0.257812 6.70464 0.257812C5.27024 0.257812 4.10742 1.42316 4.10742 2.86068C4.10742 4.2982 5.27024 5.46355 6.70464 5.46355Z\" fill=\"url(#paint7_radial_1967_29308)\"/><path d=\"M6.70464 5.46355C8.13904 5.46355 9.30185 4.2982 9.30185 2.86068C9.30185 1.42316 8.13904 0.257812 6.70464 0.257812C5.27024 0.257812 4.10742 1.42316 4.10742 2.86068C4.10742 4.2982 5.27024 5.46355 6.70464 5.46355Z\" fill=\"url(#paint8_radial_1967_29308)\" fill-opacity=\"0.6\"/><path d=\"M6.70464 5.46355C8.13904 5.46355 9.30185 4.2982 9.30185 2.86068C9.30185 1.42316 8.13904 0.257812 6.70464 0.257812C5.27024 0.257812 4.10742 1.42316 4.10742 2.86068C4.10742 4.2982 5.27024 5.46355 6.70464 5.46355Z\" fill=\"url(#paint9_radial_1967_29308)\" fill-opacity=\"0.5\"/><path d=\"M6.16361 8.5H2.05136C1.27439 8.5 0.644531 9.13123 0.644531 9.90989V14.0311C0.644531 14.8098 1.27439 15.441 2.05136 15.441H6.16361C6.94058 15.441 7.57044 14.8098 7.57044 14.0311V9.90989C7.57044 9.13123 6.94058 8.5 6.16361 8.5Z\" fill=\"url(#paint10_radial_1967_29308)\"/><path d=\"M6.16361 8.5H2.05136C1.27439 8.5 0.644531 9.13123 0.644531 9.90989V14.0311C0.644531 14.8098 1.27439 15.441 2.05136 15.441H6.16361C6.94058 15.441 7.57044 14.8098 7.57044 14.0311V9.90989C7.57044 9.13123 6.94058 8.5 6.16361 8.5Z\" fill=\"url(#paint11_radial_1967_29308)\" fill-opacity=\"0.7\"/><path d=\"M5.61393 10.7157H4.55465V13.9545H3.66086V10.7157H2.60156V9.98828H5.61393V10.7157Z\" fill=\"white\"/></g><defs><radialGradient id=\"paint0_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"translate(16.1392 8.14228) scale(5.83439 14.4326)\"><stop stop-color=\"#A98AFF\"/><stop offset=\"0.14\" stop-color=\"#8C75FF\"/><stop offset=\"0.565\" stop-color=\"#5F50E2\"/><stop offset=\"0.9\" stop-color=\"#3C2CB8\"/></radialGradient><radialGradient id=\"paint1_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(5.2756 13.1879 -13.3083 5.34698 2.72768 5.63793)\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#85C2FF\"/><stop offset=\"0.69\" stop-color=\"#7588FF\"/><stop offset=\"1\" stop-color=\"#6459FE\"/></radialGradient><linearGradient id=\"paint2_linear_1967_29308\" x1=\"7.82741\" y1=\"6.33203\" x2=\"7.82741\" y2=\"16.7435\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0.801159\" stop-color=\"#6864F6\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#5149DE\"/></linearGradient><radialGradient id=\"paint3_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(-3.29407 7.65582 -6.13219 -2.64999 10.8169 5.98498)\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#BD96FF\"/><stop offset=\"0.686685\" stop-color=\"#BD96FF\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"paint4_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"translate(13.1985 3.5415) rotate(-90) scale(4.33811 5.4635)\"><stop offset=\"0.268201\" stop-color=\"#6868F7\"/><stop offset=\"1\" stop-color=\"#3923B1\"/></radialGradient><radialGradient id=\"paint5_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(2.3679 1.99487 -2.87909 3.43235 11.4097 3.0958)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0.270711\" stop-color=\"#A1D3FF\"/><stop offset=\"0.813393\" stop-color=\"#A1D3FF\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"paint6_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(2.75309 -2.45463 6.00831 6.76822 14.9223 3.01971)\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#E3ACFD\"/><stop offset=\"0.816041\" stop-color=\"#9FA2FF\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"paint7_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"translate(6.70464 2.117) rotate(-90) scale(5.20574 6.55624)\"><stop offset=\"0.268201\" stop-color=\"#8282FF\"/><stop offset=\"1\" stop-color=\"#3923B1\"/></radialGradient><radialGradient id=\"paint8_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(2.84147 2.39384 -3.45489 4.1188 4.55813 1.58217)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0.270711\" stop-color=\"#A1D3FF\"/><stop offset=\"0.813393\" stop-color=\"#A1D3FF\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"paint9_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(3.3037 -2.94556 7.20998 8.12187 8.77319 1.49083)\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#E3ACFD\"/><stop offset=\"0.816041\" stop-color=\"#9FA2FF\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"paint10_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(6.9259 6.94098 -6.9259 6.94098 0.644531 8.5)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0.046875\" stop-color=\"#688EFF\"/><stop offset=\"0.946875\" stop-color=\"#230F94\"/></radialGradient><radialGradient id=\"paint11_radial_1967_29308\" cx=\"0\" cy=\"0\" r=\"1\" gradientUnits=\"userSpaceOnUse\" gradientTransform=\"translate(4.10749 12.6646) rotate(90) scale(4.85869 5.65769)\"><stop offset=\"0.570647\" stop-color=\"#6965F6\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#8F8FFF\"/></radialGradient><clipPath id=\"clip0_1967_29308\"><rect width=\"17\" height=\"17\" fill=\"white\"/></clipPath></defs></symbol><symbol id=\"ico-phone\" viewBox=\"0 0 16 16\"><path fill=\"currentColor\" d=\"M3.6 1.8h2.5l1.3 3.2-1.6 1.1a9.6 9.6 0 0 0 4.1 4.1l1.1-1.6 3.2 1.3v2.5a1.8 1.8 0 0 1-2 1.8A12.5 12.5 0 0 1 1.8 3.8a1.8 1.8 0 0 1 1.8-2z\"/></symbol><symbol id=\"ico-mail\" viewBox=\"0 0 48 48\"><path d=\"M43 16.976V33.75C43 36.6495 40.6495 39 37.75 39H10.25C7.35049 39 4.99976 36.6495 4.99976 33.75V16.976L23.3976 27.0953C23.7727 27.3016 24.2273 27.3016 24.6024 27.0953L43 16.976ZM37.75 9C40.6074 9 42.9316 11.2828 42.9985 14.1241L24 24.5734L5.00176 14.124L5.00437 14.0336C5.11786 11.2344 7.42298 9 10.25 9H37.75Z\" fill=\"currentColor\"/></symbol></svg>";
+/* ---------- 明るさの切り替え ----------
+   昼夜どちらでも使うので、明示的な選択を localStorage に覚える。
+   選んでいなければ OS の設定に従う。書き出した HTML でも同じ仕組みが動く。 */
+var THEME_KEY = "soc-flow-theme";
+function effectiveTheme(){
+  var t = document.documentElement.getAttribute("data-theme");
+  if(t) return t;
+  return (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+}
+function applyTheme(t){
+  var r = document.documentElement;
+  if(t) r.setAttribute("data-theme", t); else r.removeAttribute("data-theme");
+  try{ t ? localStorage.setItem(THEME_KEY, t) : localStorage.removeItem(THEME_KEY); }catch(e){}
+  updateThemeButtons();
+}
+function updateThemeButtons(){
+  var dark = effectiveTheme() === "dark";
+  Array.prototype.forEach.call(document.querySelectorAll("[data-th]"), function(b){
+    b.textContent = dark ? "\u263E ダーク" : "\u2600 ライト";
+    b.title = "明るさを切り替える（現在: " + (dark ? "ダーク" : "ライト") + "）";
+  });
+}
+function initTheme(){
+  var t = "";
+  try{ var v = localStorage.getItem(THEME_KEY); if(v === "light" || v === "dark") t = v; }catch(e){}
+  applyTheme(t);
+  Array.prototype.forEach.call(document.querySelectorAll("[data-th]"), function(b){
+    if(b.dataset.thBound) return;
+    b.dataset.thBound = "1";
+    b.addEventListener("click", function(){
+      applyTheme(effectiveTheme() === "dark" ? "light" : "dark");
+    });
+  });
+}
 function ensureViaSprite(){
   if(document.getElementById("via-sprite")) return;
   var d = document.createElement("div");
@@ -988,6 +1098,7 @@ function mountViewer(root, DATA, opt){
     '<div class="v-top">'
     + '<h1>SOC <b>対応フロー</b></h1>'
     + '<div class="v-now" data-e="now">左の一覧から、発生した事象を選択してください。</div>'
+    + '<button class="v-btn v-th" data-th type="button"></button>'
     + '<div class="v-meters">'
     +   '<div class="v-meter"><div class="k">経過時間</div><div class="val" data-e="elapsed">--:--</div></div>'
     +   '<div class="v-meter"><div class="k">進捗</div><div class="val" data-e="prog">0 / 0</div>'
@@ -1011,6 +1122,7 @@ function mountViewer(root, DATA, opt){
     + '</div>';
 
   function $(k){ return root.querySelector('[data-e="' + k + '"]'); }
+  initTheme();
   var grid = $("grid"), wires = $("wires");
 
   var cur = null, answers = {}, done = {}, startedAt = null, timer = null;
@@ -2285,10 +2397,10 @@ function paintEditorWires(nodes){
   }
 
   var out = '<defs>'
-    + '<marker id="eah" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6"'
-      + ' orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#77839a"/></marker>'
-    + '<marker id="eah-hot" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="8" markerHeight="7"'
-      + ' orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--cur)"/></marker>'
+    + '<marker id="eah" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="8.5" markerHeight="7"'
+      + ' orient="auto"><path d="M0,0 L10,4 L0,8 z"/></marker>'
+    + '<marker id="eah-hot" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="10" markerHeight="8"'
+      + ' orient="auto"><path d="M0,0 L10,4 L0,8 z"/></marker>'
     + '</defs>';
   var back = 0;
   for(var k=0;k<seq.length-1;k++){
@@ -3432,6 +3544,7 @@ window.addEventListener("resize", function(){
 
 load();
 ensureViaSprite();
+initTheme();
 initSplits();
 renderEventsScreen();
 </script>
