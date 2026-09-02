@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOC Workflow</title>
+<link rel="stylesheet" href="viewer.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="screen-events">
+
+<!-- ================= 事象ウィンドウ ================= -->
+<div id="scEvents">
+  <div class="ew-top">
+    <h1 class="brand">SOC <b>Workflow</b></h1>
+    <div class="ed-spacer"></div>
+    <button class="ed-tool" data-th type="button"></button>
+    <button class="ed-tool" id="ewPhases">段階設定</button>
+    <button class="ed-tool" id="ewTasks">タスク一覧</button>
+    <button class="ed-tool" id="ewContacts">連絡先</button>
+    <button class="ed-tool" id="ewExportAll">全事象を書き出し</button>
+  </div>
+  <div class="ew-body">
+    <h2 class="ew-h">発生しうる事象 <span id="ewCount"></span></h2>
+    <div class="ew-grid" id="ewGrid"></div>
+    <p class="ed-note" id="ewNote"></p>
+  </div>
+</div>
+
+<!-- 通知・モーダル -->
+<div class="toast" id="toast"></div>
+<div class="mask" id="mask">
+  <div class="modal">
+    <header>
+      <h2 id="mTitle">タイトル<small id="mSub"></small></h2>
+      <button class="xbtn" id="mClose">×</button>
+    </header>
+    <div class="mbody" id="mBody"></div>
+    <footer id="mFoot"></footer>
+  </div>
+</div>
+
+<!-- viewer は書き出し HTML と同じものを、素の script として先に読む。
+     モジュールにすると書き出し側で使えなくなるため（web/src/viewer.d.ts）。 -->
+<script src="viewer.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

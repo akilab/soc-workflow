@@ -17,5 +17,7 @@ __pycache__/
 *.json.lock
 
 # フロントエンド
+# internal/web/dist は生成物だがコミットする。無いと embed が解決できず、
+# フロントエンドを組み立てないと go build が通らなくなるため。
 /web/node_modules/
 /web/dist/

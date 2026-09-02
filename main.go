@@ -18,6 +18,7 @@ import (
 	"github.com/akilab/soc-workflow/internal/api"
 	"github.com/akilab/soc-workflow/internal/model"
 	"github.com/akilab/soc-workflow/internal/store"
+	"github.com/akilab/soc-workflow/internal/web"
 )
 
 func main() {
@@ -43,8 +44,13 @@ func run() error {
 	}
 	defer st.Close()
 
+	// API と画面を同じ入口にまとめる。ServeMux は細かいパターンを優先するので、
+	// /api/... は API へ、それ以外は画面へ振り分けられる。
+	routes := api.New(st).Routes()
+	routes.Handle("/", web.Handler())
+
 	srv := &http.Server{
-		Handler:           api.Guard(api.New(st).Routes()),
+		Handler:           api.Guard(routes),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
