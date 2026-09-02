@@ -370,7 +370,7 @@ body.resizing{cursor:col-resize;user-select:none}
   padding:6px 17px;border-radius:6px;cursor:pointer;font-weight:600}
 .ed-modes button.on{background:var(--cur);color:var(--onCur);font-weight:700}
 
-.ed-body{display:grid;grid-template-columns:var(--wl,244px) 7px minmax(0,1fr) 7px var(--wr,324px);
+.ed-body{display:grid;grid-template-columns:var(--wl,290px) 7px minmax(0,1fr) 7px var(--wr,324px);
   gap:0;padding:12px 16px 14px;flex:1 1 auto;min-height:0}
 .split{cursor:col-resize;position:relative}
 .split::after{content:"";position:absolute;inset:0;margin:auto;width:1px;height:36px;
@@ -1754,7 +1754,8 @@ var palQ = "", collapsed = {}, rightTab = "ins";
 var palSort = "use", palFilter = "all";       /* タスクパレットの並び順・絞り込み */
 var tkQ = "", tkSort = "use", tkFilter = "all";  /* タスク管理画面 */
 var selIds = [], selAnchor = null;            /* 手順の複数選択 */
-var UI = {wl:244, wr:324};
+var UI = {wl:290, wr:324};   /* 左＝手順アウトライン、右＝インスペクタ／パレット */
+var UI_WL_OLD = 244;         /* 旧既定。自分で動かしていない人だけ新既定へ寄せる */
 
 var OPTC = ["#ffb02e","#4aa8ff","#ff5c8a","#2ee6a8","#a97bff","#5ad1e6"];
 var PHC = ["var(--c1)","var(--c2)","var(--c3)","var(--c4)","var(--c5)",
@@ -1770,6 +1771,8 @@ function load(){
     if(s && s.db && s.db.events && s.db.events.length){
       DB = s.db; _id = s.seq || 900;
       if(s.ui) UI = Object.assign(UI, s.ui);
+      /* 幅を自分で調整していないなら、新しい既定に合わせる */
+      if(UI.wl === UI_WL_OLD) UI.wl = 290;
       mergeSeedTasks(s.seedVer || 1);
       return;
     }
