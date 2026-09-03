@@ -57,7 +57,7 @@ export function renderOutline(deps: OutlineDeps): void {
     "◆ 判断ステップ。その下の縦線が、この判断で分かれる範囲です。" +
     "灰色の行が質問、色つきの行がその答え。<br>" +
     "<b>！エスカレ</b> この手順でエスカレーションの要否を判断します。" +
-    "<b>●客</b> お客様への連絡があります。" +
+    "<b>お客様連絡</b> この手順でお客様へ連絡します。" +
     "<b>N分岐</b> この判断を参照している手順の数です。<br>" +
     "行をドラッグすると順序を入れ替えられます。" +
     "Ctrl＋クリックで複数選択、Shift＋クリックで範囲選択。";
@@ -119,7 +119,7 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
 
   let f = "";
   if (stepContacts(db, st).some((c) => c.kind === "customer")) {
-    f += '<span class="cust" title="お客様連絡あり">&#9679;客</span>';
+    f += '<span class="cust" title="この手順でお客様へ連絡します">お客様連絡</span>';
   }
   if (st.decision) {
     const key = st.decision.key;
