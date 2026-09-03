@@ -167,7 +167,9 @@ export class Palette {
       "<b>" +
       (t.kind === "close"
         ? '<i class="k-fin" title="この経路はここで終わります">終了</i>'
-        : "") +
+        : t.kind === "wait"
+          ? '<i class="k-wait" title="自分たちの作業ではありません">待ち</i>'
+          : "") +
       `${esc(t.label)}</b><span class="nt">${esc(t.note ?? "")}</span>` +
       '<span class="use">' +
       (here ? `<span class="u-in">使用中 ${here}</span>` : "") +
@@ -256,10 +258,11 @@ export class Palette {
           options: [
             { v: "", l: "通常の作業" },
             { v: "close", l: "終了（クローズ）" },
+            { v: "wait", l: "待ち・保留" },
           ],
           hint:
             "「終了」は、完了させるとその経路がそこで終わります。" +
-            "以降の手順は対象外になります。",
+            "「待ち」は自分たちの作業ではないので、SLA の合計から分けて数えます。",
         },
       ],
     });

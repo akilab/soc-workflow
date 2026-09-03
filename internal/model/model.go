@@ -93,12 +93,19 @@ const (
 	// という形を書くには、後続すべてに「誤検知ではないとき」という条件を
 	// 付けて回るしかなくなる。終了を種類として持てば、そこで切れる。
 	KindClose TaskKind = "close"
+
+	// KindWait は待ち。自分の作業ではなく、何かが起きるのを待っている状態。
+	//
+	// 顧客の返答待ち、営業時間まで待つ、スキャンの完了待ち——SOC では珍しくない。
+	// 作業として並ぶと、対応者は「止まっているのか進めるのか」が分からなくなる。
+	// SLA の合計も、待ち時間を作業時間に足すと数字が意味を失うので分けて数える。
+	KindWait TaskKind = "wait"
 )
 
 // Valid はタスクの種類として使える値かを返す。
 func (k TaskKind) Valid() bool {
 	switch k {
-	case KindNormal, KindClose:
+	case KindNormal, KindClose, KindWait:
 		return true
 	}
 	return false
@@ -328,6 +335,12 @@ func (e *Event) Decision(key string) *Decision {
 func (d *DB) IsClose(st *Step) bool {
 	t := d.Task(st.TaskKey)
 	return t != nil && t.Kind == KindClose
+}
+
+// IsWait は、その手順が待ちかを返す。
+func (d *DB) IsWait(st *Step) bool {
+	t := d.Task(st.TaskKey)
+	return t != nil && t.Kind == KindWait
 }
 
 // Handoffs は担当の受け渡しが何回あるかを数える。

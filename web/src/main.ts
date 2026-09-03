@@ -12,6 +12,7 @@ import { Api, ApiError } from "./api";
 import { $ } from "./dom";
 import { EditScreen } from "./screens/edit";
 import { EventsScreen } from "./screens/events";
+import { Settings } from "./settings";
 import { closeModal } from "./ui";
 
 type Screen = "events" | "edit";
@@ -20,6 +21,7 @@ class App {
   private readonly api = new Api();
   private readonly events: EventsScreen;
   private readonly edit: EditScreen;
+  private readonly settings: Settings;
 
   /** いま出ている画面。データが入れ替わったとき、どちらを描き直すかを決める。 */
   private screen: Screen = "events";
@@ -33,6 +35,7 @@ class App {
       api: this.api,
       onBack: () => this.show("events"),
     });
+    this.settings = new Settings(this.api);
 
     // データが入れ替わったら描き直す。書き込みのたびに api が呼ぶ。
     this.api.onChange = () => this.render();
@@ -69,6 +72,8 @@ class App {
   }
 
   private bindGlobal(): void {
+    $("ewPhases").addEventListener("click", () => this.settings.openPhases());
+    $("ewLanes").addEventListener("click", () => this.settings.openLanes());
     $("mClose").addEventListener("click", closeModal);
     $("mask").addEventListener("click", (e) => {
       if (e.target === $("mask")) closeModal(); // 外側を押したら閉じる

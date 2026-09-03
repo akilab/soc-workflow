@@ -242,6 +242,7 @@ export class EditScreen {
     if (!evt) return;
     const r = validate(this.api.db, evt);
     const max = Math.max(0, ...r.paths.map((p) => p.minutes));
+    const anyWait = r.paths.some((p) => p.waitMinutes > 0);
 
     const rows = r.paths
       .map((p, i) => {
@@ -259,7 +260,11 @@ export class EditScreen {
           `<tr><td class="num">${i + 1}</td>` +
           `<td><div class="pathkey">${chips}</div></td>` +
           `<td class="num">${p.count}</td>` +
-          `<td class="num${p.minutes >= max && max > 0 ? " long" : ""}">${fmtMin(p.minutes)}</td></tr>`
+          `<td class="num${p.minutes >= max && max > 0 ? " long" : ""}">${fmtMin(p.minutes)}</td>` +
+          (anyWait
+            ? `<td class="num">${p.waitMinutes ? fmtMin(p.waitMinutes) : "—"}</td>`
+            : "") +
+          "</tr>"
         );
       })
       .join("");
@@ -268,10 +273,15 @@ export class EditScreen {
       "経路一覧",
       `${evt.title} — ${r.paths.length} 経路`,
       '<p class="ins hint" style="margin:0 0 12px">分岐の全組み合わせです。' +
-        "SLA の合計が最も長い経路を色付きで示します。" +
+        "作業の合計が最も長い経路を色付きで示します。" +
+        (anyWait
+          ? "待ちは自分たちが動く時間ではないので、分けて数えています。"
+          : "") +
         "対応者は 1 本しか辿りませんが、設計する側は全部を見る必要があります。</p>" +
         '<table class="tbl"><thead><tr><th>#</th><th>回答の組み合わせ</th>' +
-        "<th>手順数</th><th>SLA 合計</th></tr></thead>" +
+        "<th>手順数</th><th>作業 SLA</th>" +
+        (anyWait ? "<th>待ち</th>" : "") +
+        "</tr></thead>" +
         `<tbody>${rows}</tbody></table>`,
     );
   }

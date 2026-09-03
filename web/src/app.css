@@ -187,6 +187,15 @@ body.dragging .clane:not(.drop){opacity:.35}
   padding:0 5px;font-weight:700}
 .ol-row .fin{font-size:9px;font-weight:700;letter-spacing:.04em;
   color:var(--ok);border:1px solid var(--ok);border-radius:3px;padding:0 4px}
+/* 待ち。自分たちの作業ではないので、破線で「動いていない」ことを示す。 */
+.cnode.wait{border-style:dashed}
+.cnode .f-wait{color:var(--dim);border:1px dashed var(--dim);border-radius:3px;
+  padding:0 5px;font-weight:700}
+.ol-row .wait{font-size:9px;font-weight:700;letter-spacing:.04em;
+  color:var(--dim);border:1px dashed var(--dim);border-radius:3px;padding:0 4px}
+.pal-t .k-wait{display:inline-block;font-style:normal;vertical-align:1px;
+  margin-right:5px;font-size:9px;font-weight:700;letter-spacing:.04em;line-height:1.6;
+  color:var(--dim);border:1px dashed var(--dim);border-radius:3px;padding:0 4px}
 
 /* 掴んで動かしている最中のボックス。 */
 .cnode.drag{opacity:.35}

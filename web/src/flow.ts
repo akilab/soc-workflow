@@ -15,8 +15,16 @@ export interface FlowPath {
   answers: Answers;
   /** その経路で実施する手順の数。 */
   count: number;
-  /** SLA の合計（分）。 */
+  /** 自分たちが動く時間の合計（分）。待ちは含まない。 */
   minutes: number;
+  /**
+   * 待っている時間の合計（分）。
+   *
+   * 作業時間と分けて数える。顧客の返答を待つ 1 営業日を作業時間に足すと、
+   * 「この経路は 9 時間かかる」という数字が実態を表さなくなる。
+   * どちらも経過時間ではあるので、両方出して読む側に判断させる。
+   */
+  waitMinutes: number;
 }
 
 /** 検証で見つかった問題。 */
@@ -113,7 +121,7 @@ export function visible(st: Step, ans: Answers): boolean {
  * 上限 64 本。判断が 6 つ重なると 64 本になり、それ以上は一覧にしても読めない。
  * 数え切れないほど分岐しているなら、フローの側を分けるべきという合図でもある。
  */
-export function enumeratePaths(evt: EventFlow): FlowPath[] {
+export function enumeratePaths(db: DB, evt: EventFlow): FlowPath[] {
   const results: Answers[] = [];
 
   function walk(from: number, ans: Answers): void {
@@ -134,10 +142,14 @@ export function enumeratePaths(evt: EventFlow): FlowPath[] {
 
   return results.map((ans) => {
     const steps = evt.steps.filter((st) => visible(st, ans));
+    const isWait = (s: Step) => taskOf(db, s.task)?.kind === "wait";
     return {
       answers: ans,
       count: steps.length,
-      minutes: steps.reduce((a, s) => a + parseSla(s.sla), 0),
+      minutes: steps
+        .filter((s) => !isWait(s))
+        .reduce((a, s) => a + parseSla(s.sla), 0),
+      waitMinutes: steps.filter(isWait).reduce((a, s) => a + parseSla(s.sla), 0),
     };
   });
 }
@@ -168,7 +180,7 @@ export function validate(db: DB, evt: EventFlow): Validation {
     if (st.decision) seen.add(st.decision.key);
   });
 
-  const paths = enumeratePaths(evt);
+  const paths = enumeratePaths(db, evt);
 
   // 2. どの経路でも表示されない手順が無いか。
   evt.steps.forEach((st, i) => {

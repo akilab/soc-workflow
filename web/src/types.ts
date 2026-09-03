@@ -66,12 +66,13 @@ export interface Task {
  * 対象外になる。普通のタスクとして「クローズ」を作ることもできるが、
  * それでは分岐した経路を終わらせられない（後続すべてに否定の条件が要る）。
  */
-export type TaskKind = "" | "close";
+export type TaskKind = "" | "close" | "wait";
 
 /** タスクの種類の表示名。 */
 export const TASK_KIND_LABEL: Record<TaskKind, string> = {
   "": "通常の作業",
   close: "終了（クローズ）",
+  wait: "待ち・保留",
 };
 
 /** 連絡先のカテゴリ。管理職・Tier2・顧客別など。 */

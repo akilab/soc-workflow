@@ -148,6 +148,11 @@ function mountViewer(root, DATA, opt){
     var tk = taskByKey[st.task];
     return !!tk && tk.kind === "close";
   }
+  /* 待ちのタスクを使っている手順か。 */
+  function isWait(st){
+    var tk = taskByKey[st.task];
+    return !!tk && tk.kind === "wait";
+  }
 
   /* 完了した終了はどこか。無ければ -1。
      ここより後ろの手順は、この対応では実施しない。
@@ -218,8 +223,9 @@ function mountViewer(root, DATA, opt){
 
       var ln = lanes[li];
       var el = document.createElement("div");
-      el.className = "v-node" + (isClose(st) ? " close" : "");
+      el.className = "v-node" + (isClose(st) ? " close" : "") + (isWait(st) ? " wait" : "");
       if(isClose(st)) el.dataset.close = "1";
+      if(isWait(st)) el.dataset.wait = "1";
       el.style.setProperty("--pc", ph ? ph.color : "var(--line)");
       el.style.setProperty("--lc", ln ? ln.color : "var(--line)");
       el.style.gridColumn = (li + 1);
@@ -234,7 +240,8 @@ function mountViewer(root, DATA, opt){
         + '<span class="n">' + esc(tk ? tk.label : st.title) + '</span>'
         + '<span class="t">' + esc(tk && tk.note ? tk.note : "") + '</span>'
         + (st.decision ? '<span class="dec">&#9670;</span>' : '')
-        + (isClose(st) ? '<span class="fin">終了</span>' : '');
+        + (isClose(st) ? '<span class="fin">終了</span>' : '')
+        + (isWait(st) ? '<span class="wt">待ち</span>' : '');
       el.addEventListener("click", function(){
         var rows = $("slist").querySelectorAll(".v-s");
         if(rows[i]) rows[i].scrollIntoView({behavior:"smooth", block:"center"});
@@ -293,7 +300,8 @@ function mountViewer(root, DATA, opt){
   function paint(ev, ci){
     nodes.forEach(function(el){
       if(!el) return;
-      el.className = "v-node" + (el.dataset.close ? " close" : "");
+      el.className = "v-node" + (el.dataset.close ? " close" : "")
+        + (el.dataset.wait ? " wait" : "");
       el.querySelector(".mk").textContent = "";
     });
     var box = grid.getBoundingClientRect();
@@ -407,6 +415,7 @@ function mountViewer(root, DATA, opt){
       var tags = "";
       if(isCur) tags += '<span class="tag now">現在</span>';
       if(isClose(st)) tags += '<span class="tag close">終了</span>';
+      if(isWait(st)) tags += '<span class="tag wait">待ち</span>';
       /* 「担当」と書いておかないと、隣の「エスカレ判断」と並んだときに
          エスカレ先だと読み違えられる。 */
       var ln = laneByKey[st.lane];

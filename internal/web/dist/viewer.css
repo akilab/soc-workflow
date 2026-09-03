@@ -185,6 +185,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .tag.tier{background:transparent;color:var(--tc);border:1px solid var(--tc);font-family:var(--mono)}
 /* 終了（クローズ）。作業ではなく、この経路がここで終わることを示す。 */
 .tag.close{background:color-mix(in srgb, var(--ok) 16%, transparent);color:var(--ok);border:1px solid var(--ok)}
+.tag.wait{color:var(--faint);border:1px dashed var(--faint)}
 .tag.cust{background:color-mix(in srgb, var(--c1) 18%, transparent);color:var(--custFg);border:1px solid #ff5c8a}
 
 /* 連絡先 — 手順の中に置く。別紙を探させない。
