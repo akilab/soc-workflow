@@ -53,9 +53,26 @@ export interface Task {
   phase: string;
   /** 既定の担当。手順に投入するときの初期値になる。 */
   lane: string;
+  /** 種類。空なら通常の作業。 */
+  kind: TaskKind;
   label: string;
   note: string;
 }
+
+/**
+ * タスクの種類。作業そのものではなく、フローの中での役割を表す。
+ *
+ * "close" は終了。完了させると、その経路はそこで終わる。以降の手順は
+ * 対象外になる。普通のタスクとして「クローズ」を作ることもできるが、
+ * それでは分岐した経路を終わらせられない（後続すべてに否定の条件が要る）。
+ */
+export type TaskKind = "" | "close";
+
+/** タスクの種類の表示名。 */
+export const TASK_KIND_LABEL: Record<TaskKind, string> = {
+  "": "通常の作業",
+  close: "終了（クローズ）",
+};
 
 /** 連絡先のカテゴリ。管理職・Tier2・顧客別など。 */
 export interface ContactGroup {

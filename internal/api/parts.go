@@ -106,10 +106,11 @@ func (s *Server) orderPhases(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 type taskBody struct {
-	PhaseKey string `json:"phase"`
-	LaneKey  string `json:"lane"`
-	Label    string `json:"label"`
-	Note     string `json:"note"`
+	PhaseKey string         `json:"phase"`
+	LaneKey  string         `json:"lane"`
+	Kind     model.TaskKind `json:"kind"`
+	Label    string         `json:"label"`
+	Note     string         `json:"note"`
 }
 
 func (b taskBody) check(db *model.DB) error {
@@ -122,6 +123,9 @@ func (b taskBody) check(db *model.DB) error {
 	// 既定の担当。手順に投入するときの初期値になるので、実在する必要がある。
 	if db.Lane(b.LaneKey) == nil {
 		return errf(http.StatusBadRequest, "知らない担当です: %s", b.LaneKey)
+	}
+	if !b.Kind.Valid() {
+		return errf(http.StatusBadRequest, "タスクの種類が不正です: %s", b.Kind)
 	}
 	return nil
 }
@@ -137,7 +141,8 @@ func (s *Server) createTask(w http.ResponseWriter, r *http.Request) {
 		}
 		t := &model.Task{
 			Key:      uniqueKey("task", func(k string) bool { return db.Task(k) != nil }),
-			PhaseKey: in.PhaseKey, LaneKey: in.LaneKey, Label: in.Label, Note: in.Note,
+			PhaseKey: in.PhaseKey, LaneKey: in.LaneKey, Kind: in.Kind,
+			Label: in.Label, Note: in.Note,
 		}
 		db.Tasks = append(db.Tasks, t)
 		return t, nil
@@ -162,6 +167,8 @@ func (s *Server) updateTask(w http.ResponseWriter, r *http.Request) {
 		// 事象ごとに担当を変えているものを、部品側の変更で上書きしてしまうため。
 		// 段階（色）は波及する。あちらはタスクそのものの性質だから。
 		t.PhaseKey, t.LaneKey, t.Label, t.Note = in.PhaseKey, in.LaneKey, in.Label, in.Note
+		// 種類は流れの扱いを変える。使われている手順にも波及する（そのための種類）。
+		t.Kind = in.Kind
 		return t, nil
 	})
 }

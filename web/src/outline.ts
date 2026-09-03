@@ -131,6 +131,9 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
     if (n) f += `<span class="sla" style="color:var(--dec)">${n}分岐</span>`;
   }
   if (st.sla) f += `<span class="sla">${esc(st.sla)}</span>`;
+  if (taskOf(db, st.task)?.kind === "close") {
+    f += '<span class="fin" title="この経路はここで終わります">終了</span>';
+  }
   if (st.escalate) f += '<span class="esc">!</span>';
 
   el.innerHTML =

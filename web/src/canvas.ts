@@ -86,8 +86,12 @@ export function renderCanvas(deps: CanvasDeps): void {
     const t = taskOf(db, st.task);
     const phase = db.phases.find((p) => p.key === t?.phase);
 
+    const isClose = t?.kind === "close";
     const el = document.createElement("div");
-    el.className = "cnode" + (deps.selected.includes(st.id) ? " sel" : "");
+    el.className =
+      "cnode" +
+      (deps.selected.includes(st.id) ? " sel" : "") +
+      (isClose ? " close" : "");
     el.style.setProperty("--pc", phase?.color ?? "var(--line)");
     el.style.setProperty("--lc", lanes[li]?.color ?? "var(--line)");
     el.style.gridColumn = String(li + 1);
@@ -196,6 +200,10 @@ function nodeHTML(
   }
 
   if (st.sla) flags += `<span class="f-sla">${esc(st.sla)}</span>`;
+  if (taskOf(db, st.task)?.kind === "close") {
+    flags +=
+      '<span class="f-fin" title="この経路はここで終わります">終了</span>';
+  }
 
   // 分類（段階・担当）は手順そのものの性質と別の行に置く。同じ行に並べると
   // 「! エスカレ ［Tier1］」が「Tier1 にエスカレする」と読み違えられる。

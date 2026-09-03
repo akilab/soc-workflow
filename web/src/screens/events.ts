@@ -45,7 +45,7 @@ export class EventsScreen {
   /** 事象 1 件のカード。 */
   private card(ev: EventFlow): string {
     const db = this.api.db;
-    const v = validate(ev);
+    const v = validate(db, ev);
     const dist = phaseDist(db, ev);
 
     const bar = dist

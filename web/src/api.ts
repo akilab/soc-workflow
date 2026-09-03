@@ -23,6 +23,7 @@ import type {
   Severity,
   Step,
   Task,
+  TaskKind,
   Usage,
 } from "./types";
 
@@ -71,6 +72,7 @@ export interface EventInput {
 export interface TaskInput {
   phase: string;
   lane: string;
+  kind: TaskKind;
   label: string;
   note: string;
 }

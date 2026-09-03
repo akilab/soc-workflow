@@ -143,8 +143,32 @@ function mountViewer(root, DATA, opt){
     }
     return unknown ? null : true;
   }
+  /* 終了（クローズ）のタスクを使っている手順か。 */
+  function isClose(st){
+    var tk = taskByKey[st.task];
+    return !!tk && tk.kind === "close";
+  }
+
+  /* 完了した終了はどこか。無ければ -1。
+     ここより後ろの手順は、この対応では実施しない。
+     完了で切るのは、終了が「閉じる」という作業そのものだから。
+     押す前は、その先に何があるかを見られるようにしておく。 */
+  function closedAt(ev){
+    for(var i=0;i<ev.steps.length;i++){
+      if(done[i] && visible(ev.steps[i]) !== false && isClose(ev.steps[i])) return i;
+    }
+    return -1;
+  }
+
+  /* その手順を実施するか。true / false / undefined（まだ分からない）。 */
+  function shown(ev, i, cutAt){
+    if(cutAt >= 0 && i > cutAt) return false;
+    return visible(ev.steps[i]);
+  }
+
   function currentIndex(ev){
-    for(var i=0;i<ev.steps.length;i++){ if(visible(ev.steps[i]) !== false && !done[i]) return i; }
+    var cutAt = closedAt(ev);
+    for(var i=0;i<ev.steps.length;i++){ if(shown(ev, i, cutAt) !== false && !done[i]) return i; }
     return -1;
   }
   function findEvent(k){ for(var i=0;i<events.length;i++) if(events[i].key===k) return events[i]; return null; }
@@ -194,7 +218,8 @@ function mountViewer(root, DATA, opt){
 
       var ln = lanes[li];
       var el = document.createElement("div");
-      el.className = "v-node";
+      el.className = "v-node" + (isClose(st) ? " close" : "");
+      if(isClose(st)) el.dataset.close = "1";
       el.style.setProperty("--pc", ph ? ph.color : "var(--line)");
       el.style.setProperty("--lc", ln ? ln.color : "var(--line)");
       el.style.gridColumn = (li + 1);
@@ -208,7 +233,8 @@ function mountViewer(root, DATA, opt){
         + '</span>'
         + '<span class="n">' + esc(tk ? tk.label : st.title) + '</span>'
         + '<span class="t">' + esc(tk && tk.note ? tk.note : "") + '</span>'
-        + (st.decision ? '<span class="dec">&#9670;</span>' : '');
+        + (st.decision ? '<span class="dec">&#9670;</span>' : '')
+        + (isClose(st) ? '<span class="fin">終了</span>' : '');
       el.addEventListener("click", function(){
         var rows = $("slist").querySelectorAll(".v-s");
         if(rows[i]) rows[i].scrollIntoView({behavior:"smooth", block:"center"});
@@ -265,14 +291,19 @@ function mountViewer(root, DATA, opt){
   }
 
   function paint(ev, ci){
-    nodes.forEach(function(el){ if(el){ el.className="v-node"; el.querySelector(".mk").textContent=""; } });
+    nodes.forEach(function(el){
+      if(!el) return;
+      el.className = "v-node" + (el.dataset.close ? " close" : "");
+      el.querySelector(".mk").textContent = "";
+    });
     var box = grid.getBoundingClientRect();
     wires.setAttribute("viewBox", "0 0 " + grid.clientWidth + " " + grid.clientHeight);
 
+    var cutAt = closedAt(ev);
     var seq = [];
     ev.steps.forEach(function(st, i){
       var el = nodes[i]; if(!el) return;
-      var vis = visible(st), mk = el.querySelector(".mk");
+      var vis = shown(ev, i, cutAt), mk = el.querySelector(".mk");
       if(vis === false){ el.classList.add("skip"); mk.innerHTML = "&#8212;"; return; }
       if(done[i]){ el.classList.add("done"); mk.innerHTML = "&#10003;"; }
       else if(i === ci){ el.classList.add("cur"); mk.innerHTML = "&#9654;"; }
@@ -351,15 +382,18 @@ function mountViewer(root, DATA, opt){
   function render(){
     var ev = findEvent(cur); if(!ev) return;
     var ci = currentIndex(ev);
+    var cutAt = closedAt(ev);
     $("stitle").innerHTML = esc(ev.title) + '<small>' + esc(ev.sub) + '　—　重大度 ' + ev.severity + '</small>';
     $("now").innerHTML = ci>=0
       ? '次にやること: <b>' + esc(ev.steps[ci].title) + '</b>'
-      : 'すべての手順が完了しました。';
+      : (cutAt >= 0
+         ? 'この対応は<b>' + esc(ev.steps[cutAt].title) + '</b>で終了しました。'
+         : 'すべての手順が完了しました。');
 
     var list = $("slist"); list.innerHTML = "";
     var n = 0, total = 0, fin = 0;
     ev.steps.forEach(function(st, i){
-      var vis = visible(st), isCur = (i === ci);
+      var vis = shown(ev, i, cutAt), isCur = (i === ci);
       var tk = taskByKey[st.task] || {label:"?", phase:""};
       var ph = phaseByKey[tk.phase] || {name:"", color:"var(--line)"};
       var row = document.createElement("div");
@@ -372,6 +406,7 @@ function mountViewer(root, DATA, opt){
                  .filter(function(g){ return !!g; });
       var tags = "";
       if(isCur) tags += '<span class="tag now">現在</span>';
+      if(isClose(st)) tags += '<span class="tag close">終了</span>';
       /* 「担当」と書いておかないと、隣の「エスカレ判断」と並んだときに
          エスカレ先だと読み違えられる。 */
       var ln = laneByKey[st.lane];
@@ -397,7 +432,11 @@ function mountViewer(root, DATA, opt){
       row.innerHTML = '<div class="chk">' + mark + '</div><div class="bd">'
         + '<div class="ttl">' + esc(st.title) + tags + '</div>'
         + '<div class="path"><i>&#9679;</i> ' + esc(ph.name) + ' / ' + esc(tk.label) + '</div>'
-        + '<div class="dsc">' + (vis===false ? "この対応では対象外です。" : (st.detail||"")) + '</div>'
+        + '<div class="dsc">' + (vis===false
+             ? (cutAt >= 0 && i > cutAt
+                ? "この対応は上で終了しました。ここから先は実施しません。"
+                : "この対応では対象外です。")
+             : (st.detail||"")) + '</div>'
         + ((vis !== false && cts.length)
            ? '<div class="v-contacts"><b>連絡先</b>' + cts.map(function(g){
                var kd = KIND[g.kind], ms = g.members || [];

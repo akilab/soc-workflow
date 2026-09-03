@@ -12,7 +12,7 @@
 import { Api, ApiError } from "./api";
 import type { StepPlacement } from "./api";
 import { $, $as, esc } from "./dom";
-import type { DB, EventFlow, Phase, Task } from "./types";
+import type { DB, EventFlow, Phase, Task, TaskKind } from "./types";
 import { askModal, showApiError, toast } from "./ui";
 
 type SortMode = "use" | "def" | "name";
@@ -165,6 +165,9 @@ export class Palette {
     el.style.setProperty("--pc", p.color);
     el.innerHTML =
       `<b>${esc(t.label)}</b><span class="nt">${esc(t.note ?? "")}</span>` +
+      (t.kind === "close"
+        ? '<span class="k-fin" title="この経路はここで終わります">終了</span>'
+        : "") +
       '<span class="use">' +
       (here ? `<span class="u-in">使用中 ${here}</span>` : "") +
       `<span class="u-all">${all}事象</span></span>` +
@@ -244,6 +247,19 @@ export class Palette {
           options: db.lanes.map((l) => ({ v: l.key, l: l.name })),
           hint: "手順に置くときの初期値です。手順ごとに変えられます。",
         },
+        {
+          k: "kind",
+          label: "種類",
+          type: "select",
+          value: "",
+          options: [
+            { v: "", l: "通常の作業" },
+            { v: "close", l: "終了（クローズ）" },
+          ],
+          hint:
+            "「終了」は、完了させるとその経路がそこで終わります。" +
+            "以降の手順は対象外になります。",
+        },
       ],
     });
     if (!v) return;
@@ -252,6 +268,7 @@ export class Palette {
       await this.d.api.createTask({
         phase: v.phase,
         lane: v.lane,
+        kind: v.kind as TaskKind,
         label: v.label,
         note: v.note,
       });

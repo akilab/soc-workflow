@@ -147,7 +147,7 @@ export function enumeratePaths(evt: EventFlow): FlowPath[] {
  *
  * 見るのは「対応者がその通りに辿れるか」。文法ではなく運用の成立を見ている。
  */
-export function validate(evt: EventFlow): Validation {
+export function validate(db: DB, evt: EventFlow): Validation {
   const issues: Issue[] = [];
 
   // 1. まだ現れていない判断を条件が参照していないか。
@@ -201,7 +201,31 @@ export function validate(evt: EventFlow): Validation {
     }
   }
 
-  // 4. 担当の受け渡しが多すぎないか。
+  // 4. 終了より後ろに、同じ経路で実施される手順が残っていないか。
+  //    残っていると、対応者は終了を押したあとに「まだ何かある」と迷う。
+  //    設計する側としては、終了は経路の最後に置きたい。
+  evt.steps.forEach((st, i) => {
+    if (taskOf(db, st.task)?.kind !== "close") return;
+    const after = evt.steps.slice(i + 1).filter((x) => {
+      // 終了と両立しない条件が付いていれば、同じ経路には乗らない
+      const cs = x.conditions ?? [];
+      if (!cs.length) return true;
+      return cs.every((c) =>
+        (st.conditions ?? []).every((sc) => sc.key !== c.key || sc.value === c.value),
+      );
+    });
+    if (after.length) {
+      issues.push({
+        lv: "wrn",
+        t: `手順 ${i + 1}「${st.title}」は終了ですが、後ろに ${after.length} 手順あります`,
+        d:
+          "終了を完了させると、以降は対象外になります。同じ経路で実施したい手順は" +
+          "終了より前に置くか、後ろの手順に別の条件を付けてください。",
+      });
+    }
+  });
+
+  // 5. 担当の受け渡しが多すぎないか。
   //
   //    これは図の見た目の指標ではない。受け渡しは 1 回ごとに
   //    「ボールが落ちうる場所」になるので、回数が多いフローは

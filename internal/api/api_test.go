@@ -995,3 +995,95 @@ func TestCreateStepRejectsUnknownLane(t *testing.T) {
 		t.Errorf("状態コード %d, 期待 400 — %s", w.Code, w.Body.String())
 	}
 }
+
+// ---------------------------------------------------------------------------
+// タスクの種類
+// ---------------------------------------------------------------------------
+
+// 終了（クローズ）のタスクを作れること。
+func TestCreateCloseTask(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+
+	w := mustDo(t, h, "POST", "/api/tasks", taskBody{
+		PhaseKey: db.Phases[len(db.Phases)-1].Key,
+		LaneKey:  db.Lanes[1].Key,
+		Kind:     model.KindClose,
+		Label:    "検証用クローズ",
+	})
+	var env struct {
+		Data *model.Task `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &env)
+	if env.Data.Kind != model.KindClose {
+		t.Errorf("種類 %q, 期待 %q", env.Data.Kind, model.KindClose)
+	}
+}
+
+// 知らない種類は断ること。
+func TestCreateTaskRejectsUnknownKind(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+
+	w := do(t, h, "POST", "/api/tasks", taskBody{
+		PhaseKey: db.Phases[0].Key, LaneKey: db.Lanes[0].Key,
+		Kind: "そんな種類は無い", Label: "x",
+	})
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("状態コード %d, 期待 400 — %s", w.Code, w.Body.String())
+	}
+}
+
+// 種データに終了のタスクが入っていること。無いと、使い始めるのに
+// まず自分で作らなければならない。
+func TestSeedHasCloseTask(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+
+	n := 0
+	for _, task := range db.Tasks {
+		if task.Kind == model.KindClose {
+			n++
+		}
+		if !task.Kind.Valid() {
+			t.Errorf("タスク %q の種類が不正です: %q", task.Label, task.Kind)
+		}
+	}
+	if n == 0 {
+		t.Error("終了のタスクが種データにありません")
+	}
+}
+
+// 手順から終了かどうかを引けること。種類はタスクが持つので、間接参照になる。
+func TestIsClose(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+
+	closeTask := ""
+	for _, task := range db.Tasks {
+		if task.Kind == model.KindClose {
+			closeTask = task.Key
+			break
+		}
+	}
+	if closeTask == "" {
+		t.Fatal("終了のタスクがありません")
+	}
+
+	ev := db.Events[0]
+	w := mustDo(t, h, "POST", "/api/events/"+ev.Key+"/steps",
+		stepCreateBody{TaskKey: closeTask})
+	var env struct {
+		Data *model.Step `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &env)
+
+	after := readDB(t, h)
+	st := after.Event(ev.Key).Step(env.Data.ID)
+	if !after.IsClose(st) {
+		t.Error("終了として判定されません")
+	}
+	if after.IsClose(after.Event(ev.Key).Steps[0]) {
+		t.Error("通常の手順が終了と判定されています")
+	}
+}

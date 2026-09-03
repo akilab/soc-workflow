@@ -67,11 +67,41 @@ type Phase struct {
 
 // Task はフロー図のボックスになる部品。事象をまたいで再利用される。
 type Task struct {
-	Key      string `json:"key"`
-	PhaseKey string `json:"phase"`
-	LaneKey  string `json:"lane"` // 既定の担当。手順に投入するときの初期値になる
-	Label    string `json:"label"`
-	Note     string `json:"note"`
+	Key      string   `json:"key"`
+	PhaseKey string   `json:"phase"`
+	LaneKey  string   `json:"lane"` // 既定の担当。手順に投入するときの初期値になる
+	Kind     TaskKind `json:"kind"` // 種類。空なら通常の作業
+	Label    string   `json:"label"`
+	Note     string   `json:"note"`
+}
+
+// TaskKind はタスクの種類。作業そのものではなく、フローの中での役割を表す。
+//
+// 空（通常）以外は、単に「そういう作業」ではなく流れの扱いが変わる。
+// 種類を増やすときは、増やす意味があるか——つまり流れの扱いが変わるか——を
+// 確かめてから足す。見た目だけの区別なら、段階や担当で足りる。
+type TaskKind string
+
+const (
+	// KindNormal は通常の作業。
+	KindNormal TaskKind = ""
+
+	// KindClose は終了。ここで対応が終わる。
+	//
+	// 普通のタスクとして「クローズ」を作ることもできるが、それでは分岐した
+	// 経路を終わらせられない。誤検知なら 3 手順で閉じ、真検知なら本格対応へ——
+	// という形を書くには、後続すべてに「誤検知ではないとき」という条件を
+	// 付けて回るしかなくなる。終了を種類として持てば、そこで切れる。
+	KindClose TaskKind = "close"
+)
+
+// Valid はタスクの種類として使える値かを返す。
+func (k TaskKind) Valid() bool {
+	switch k {
+	case KindNormal, KindClose:
+		return true
+	}
+	return false
 }
 
 // ContactGroup は連絡先のカテゴリ。管理職・Tier2・顧客別など。
@@ -291,6 +321,13 @@ func (e *Event) Decision(key string) *Decision {
 		}
 	}
 	return nil
+}
+
+// IsClose は、その手順が対応を終わらせるものかを返す。
+// 種類はタスクが持つので、手順からはタスクを引いて判断する。
+func (d *DB) IsClose(st *Step) bool {
+	t := d.Task(st.TaskKey)
+	return t != nil && t.Kind == KindClose
 }
 
 // Handoffs は担当の受け渡しが何回あるかを数える。
