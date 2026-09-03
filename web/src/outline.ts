@@ -54,8 +54,12 @@ export function renderOutline(deps: OutlineDeps): void {
   const legend = document.createElement("p");
   legend.className = "ol-legend";
   legend.innerHTML =
-    "◆ 判断ステップ。その下の縦線が、この判断で分かれる範囲です。<br>" +
-    "灰色の行が質問、色つきの行がその答え。行をドラッグすると順序を入れ替えられます。<br>" +
+    "◆ 判断ステップ。その下の縦線が、この判断で分かれる範囲です。" +
+    "灰色の行が質問、色つきの行がその答え。<br>" +
+    "<b>！エスカレ</b> この手順でエスカレーションの要否を判断します。" +
+    "<b>●客</b> お客様への連絡があります。" +
+    "<b>N分岐</b> この判断を参照している手順の数です。<br>" +
+    "行をドラッグすると順序を入れ替えられます。" +
     "Ctrl＋クリックで複数選択、Shift＋クリックで範囲選択。";
   box.appendChild(legend);
 }
@@ -122,7 +126,11 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
     const n = evt.steps.filter((x) =>
       (x.conditions ?? []).some((c) => c.key === key),
     ).length;
-    if (n) f += `<span class="sla" style="color:var(--dec)">${n}分岐</span>`;
+    if (n) {
+      f +=
+        `<span class="sla" style="color:var(--dec)"` +
+        ` title="この判断を参照している手順が ${n} 件あります">${n}分岐</span>`;
+    }
   }
   if (st.sla) f += `<span class="sla">${esc(st.sla)}</span>`;
   const kind = taskOf(db, st.task)?.kind;
@@ -131,7 +139,13 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
   } else if (kind === "wait") {
     f += '<span class="wait" title="自分たちの作業ではありません">待ち</span>';
   }
-  if (st.escalate) f += '<span class="esc">!</span>';
+  // キャンバスと同じ言い方にする。記号 1 文字だけだと、何の印か分からない
+  // （実際に「！マークは何でしょうか？」と聞かれた）。
+  if (st.escalate) {
+    f +=
+      '<span class="esc" title="この手順でエスカレーションの要否を判断します">' +
+      '！エスカレ</span>';
+  }
 
   // 担当は一番最後、行の右端に置く。
   //
