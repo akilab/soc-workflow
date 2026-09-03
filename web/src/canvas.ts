@@ -64,6 +64,10 @@ export function renderCanvas(deps: CanvasDeps): void {
     bg.className = "clane" + (li === lanes.length - 1 ? " last" : "");
     bg.style.setProperty("--lc", l.color);
     bg.style.gridColumn = String(li + 1);
+    // 1/-1 は使えない。-1 は「明示的に定義された行」の終端を指すが、
+    // grid-template-rows を書いていないので全部が暗黙行になり、
+    // 見出し行で止まってしまう。終端を数えて入れる。
+    bg.style.gridRow = `1 / ${evt.steps.length + 2}`;
     grid.appendChild(bg);
 
     const h = document.createElement("div");

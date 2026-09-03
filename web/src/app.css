@@ -162,10 +162,11 @@ body.resizing{cursor:col-resize;user-select:none}
 /* 列＝担当（レーン）、行＝手順の順番。
    行が実施順そのものなので、線は必ず下へ進み、決して戻らない。
    線 i は行 i と行 i+1 のあいだの帯しか通らないため、交差は起こり得ない。 */
-.cgrid{position:relative;display:grid;column-gap:0;row-gap:16px;
+.cgrid{position:relative;display:grid;column-gap:0;row-gap:34px;
   padding:0 4px 20px;align-content:start;min-height:100%}
 /* レーンの帯。全行にまたがって背景と区切り線を出す */
-.clane{grid-row:1 / -1;position:relative;z-index:0;
+/* 列の区切り。薄くてよいが、列の境目が見えないと担当の切り替わりが読めない。 */
+.clane{position:relative;z-index:0;
   border-left:1px solid var(--line);background:color-mix(in srgb, var(--lc) 4%, transparent);
   transition:background .18s,box-shadow .18s,opacity .18s}
 .clane.last{border-right:1px solid var(--line)}

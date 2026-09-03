@@ -76,9 +76,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
    共有することがなく、交差は起こり得ない。
    段階（フェーズ）は列ではなく、ボックスの左のバーとラベルで表す。 */
 .v-grid{position:relative;display:grid;min-width:640px;padding:0 4px 26px;
-  column-gap:0;row-gap:16px;align-content:start}
+  column-gap:0;row-gap:34px;align-content:start}
 /* レーンの帯。全行にまたがって背景と区切り線を出す */
-.v-lane{grid-row:1 / -1;position:relative;z-index:0;
+/* 列の区切り。薄くてよいが、列の境目が見えないと担当の切り替わりが読めない。 */
+.v-lane{position:relative;z-index:0;
   border-left:1px solid var(--line);background:color-mix(in srgb, var(--lc) 3.5%, transparent)}
 .v-lane.last{border-right:1px solid var(--line)}
 .v-lane-h{grid-row:1;position:sticky;top:0;z-index:3;text-align:center;
