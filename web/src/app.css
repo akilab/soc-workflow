@@ -134,7 +134,14 @@ body.resizing{cursor:col-resize;user-select:none}
 .ol-pc{flex:none;width:7px;height:7px;border-radius:2px;background:var(--pc,var(--line));margin-top:6px}
 .ol-t{flex:1;min-width:0;font-size:12.5px;line-height:1.5}
 .ol-row.dec .ol-t::before{content:"\25C6";color:var(--dec);margin-right:5px;font-size:10px}
+/* 行の右側。可変幅のバッジ（SLA・分岐・エスカレ）はここに入る。 */
 .ol-f{flex:none;display:flex;gap:4px;font-family:var(--mono);font-size:9.5px;padding-top:3px}
+/* 担当だけは行の右端に固定する。可変幅のバッジより右に置くことで、
+   行をまたいで縦にそろい、「自分の手順はどれか」を目で追える列になる。
+   最小幅を持たせているのは、短い名前のときに列として細すぎないため。
+   長い名前（Tier3・CSIRT や 高橋工務店）は切り詰めずに伸ばす。 */
+.ol-lane{flex:none;display:flex;justify-content:flex-end;min-width:38px;
+  margin-left:4px;font-family:var(--mono);font-size:9.5px;padding-top:3px}
 .ol-f .sla{color:var(--dim)} .ol-f .esc{color:var(--s1)}
 
 /* 分岐ブロック — 判断ステップの下に、その判断が支配する範囲をレールで囲む。
@@ -502,7 +509,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .ol-row.sel-multi{background:color-mix(in srgb, var(--cur) 9%, transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cur) 30%, transparent)}
 
 /* ---------- 担当（Tier）と連絡先 ---------- */
-.ol-f .tier{color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 3px;font-size:9px}
+.ol-lane .tier{color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 3px;font-size:9px}
 .ol-f .cust{color:#ff5c8a}
 /* 担当を示すバッジは要らなくなった。列そのものが担当を表すため。
    「! エスカレ ［Tier1］」と並んで「Tier1 にエスカレする」と読み違えられる

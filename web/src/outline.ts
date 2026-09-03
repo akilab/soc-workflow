@@ -114,12 +114,6 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
   el.dataset.id = st.id;
 
   let f = "";
-  // 担当はアウトラインには出す。こちらは列を持たないので、
-  // 「誰がやるか」を読み取れるのはこのバッジだけになる。
-  const lane = eventLanes(db, evt).find((l) => l.key === st.lane);
-  if (lane) {
-    f += `<span class="tier" style="--tc:${lane.color}">${esc(lane.name)}</span>`;
-  }
   if (stepContacts(db, st).some((c) => c.kind === "customer")) {
     f += '<span class="cust" title="お客様連絡あり">&#9679;客</span>';
   }
@@ -139,9 +133,21 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
   }
   if (st.escalate) f += '<span class="esc">!</span>';
 
+  // 担当は一番最後、行の右端に置く。
+  //
+  // アウトラインには列が無いので、「誰がやるか」を読めるのはこのバッジだけ。
+  // 先頭に置くと、その右にある可変幅のバッジ（SLA・分岐・エスカレ）の数だけ
+  // 左右にずれる。実測で 54px 動いていた。右端に固定すれば、行をまたいで
+  // 縦にそろい、「自分の手順はどれか」を目で追える列になる。
+  const lane = eventLanes(db, evt).find((l) => l.key === st.lane);
+  const laneTag = lane
+    ? `<span class="tier" style="--tc:${lane.color}">${esc(lane.name)}</span>`
+    : "";
+
   el.innerHTML =
     `<span class="ol-no">${r.i + 1}</span><span class="ol-pc"></span>` +
-    `<span class="ol-t">${esc(st.title)}</span><span class="ol-f">${f}</span>`;
+    `<span class="ol-t">${esc(st.title)}</span>` +
+    `<span class="ol-f">${f}</span><span class="ol-lane">${laneTag}</span>`;
 
   el.addEventListener("click", (e) => deps.onPick(st.id, e));
 
