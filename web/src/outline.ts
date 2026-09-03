@@ -24,6 +24,30 @@ export interface OutlineDeps {
 /** ドラッグ中の手順。行をまたぐので、この場に置く。 */
 let dragging: string | null = null;
 
+/**
+ * その事象で確保するラベルの列。
+ *
+ * 印は疎で、62 手順に対して 15 個ほどしか付かない。全部の列を常に確保すると、
+ * ほとんどの行で空の幅を取ることになる。使う印だけ列にする。
+ */
+interface MarkColumns {
+  cust: boolean;
+  /** 終了と待ちは同時に起きないので、1 つの列を分け合う。 */
+  kind: boolean;
+  esc: boolean;
+}
+
+function markColumns(db: DB, evt: EventFlow): MarkColumns {
+  const cols: MarkColumns = { cust: false, kind: false, esc: false };
+  for (const st of evt.steps) {
+    if (st.escalate) cols.esc = true;
+    if (stepContacts(db, st).some((c) => c.kind === "customer")) cols.cust = true;
+    const k = taskOf(db, st.task)?.kind;
+    if (k === "close" || k === "wait") cols.kind = true;
+  }
+  return cols;
+}
+
 export function renderOutline(deps: OutlineDeps): void {
   const evt = deps.evt;
   const box = $("olList");
@@ -37,18 +61,22 @@ export function renderOutline(deps: OutlineDeps): void {
     return;
   }
 
+  const cols = markColumns(deps.db, evt);
+
   for (const r of outlineRows(evt)) {
     if (r.type === "block") {
       const bl = document.createElement("div");
       bl.className = "ol-branch";
       bl.appendChild(questionEl(evt, r.keys));
       for (const x of r.rows) {
-        bl.appendChild(x.type === "grp" ? groupEl(evt, x) : stepEl(deps, x, box));
+        bl.appendChild(
+          x.type === "grp" ? groupEl(evt, x) : stepEl(deps, x, box, cols),
+        );
       }
       box.appendChild(bl);
       continue;
     }
-    box.appendChild(stepEl(deps, r, box));
+    box.appendChild(stepEl(deps, r, box, cols));
   }
 
   const legend = document.createElement("p");
@@ -62,6 +90,26 @@ export function renderOutline(deps: OutlineDeps): void {
     "行をドラッグすると順序を入れ替えられます。" +
     "Ctrl＋クリックで複数選択、Shift＋クリックで範囲選択。";
   box.appendChild(legend);
+  fitLaneColumn(box);
+}
+
+/**
+ * 担当の列幅を、この事象で一番長い呼び名にそろえる。
+ *
+ * 担当は行の右端にあるので、幅が行ごとに違うと、その左にある印が丸ごと
+ * 押されてずれる（実測で 32px）。呼び名は事象ごとに変えられるので長さは
+ * 決め打ちできない。描いてから測って、いちばん長いものに合わせる。
+ *
+ * 切り詰めない。「高橋工務店」が「高橋工…」になるくらいなら、
+ * 列が少し広いほうがよい。
+ */
+function fitLaneColumn(box: HTMLElement): void {
+  requestAnimationFrame(() => {
+    const tags = [...box.querySelectorAll<HTMLElement>(".ol-lane .tier")];
+    if (!tags.length) return;
+    const w = Math.max(...tags.map((t) => t.getBoundingClientRect().width));
+    box.style.setProperty("--ol-lane-w", `${Math.ceil(w)}px`);
+  });
 }
 
 /**
@@ -98,7 +146,12 @@ function groupEl(evt: EventFlow, x: GroupRow): HTMLElement {
 }
 
 /** 手順の行。 */
-function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
+function stepEl(
+  deps: OutlineDeps,
+  r: StepRow,
+  box: HTMLElement,
+  cols: MarkColumns,
+): HTMLElement {
   const { db, evt } = deps;
   const st = r.st;
   const phase = db.phases.find((p) => p.key === taskOf(db, st.task)?.phase);
@@ -117,34 +170,46 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
   el.draggable = true;
   el.dataset.id = st.id;
 
-  let f = "";
-  if (stepContacts(db, st).some((c) => c.kind === "customer")) {
-    f += '<span class="cust" title="この手順でお客様へ連絡します">お客様連絡</span>';
-  }
+  // 数量（SLA と分岐の数）。ラベルとは別のまとまりにして、左側に置く。
+  let q = "";
   if (st.decision) {
     const key = st.decision.key;
     const n = evt.steps.filter((x) =>
       (x.conditions ?? []).some((c) => c.key === key),
     ).length;
     if (n) {
-      f +=
+      q +=
         `<span class="sla" style="color:var(--dec)"` +
         ` title="この判断を参照している手順が ${n} 件あります">${n}分岐</span>`;
     }
   }
-  if (st.sla) f += `<span class="sla">${esc(st.sla)}</span>`;
+  if (st.sla) q += `<span class="sla">${esc(st.sla)}</span>`;
+
+  // ラベル。その事象で使うものだけ列を確保し、使わない行には空の枠を置く。
+  // そうしないと、行ごとにラベルの位置がずれて、同じ印を縦に追えない。
   const kind = taskOf(db, st.task)?.kind;
-  if (kind === "close") {
-    f += '<span class="fin" title="この経路はここで終わります">終了</span>';
-  } else if (kind === "wait") {
-    f += '<span class="wait" title="自分たちの作業ではありません">待ち</span>';
+  const isCust = stepContacts(db, st).some((c) => c.kind === "customer");
+  let f = "";
+  if (cols.cust) {
+    f += isCust
+      ? '<span class="cust" title="この手順でお客様へ連絡します">お客様連絡</span>'
+      : '<span class="cust ghost"></span>';
   }
-  // キャンバスと同じ言い方にする。記号 1 文字だけだと、何の印か分からない
-  // （実際に「！マークは何でしょうか？」と聞かれた）。
-  if (st.escalate) {
+  if (cols.kind) {
     f +=
-      '<span class="esc" title="この手順でエスカレーションの要否を判断します">' +
-      '！エスカレ</span>';
+      kind === "close"
+        ? '<span class="fin" title="この経路はここで終わります">終了</span>'
+        : kind === "wait"
+          ? '<span class="wait" title="自分たちの作業ではありません">待ち</span>'
+          : '<span class="fin ghost"></span>';
+  }
+  if (cols.esc) {
+    // キャンバスと同じ言い方にする。記号 1 文字だけだと、何の印か分からない
+    // （実際に「！マークは何でしょうか？」と聞かれた）。
+    f += st.escalate
+      ? '<span class="esc" title="この手順でエスカレーションの要否を判断します">' +
+        "！エスカレ</span>"
+      : '<span class="esc ghost"></span>';
   }
 
   // 担当は一番最後、行の右端に置く。
@@ -161,6 +226,7 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
   el.innerHTML =
     `<span class="ol-no">${r.i + 1}</span><span class="ol-pc"></span>` +
     `<span class="ol-t">${esc(st.title)}</span>` +
+    `<span class="ol-q">${q}</span>` +
     `<span class="ol-f">${f}</span><span class="ol-lane">${laneTag}</span>`;
 
   el.addEventListener("click", (e) => deps.onPick(st.id, e));

@@ -134,14 +134,25 @@ body.resizing{cursor:col-resize;user-select:none}
 .ol-pc{flex:none;width:7px;height:7px;border-radius:2px;background:var(--pc,var(--line));margin-top:6px}
 .ol-t{flex:1;min-width:0;font-size:12.5px;line-height:1.5}
 .ol-row.dec .ol-t::before{content:"\25C6";color:var(--dec);margin-right:5px;font-size:10px}
-/* 行の右側。可変幅のバッジ（SLA・分岐・エスカレ）はここに入る。 */
+/* 行の右側は 3 つのまとまりに分ける。左から 数量 → ラベル → 担当。
+   これまでは生成順に混ぜていたので、同じ見た目のラベルが数量の左右に
+   分かれて、行ごとに位置が違って見えていた。 */
+.ol-q{flex:none;display:flex;gap:4px;justify-content:flex-end;
+  font-family:var(--mono);font-size:9.5px;padding-top:3px}
 .ol-f{flex:none;display:flex;gap:4px;font-family:var(--mono);font-size:9.5px;padding-top:3px}
+/* ラベルの幅は文言で決まるので一定。使わない行には空の枠を置いて位置を保つ。 */
+.ol-f>span{flex:none;text-align:center;box-sizing:border-box}
+.ol-f .cust{width:58px}
+.ol-f .esc{width:58px}
+.ol-row .fin,.ol-row .wait{width:30px}
+.ol-f .ghost{border-color:transparent;background:none;visibility:hidden}
 /* 担当だけは行の右端に固定する。可変幅のバッジより右に置くことで、
    行をまたいで縦にそろい、「自分の手順はどれか」を目で追える列になる。
    最小幅を持たせているのは、短い名前のときに列として細すぎないため。
    長い名前（Tier3・CSIRT や 高橋工務店）は切り詰めずに伸ばす。 */
 .ol-lane{flex:none;display:flex;justify-content:flex-end;min-width:38px;
-  margin-left:4px;font-family:var(--mono);font-size:9.5px;padding-top:3px}
+  margin-left:4px;font-family:var(--mono);font-size:9.5px;padding-top:3px;
+  width:var(--ol-lane-w, auto)}
 /* 印の見た目の規則。
    枠あり … この手順の性質（有る／無い）: 担当・エスカレ・お客様連絡・終了・待ち
    枠なし … 数量: SLA・N分岐
