@@ -97,12 +97,76 @@ export class Inspector {
   ): Promise<void> {
     try {
       await this.d.api.updateStep(eventKey, st.id, toInput(st), opts);
+      this.setUnsaved(null);
     } catch (e) {
-      this.fail(e, "手順の保存");
-      // 手元とサーバがずれたので、取り直して画面を合わせる。
-      await this.d.api.load();
+      await this.saveFailed(e, eventKey, st);
     }
   }
+
+  /**
+   * 保存に失敗したときの後始末。
+   *
+   * 失敗には 2 種類あり、扱いを変える必要がある。
+   *
+   *   サーバに繋がらない（status 0）
+   *     … 内容は正しいのに届いていないだけ。手元の編集を消してはいけない。
+   *       警告を出したまま残し、再試行できるようにする。
+   *   サーバに断られた（4xx）
+   *     … 内容が正しくない。手元が間違っているので、取り直して真実を見せる。
+   *
+   * 以前はどちらの場合も取り直していた。繋がらないときは利用者の書いた内容が
+   * 黙って消え、しかも取り直しそのものも失敗して未処理の例外になっていた。
+   */
+  private async saveFailed(
+    e: unknown,
+    eventKey: string,
+    st: Step,
+  ): Promise<void> {
+    const offline = e instanceof ApiError && e.status === 0;
+    this.fail(e, "手順の保存");
+
+    if (offline) {
+      this.setUnsaved({ eventKey, step: st });
+      return;
+    }
+    this.setUnsaved(null);
+    try {
+      await this.d.api.load();
+    } catch {
+      // 取り直しも失敗した。画面はそのままにして、警告だけ残す。
+      this.setUnsaved({ eventKey, step: st });
+    }
+  }
+
+  /**
+   * 保存できていないことを画面に出しておく。
+   *
+   * トーストだけだと 2.6 秒で消える。手順を設計している最中に、書いた内容が
+   * 保存されていないことに気づけないのは困る。消えない帯を出し、再試行させる。
+   */
+  private setUnsaved(pending: { eventKey: string; step: Step } | null): void {
+    this.unsaved = pending;
+
+    const bar = document.getElementById("insWarn");
+    if (!bar) return;
+    if (!pending) {
+      bar.className = "savewarn";
+      bar.innerHTML = "";
+      return;
+    }
+    bar.className = "savewarn on";
+    bar.innerHTML =
+      "<b>保存できていません</b>" +
+      "<span>サーバに繋がりません。書いた内容はこの画面に残っています。" +
+      "サーバを確認してから、再試行してください。</span>" +
+      '<button id="insRetry">再試行</button>';
+    document.getElementById("insRetry")?.addEventListener("click", () => {
+      void this.send(pending.eventKey, pending.step, { quiet: true });
+    });
+  }
+
+  /** 保存できていない変更。あるあいだは警告の帯を出しておく。 */
+  private unsaved: { eventKey: string; step: Step } | null = null;
 
   /** 構造が変わる操作。その場で送り、全体を描き直す。 */
   private async apply(
@@ -122,6 +186,10 @@ export class Inspector {
   render(evt: EventFlow): void {
     const box = $("ins");
     const ids = this.d.selected();
+
+    // 帯はインスペクタの外にあるので描き直しでは消えないが、
+    // 再試行のボタンを繋ぎ直すために毎回作り直す。
+    this.setUnsaved(this.unsaved);
 
     if (ids.length > 1) {
       this.renderBulk(evt, box, ids);

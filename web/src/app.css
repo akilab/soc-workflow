@@ -187,9 +187,11 @@ body.dragging .clane:not(.drop){opacity:.35}
   border:1px dashed color-mix(in srgb, var(--lc) 55%, transparent);
   border-radius:999px;padding:3px 9px}
 
+/* 角は丸めない。SOC のメンバーが Microsoft Defender の画面に慣れているため、
+   そちらの角のある作りに寄せている。 */
 .cnode{position:relative;z-index:2;margin:0 16px 0 12px;
   background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc);
-  border-radius:8px;padding:9px 11px 9px 12px;cursor:pointer;
+  border-radius:0;padding:9px 11px 9px 12px;cursor:pointer;
   transition:border-color .16s,background .16s,box-shadow .16s,transform .16s}
 /* 段階は列ではなくなったので、ボックスの中でラベルと左のバーで示す */
 .cnode .ph{display:block;font-size:9.5px;letter-spacing:.04em;font-weight:700;
@@ -472,6 +474,18 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .cnode .f-ct i{font-style:normal;width:14px;height:14px;border-radius:4px;font-size:9px;
   display:inline-flex;align-items:center;justify-content:center;
   background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
+
+/* 保存できていないことを知らせる帯。トーストは 2.6 秒で消えるので、
+   書いた内容が届いていないことに気づけるよう、消えない表示を出す。 */
+.savewarn{display:none}
+.savewarn.on{display:block;margin:0 0 12px;padding:9px 11px;
+  border:1px solid var(--s1);border-left:4px solid var(--s1);
+  background:color-mix(in srgb, var(--s1) 10%, transparent)}
+.savewarn b{display:block;font-size:12px;color:var(--s1);margin-bottom:3px}
+.savewarn span{display:block;font-size:11px;line-height:1.6;color:var(--dim)}
+.savewarn button{margin-top:7px;font:inherit;font-size:11px;cursor:pointer;
+  padding:4px 12px;border:1px solid var(--s1);background:transparent;color:var(--s1)}
+.savewarn button:hover{background:color-mix(in srgb, var(--s1) 16%, transparent)}
 
 .ins .ct-row{display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line-soft)}
 .ins .ct-row:first-of-type{border-top:none}

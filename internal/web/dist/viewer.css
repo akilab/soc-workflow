@@ -89,9 +89,11 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 
 /* 段階の色は左のバーとラベルで示し、状態は枠線・地色・記号で示す。
    （色だけに頼らないという設計判断を守りつつ、カテゴリ色を消さない） */
+/* 角は丸めない。SOC のメンバーが Microsoft Defender の画面に慣れているため、
+   そちらの角のある作りに寄せている。エディタ側（app.css の .cnode）と揃える。 */
 .v-node{position:relative;z-index:2;margin:0 14px 0 10px;
   background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc,var(--line));
-  border-radius:8px;padding:8px 11px 9px 12px;cursor:pointer;
+  border-radius:0;padding:8px 11px 9px 12px;cursor:pointer;
   transition:opacity .18s,border-color .18s,background .18s,box-shadow .18s}
 .v-node .ph{font-size:10px;letter-spacing:.04em;color:var(--pc,var(--faint));
   display:block;font-weight:700;margin-bottom:1px}
