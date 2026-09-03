@@ -192,13 +192,20 @@ function mountViewer(root, DATA, opt){
       if(li === undefined) li = 0;
       var tk = taskByKey[st.task], ph = tk ? phaseByKey[tk.phase] : null;
 
+      var ln = lanes[li];
       var el = document.createElement("div");
       el.className = "v-node";
       el.style.setProperty("--pc", ph ? ph.color : "var(--line)");
+      el.style.setProperty("--lc", ln ? ln.color : "var(--line)");
       el.style.gridColumn = (li + 1);
       el.style.gridRow = (i + 2);
+      /* 分類（段階・担当）はタイトルの上。列が担当を表してはいるが、
+         縦に長いフローでは列見出しがページと一緒にスクロールして見えなくなる。 */
       el.innerHTML = '<span class="mk"></span>'
-        + (ph ? '<span class="ph">' + esc(ph.name) + '</span>' : '')
+        + '<span class="cls">'
+        + (ph ? '<i class="ph">' + esc(ph.name) + '</i>' : '')
+        + (ln ? '<i class="who">' + esc(ln.name) + '</i>' : '')
+        + '</span>'
         + '<span class="n">' + esc(tk ? tk.label : st.title) + '</span>'
         + '<span class="t">' + esc(tk && tk.note ? tk.note : "") + '</span>'
         + (st.decision ? '<span class="dec">&#9670;</span>' : '');

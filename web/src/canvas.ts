@@ -89,9 +89,10 @@ export function renderCanvas(deps: CanvasDeps): void {
     const el = document.createElement("div");
     el.className = "cnode" + (deps.selected.includes(st.id) ? " sel" : "");
     el.style.setProperty("--pc", phase?.color ?? "var(--line)");
+    el.style.setProperty("--lc", lanes[li]?.color ?? "var(--line)");
     el.style.gridColumn = String(li + 1);
     el.style.gridRow = String(i + 2);
-    el.innerHTML = nodeHTML(db, evt, st, i, phase?.name ?? "");
+    el.innerHTML = nodeHTML(db, evt, st, i, phase?.name ?? "", lanes[li]?.name ?? "");
 
     el.addEventListener("click", (e) => deps.onPick(st.id, e));
     // 選ばなくても辿れるように、ホバー中はその手順に繋がる線だけを強調する。
@@ -146,6 +147,7 @@ function nodeHTML(
   st: Step,
   i: number,
   phaseName: string,
+  laneName: string,
 ): string {
   let flags = "";
 
@@ -182,9 +184,15 @@ function nodeHTML(
 
   if (st.sla) flags += `<span class="f-sla">${esc(st.sla)}</span>`;
 
+  // 分類（段階・担当）は手順そのものの性質と別の行に置く。同じ行に並べると
+  // 「! エスカレ ［Tier1］」が「Tier1 にエスカレする」と読み違えられる。
+  const cls =
+    (phaseName ? `<i class="ph">${esc(phaseName)}</i>` : "") +
+    (laneName ? `<i class="who">${esc(laneName)}</i>` : "");
+
   return (
     `<span class="num">${i + 1}</span>` +
-    (phaseName ? `<span class="ph">${esc(phaseName)}</span>` : "") +
+    (cls ? `<span class="cls">${cls}</span>` : "") +
     `<b>${esc(st.title)}</b>` +
     (flags ? `<span class="flags">${flags}</span>` : "")
   );

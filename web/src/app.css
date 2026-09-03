@@ -193,9 +193,16 @@ body.dragging .clane:not(.drop){opacity:.35}
   background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc);
   border-radius:0;padding:9px 11px 9px 12px;cursor:pointer;
   transition:border-color .16s,background .16s,box-shadow .16s,transform .16s}
-/* 段階は列ではなくなったので、ボックスの中でラベルと左のバーで示す */
-.cnode .ph{display:block;font-size:9.5px;letter-spacing:.04em;font-weight:700;
-  color:var(--pc);margin-bottom:2px}
+/* 分類の行。段階（色）と担当（列）を、手順そのものの性質より上に置く。
+   列が担当を表してはいるが、縦に長いフローでは列見出しが視界から外れる。
+   ボックス自身にも書いておけば、どこを見ていても分かる。 */
+.cnode .cls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
+.cnode .cls .ph{font-style:normal;font-size:9.5px;letter-spacing:.04em;
+  font-weight:700;color:var(--pc)}
+.cnode .cls .who{font-style:normal;font-family:var(--mono);font-size:9px;
+  font-weight:700;letter-spacing:.03em;line-height:1.6;padding:0 5px;
+  color:var(--lc);border:1px solid var(--lc);
+  background:color-mix(in srgb, var(--lc) 12%, transparent)}
 .cnode:hover{background:var(--panel3)}
 .cnode.sel{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px color-mix(in srgb, var(--cur) 20%, transparent)}
 .cnode.new{animation:pop .32s ease-out}

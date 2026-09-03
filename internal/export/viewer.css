@@ -95,8 +95,16 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
   background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc,var(--line));
   border-radius:0;padding:8px 11px 9px 12px;cursor:pointer;
   transition:opacity .18s,border-color .18s,background .18s,box-shadow .18s}
-.v-node .ph{font-size:10px;letter-spacing:.04em;color:var(--pc,var(--faint));
-  display:block;font-weight:700;margin-bottom:1px}
+/* 分類の行。段階（色）と担当（列）をタイトルの上に置く。
+   列が担当を表してはいるが、縦に長いフローでは列見出しが
+   ページと一緒にスクロールして見えなくなる。 */
+.v-node .cls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:2px}
+.v-node .cls .ph{font-style:normal;font-size:10px;letter-spacing:.04em;
+  font-weight:700;color:var(--pc,var(--faint))}
+.v-node .cls .who{font-style:normal;font-family:var(--mono);font-size:9px;
+  font-weight:700;letter-spacing:.03em;line-height:1.7;padding:0 5px;
+  color:var(--lc);border:1px solid var(--lc);
+  background:color-mix(in srgb, var(--lc) 12%, transparent)}
 .v-node .n{font-size:13px;display:block;line-height:1.45;font-weight:600}
 .v-node .t{font-size:11px;color:var(--faint);display:block;line-height:1.4;margin-top:2px}
 .v-node .mk{position:absolute;top:7px;right:9px;font-family:var(--mono);font-size:12px;font-weight:700}
