@@ -164,10 +164,11 @@ export class Palette {
     el.dataset.k = t.key;
     el.style.setProperty("--pc", p.color);
     el.innerHTML =
-      `<b>${esc(t.label)}</b><span class="nt">${esc(t.note ?? "")}</span>` +
+      "<b>" +
       (t.kind === "close"
-        ? '<span class="k-fin" title="この経路はここで終わります">終了</span>'
+        ? '<i class="k-fin" title="この経路はここで終わります">終了</i>'
         : "") +
+      `${esc(t.label)}</b><span class="nt">${esc(t.note ?? "")}</span>` +
       '<span class="use">' +
       (here ? `<span class="u-in">使用中 ${here}</span>` : "") +
       `<span class="u-all">${all}事象</span></span>` +
