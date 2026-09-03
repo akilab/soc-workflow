@@ -338,7 +338,13 @@ export class EditScreen {
     canvas.addEventListener("dragover", (e) => {
       if (!this.evt) return;
       e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+      if (e.dataTransfer) {
+        // ドラッグ元が許した操作に合わせる。ここが食い違うと、ブラウザは
+        // 落とすこと自体を許さない。パレットのカードは copy（部品を写して
+        // 手順を作る）、キャンバスのボックスとアウトラインの行は move。
+        e.dataTransfer.dropEffect =
+          e.dataTransfer.effectAllowed === "move" ? "move" : "copy";
+      }
       showDropSpot(this.api.db, spotFrom(e));
     });
     canvas.addEventListener("dragleave", (e) => {
