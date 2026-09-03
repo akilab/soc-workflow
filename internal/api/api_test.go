@@ -874,3 +874,79 @@ func TestHandoffCount(t *testing.T) {
 		t.Error("種データに受け渡しが 1 回もありません。指標として意味がありません")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// 手順の複製
+// ---------------------------------------------------------------------------
+
+// 複製した手順がすぐ下に入り、中身が引き継がれること。
+func TestDuplicateStep(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+	ev := db.Events[0]
+	src := ev.Steps[0]
+
+	w := mustDo(t, h, "POST",
+		"/api/events/"+ev.Key+"/steps/"+src.ID+"/duplicate", nil)
+	var env struct {
+		Data *model.Step `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &env)
+	if env.Data == nil {
+		t.Fatalf("複製が返りません: %s", w.Body.String())
+	}
+
+	after := readDB(t, h).Event(ev.Key)
+	if len(after.Steps) != len(ev.Steps)+1 {
+		t.Fatalf("手順数 %d, 期待 %d", len(after.Steps), len(ev.Steps)+1)
+	}
+	if after.Steps[1].ID != env.Data.ID {
+		t.Error("すぐ下に入っていません")
+	}
+	dup := after.Steps[1]
+	if dup.ID == src.ID {
+		t.Error("ID が元と同じです")
+	}
+	if dup.LaneKey != src.LaneKey || dup.TaskKey != src.TaskKey {
+		t.Errorf("担当かタスクが引き継がれていません: %+v", dup)
+	}
+	if dup.Title == src.Title {
+		t.Error("題名が元と同じままです。複製と分かるようにする")
+	}
+}
+
+// 判断を持つ手順を複製したら、判断のキーを振り直すこと。
+// 同じキーが 2 つあると、条件がどちらを指すのか決まらなくなる。
+func TestDuplicateStepRenumbersDecision(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+
+	ev, src := findReferencedDecision(db)
+	if src == nil {
+		t.Fatal("判断を持つ手順がありません")
+	}
+
+	mustDo(t, h, "POST", "/api/events/"+ev.Key+"/steps/"+src.ID+"/duplicate", nil)
+
+	after := readDB(t, h).Event(ev.Key)
+	seen := map[string]int{}
+	for _, st := range after.Steps {
+		if st.Decision != nil {
+			seen[st.Decision.Key]++
+		}
+	}
+	for k, n := range seen {
+		if n > 1 {
+			t.Errorf("判断のキー %q が %d 件あります", k, n)
+		}
+	}
+
+	// 元の判断を指していた条件は、元の手順を指したままであること
+	for _, st := range after.Steps {
+		for _, c := range st.Conditions {
+			if after.Decision(c.Key) == nil {
+				t.Errorf("手順 %q の条件が解決しません: %s", st.Title, c.Key)
+			}
+		}
+	}
+}

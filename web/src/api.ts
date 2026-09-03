@@ -50,6 +50,17 @@ interface OrderBody {
   keys: string[];
 }
 
+/**
+ * 書き込みの指定。
+ *
+ * quiet を立てると、送ったあとに全データを取り直さない。
+ * 手元をすでに書き換えてある場合に使う。取り直すと onChange が走って画面が
+ * 作り直され、入力中の欄からフォーカスが外れてしまう。
+ */
+export interface WriteOptions {
+  quiet?: boolean;
+}
+
 /** 事象を作る／直すときに送る中身。手順は含まない。 */
 export interface EventInput {
   title: string;
@@ -133,8 +144,8 @@ export class Api {
     return this.write<EventFlow>("POST", "/api/events", input);
   }
 
-  updateEvent(key: string, input: EventInput) {
-    return this.write<EventFlow>("PUT", `/api/events/${enc(key)}`, input);
+  updateEvent(key: string, input: EventInput, opts?: WriteOptions) {
+    return this.write<EventFlow>("PUT", `/api/events/${enc(key)}`, input, opts);
   }
 
   deleteEvent(key: string) {
@@ -160,18 +171,34 @@ export class Api {
     return this.write<Step>("POST", `/api/events/${enc(eventKey)}/steps`, body);
   }
 
-  updateStep(eventKey: string, id: string, input: StepInput) {
+  updateStep(
+    eventKey: string,
+    id: string,
+    input: StepInput,
+    opts?: WriteOptions,
+  ) {
     return this.write<Step>(
       "PUT",
       `/api/events/${enc(eventKey)}/steps/${enc(id)}`,
       input,
+      opts,
     );
   }
 
-  deleteStep(eventKey: string, id: string) {
+  deleteStep(eventKey: string, id: string, opts?: WriteOptions) {
     return this.write<null>(
       "DELETE",
       `/api/events/${enc(eventKey)}/steps/${enc(id)}`,
+      undefined,
+      opts,
+    );
+  }
+
+  /** 手順を複製し、すぐ下に差し込む。判断のキーはサーバが振り直す。 */
+  duplicateStep(eventKey: string, id: string) {
+    return this.write<Step>(
+      "POST",
+      `/api/events/${enc(eventKey)}/steps/${enc(id)}/duplicate`,
     );
   }
 
@@ -307,9 +334,15 @@ export class Api {
     method: string,
     path: string,
     body?: unknown,
+    opts?: WriteOptions,
   ): Promise<T | null> {
     const env = await this.request<T>(method, path, body);
     const result = env.data ?? null;
+    if (opts?.quiet) {
+      // 手元はすでに書き換えてある。rev だけ合わせて、画面はそのままにする。
+      this.rev = env.rev;
+      return result;
+    }
     await this.load();
     return result;
   }

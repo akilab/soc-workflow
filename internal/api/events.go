@@ -212,6 +212,57 @@ func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// duplicateStep は手順を複製し、すぐ下に差し込む。
+//
+// 似た手順を書くとき、毎回一から入力しなくて済むようにする。
+// 判断を持つ手順を複製する場合は、判断のキーを振り直す。同じキーが 2 つあると、
+// 条件がどちらを指すのか決まらなくなるため。複製した側は、キーが変わったことで
+// どの条件からも参照されない状態になる（元の手順の条件はそのまま生きる）。
+func (s *Server) duplicateStep(w http.ResponseWriter, r *http.Request) {
+	evKey, id := r.PathValue("key"), r.PathValue("id")
+	s.mutate(w, func(db *model.DB) (any, error) {
+		ev := db.Event(evKey)
+		if ev == nil {
+			return nil, notFound("事象", evKey)
+		}
+		at := -1
+		for i, st := range ev.Steps {
+			if st.ID == id {
+				at = i
+				break
+			}
+		}
+		if at < 0 {
+			return nil, notFound("手順", id)
+		}
+
+		dup := copyStep(ev.Steps[at], stepIDGen(db)())
+		dup.Title = ev.Steps[at].Title + "（複製）"
+		if dup.Decision != nil {
+			dup.Decision.Key = uniqueDecisionKey(ev)
+		}
+		ev.Steps = insert(ev.Steps, at+1, dup)
+		touch(ev)
+		return dup, nil
+	})
+}
+
+// uniqueDecisionKey は、その事象で使われていない判断のキーを作る。
+func uniqueDecisionKey(ev *model.Event) string {
+	used := map[string]bool{}
+	for _, st := range ev.Steps {
+		if st.Decision != nil {
+			used[st.Decision.Key] = true
+		}
+	}
+	for i := 1; ; i++ {
+		k := fmt.Sprintf("q%d", i)
+		if !used[k] {
+			return k
+		}
+	}
+}
+
 // stepBody は手順の中身。更新のときに丸ごと置き換える。
 type stepBody struct {
 	TaskKey    string            `json:"task"`

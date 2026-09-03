@@ -13,6 +13,7 @@ import { renderCanvas, scrollToSelected } from "../canvas";
 import { optColor, optLabel } from "../branch";
 import { $, esc } from "../dom";
 import { eventOf, fmtMin, validate } from "../flow";
+import { Inspector } from "../inspector";
 import { renderOutline, reorderedIds } from "../outline";
 import { Selection } from "../select";
 import type { EventFlow } from "../types";
@@ -39,6 +40,7 @@ export class EditScreen {
   private readonly api: Api;
   private readonly onBack: () => void;
   private readonly sel = new Selection();
+  private readonly inspector: Inspector;
 
   private eventKey = "";
   private mode: Mode = "edit";
@@ -48,6 +50,16 @@ export class EditScreen {
   constructor(deps: EditScreenDeps) {
     this.api = deps.api;
     this.onBack = deps.onBack;
+    this.inspector = new Inspector({
+      api: this.api,
+      selected: () => this.sel.ids,
+      select: (ids) => {
+        this.sel.clear();
+        for (const id of ids) this.sel.ids.push(id);
+      },
+      renderAll: () => this.render(),
+      renderFlow: () => this.renderFlow(),
+    });
     this.bind();
   }
 
@@ -65,12 +77,23 @@ export class EditScreen {
 
   /** 描き直す。データが入れ替わったときにも呼ばれる。 */
   render(): void {
+    const evt = this.renderFlow();
+    if (evt) this.inspector.render(evt);
+  }
+
+  /**
+   * アウトラインとキャンバスだけ描き直す。
+   *
+   * インスペクタに触らないのが要点。文字を打つたびに作り直すと、
+   * 入力中の欄からフォーカスが外れる。
+   */
+  private renderFlow(): EventFlow | undefined {
     const evt = this.evt;
     if (!evt) {
       // 別のタブで消されたなど。黙って空を出さずに戻す。
       toast("この事象は無くなりました", true);
       this.onBack();
-      return;
+      return undefined;
     }
     this.sel.prune(evt);
     this.applyWidths();
@@ -95,6 +118,7 @@ export class EditScreen {
     });
 
     this.renderCheckBadge(evt);
+    return evt;
   }
 
   // -------------------------------------------------------------------------
@@ -102,9 +126,13 @@ export class EditScreen {
   private pick(id: string, e: MouseEvent, fromOutline: boolean): void {
     const evt = this.evt;
     if (!evt) return;
-    this.sel.set(evt, id, e);
-    this.render();
-    if (fromOutline) scrollToSelected();
+    // 別の手順へ移る前に、打ちかけの文字を送り切る。
+    void this.inspector.flush().then(() => {
+      this.sel.set(evt, id, e);
+      this.setTab("ins");
+      this.render();
+      if (fromOutline) scrollToSelected();
+    });
   }
 
   private async move(fromId: string, beforeId: string | null): Promise<void> {
@@ -129,6 +157,9 @@ export class EditScreen {
   // -------------------------------------------------------------------------
 
   private setMode(m: Mode): void {
+    // 試走へ移る前に、打ちかけの文字を送り切る。
+    // 送る前に viewer を立ち上げると、書きかけの内容が反映されない。
+    if (m === "run") void this.inspector.flush();
     this.mode = m;
     for (const b of document.querySelectorAll<HTMLElement>(".ed-modes button")) {
       b.classList.toggle("on", b.dataset.mode === m);
@@ -250,8 +281,10 @@ export class EditScreen {
 
   private bind(): void {
     $("btnBack").addEventListener("click", () => {
-      this.stopRun();
-      this.onBack();
+      void this.inspector.flush().then(() => {
+        this.stopRun();
+        this.onBack();
+      });
     });
     $("btnCheck").addEventListener("click", () => this.showCheck());
     $("btnPaths").addEventListener("click", () => this.showPaths());
@@ -259,6 +292,10 @@ export class EditScreen {
 
     for (const b of document.querySelectorAll<HTMLElement>(".ed-modes button")) {
       b.addEventListener("click", () => this.setMode(b.dataset.mode as Mode));
+    }
+
+    for (const b of document.querySelectorAll<HTMLElement>("#paneRight .tabs button")) {
+      b.addEventListener("click", () => this.setTab(b.dataset.tab ?? "ins"));
     }
 
     this.bindSplitters();
@@ -302,6 +339,19 @@ export class EditScreen {
         document.addEventListener("mousemove", move);
         document.addEventListener("mouseup", up);
       });
+    }
+  }
+
+  /**
+   * 右サイドバーのタブを切り替える。
+   *
+   * 「タスクを選んで置く」と「内容を書く」は別の作業なので、画面を分ける。
+   */
+  private setTab(tab: string): void {
+    const pane = $("paneRight");
+    pane.className = `pane tab-${tab}`;
+    for (const b of pane.querySelectorAll<HTMLElement>(".tabs button")) {
+      b.classList.toggle("on", b.dataset.tab === tab);
     }
   }
 
