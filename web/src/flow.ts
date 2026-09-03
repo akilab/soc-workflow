@@ -5,7 +5,7 @@
  * ここが変わると「検証 OK」の意味が変わるので、直すときは意図を持って直す。
  */
 
-import type { Condition, DB, EventFlow, Phase, Step, Task } from "./types";
+import type { Condition, DB, EventFlow, Lane, Phase, Step, Task } from "./types";
 
 /** 判断への回答。キーは Decision.key、値は Option.value。 */
 export type Answers = Record<string, string>;
@@ -59,6 +59,26 @@ export interface PhaseCount {
 }
 
 // ---------------------------------------------------------------------------
+
+/**
+ * その事象で使う担当を解決して返す。
+ *
+ * 事象が指定していなければ全体の担当をそのまま返す。指定していれば、その並びで
+ * 呼び名だけを差し替えて返す。呼ぶ側は全体と事象の違いを気にしなくてよい。
+ *
+ * 返すのは複製。全体の Lane をそのまま返して名前を書き換えると、
+ * 1 つの事象の呼び名が全体に漏れる。
+ */
+export function eventLanes(db: DB, evt: EventFlow | undefined): Lane[] {
+  if (!evt?.lanes?.length) return db.lanes.map((l) => ({ ...l }));
+  return evt.lanes
+    .map((el) => {
+      const base = db.lanes.find((l) => l.key === el.key);
+      if (!base) return null; // 消された担当を指している。黙って落とす
+      return { ...base, name: el.name || base.name };
+    })
+    .filter((l): l is Lane => !!l);
+}
 
 /** キーからタスクを引く。 */
 export function taskOf(db: DB, key: string): Task | undefined {

@@ -21,8 +21,8 @@
 import { condSentence, optColor, optLabel } from "./branch";
 import { $, esc } from "./dom";
 import { groupVias, stepContacts, viaMark } from "./contacts";
-import { taskOf } from "./flow";
-import type { DB, EventFlow, Step } from "./types";
+import { eventLanes, taskOf } from "./flow";
+import type { DB, EventFlow, Lane, Step } from "./types";
 
 /** 測るために覚えておく、手順とその要素の対応。手順の順に並ぶ。 */
 interface Node {
@@ -55,7 +55,7 @@ export function renderCanvas(deps: CanvasDeps): void {
 
   grid.innerHTML = "";
   chips = [];
-  const lanes = db.lanes;
+  const lanes = eventLanes(db, evt);
   grid.style.gridTemplateColumns = `repeat(${Math.max(lanes.length, 1)}, minmax(160px, 1fr))`;
 
   // レーンの帯と見出し。全行にまたがる。
@@ -368,16 +368,16 @@ export interface DropSpot {
  *
  * レーンの帯は db.lanes の順に並べているので、何番目かがそのまま担当を指す。
  */
-export function dropSpotAt(db: DB, x: number, y: number): DropSpot | null {
+export function dropSpotAt(lanes: Lane[], x: number, y: number): DropSpot | null {
   const grid = document.getElementById("cgrid");
   if (!grid) return null;
 
-  const lanes = [...grid.querySelectorAll<HTMLElement>(".clane")];
-  const li = lanes.findIndex((el) => {
+  const cols = [...grid.querySelectorAll<HTMLElement>(".clane")];
+  const li = cols.findIndex((el) => {
     const r = el.getBoundingClientRect();
     return x >= r.left && x < r.right;
   });
-  if (li < 0 || !db.lanes[li]) return null;
+  if (li < 0 || !lanes[li]) return null;
 
   // 手順の順に並んだボックスの、上下どちら側に落ちたかで挿入位置を決める。
   const boxes = [...grid.querySelectorAll<HTMLElement>(".cnode")];
@@ -389,17 +389,17 @@ export function dropSpotAt(db: DB, x: number, y: number): DropSpot | null {
       break;
     }
   }
-  return { lane: db.lanes[li].key, index };
+  return { lane: lanes[li].key, index };
 }
 
 /** 落とし先を画面に示す。列を光らせ、入る位置に線を引く。 */
-export function showDropSpot(db: DB, spot: DropSpot | null): void {
+export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
   const grid = document.getElementById("cgrid");
   if (!grid) return;
 
-  const lanes = [...grid.querySelectorAll<HTMLElement>(".clane")];
-  lanes.forEach((el, i) => {
-    el.classList.toggle("drop", !!spot && db.lanes[i]?.key === spot.lane);
+  const cols = [...grid.querySelectorAll<HTMLElement>(".clane")];
+  cols.forEach((el, i) => {
+    el.classList.toggle("drop", !!spot && lanes[i]?.key === spot.lane);
   });
 
   let line = grid.querySelector<HTMLElement>(".cdrop");
@@ -424,8 +424,8 @@ export function showDropSpot(db: DB, spot: DropSpot | null): void {
       ? prev.getBoundingClientRect().bottom - box.top + 9
       : 44;
 
-  const li = db.lanes.findIndex((l) => l.key === spot.lane);
-  const lr = lanes[li]?.getBoundingClientRect();
+  const li = lanes.findIndex((l) => l.key === spot.lane);
+  const lr = cols[li]?.getBoundingClientRect();
   line.style.top = `${y}px`;
   line.style.left = lr ? `${lr.left - box.left + 10}px` : "10px";
   line.style.width = lr ? `${lr.width - 20}px` : "100%";

@@ -16,7 +16,7 @@
 import { Api, ApiError } from "./api";
 import type { LaneInput, PhaseInput } from "./api";
 import { $, esc } from "./dom";
-import type { DB, Lane, Phase } from "./types";
+import type { DB, EventFlow, EventLane, Lane, Phase } from "./types";
 import { closeModal, confirmModal, openModal, showApiError, toast } from "./ui";
 
 /** 選べる色。段階と担当で同じ並びを使う。 */
@@ -259,5 +259,163 @@ export class Settings {
       return;
     }
     this.open(k);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 事象ごとの担当
+// ---------------------------------------------------------------------------
+
+/**
+ * この事象で「どの列を使い、何と呼ぶか」を決める。
+ *
+ * 全体の担当は役割で、事象ごとに具体的な相手が変わる。一般的なフローの「顧客」は、
+ * A 社向けのフローでは「高橋工務店」になる。持ち替えるのは呼び名だけなので、
+ * タスクの既定の担当も、事象をまたいだ集計も壊れない。
+ */
+export class EventLaneSettings {
+  private readonly api: Api;
+  private readonly onSaved: () => void;
+
+  constructor(api: Api, onSaved: () => void) {
+    this.api = api;
+    this.onSaved = onSaved;
+  }
+
+  open(evt: EventFlow): void {
+    const db = this.api.db;
+    // いまの並び。指定が無ければ全体をそのまま。
+    const current: EventLane[] = evt.lanes?.length
+      ? evt.lanes.map((l) => ({ ...l }))
+      : db.lanes.map((l) => ({ key: l.key }));
+
+    // 使っていない担当も、あとで足せるように末尾に並べておく。
+    const rest = db.lanes
+      .filter((l) => !current.some((c) => c.key === l.key))
+      .map((l) => ({ key: l.key }));
+    const rows: EventLane[] = [...current, ...rest];
+    const used = new Set(current.map((c) => c.key));
+
+    // その担当に座っている手順の数。0 でなければ外せない。
+    const steps = (key: string) =>
+      evt.steps.filter((s) => s.lane === key).length;
+
+    const html = rows
+      .map((r, i) => {
+        const base = db.lanes.find((l) => l.key === r.key);
+        if (!base) return "";
+        const n = steps(r.key);
+        const on = used.has(r.key);
+        return (
+          "<tr>" +
+          `<td class="num">${on ? i + 1 : "—"}</td>` +
+          '<td><div class="ph-mv">' +
+          `<button data-up="${i}"${i === 0 ? " disabled" : ""}>&#9650;</button>` +
+          `<button data-dn="${i}"${i === rows.length - 1 ? " disabled" : ""}>&#9660;</button>` +
+          "</div></td>" +
+          '<td><label class="chk"><input type="checkbox" data-use="' +
+          `${i}"${on ? " checked" : ""}${n ? " disabled" : ""}>` +
+          `<span style="color:${esc(base.color)}">${esc(base.name)}</span></label></td>` +
+          '<td><input class="ph-name" data-nm="' +
+          `${i}" value="${esc(r.name ?? "")}" placeholder="${esc(base.name)}"></td>` +
+          `<td class="num">${n}</td>` +
+          "</tr>"
+        );
+      })
+      .join("");
+
+    openModal(
+      "この事象の担当",
+      evt.title,
+      '<p class="ins hint" style="margin:0 0 12px">' +
+        "<b>全体の担当は「役割」です。</b>ここではこの事象での呼び名を決められます。" +
+        "一般的なフローの「顧客」を、A 社向けのフローでは「高橋工務店」にする、" +
+        "といった使い方です。<br>" +
+        "呼び名を空にすると全体の名前に戻ります。使っていない列は外せます" +
+        "（手順が座っている列は外せません）。" +
+        "担当そのものの追加は「担当設定」で行います。</p>" +
+        '<table class="tbl"><thead><tr><th>#</th><th>並び</th><th>使う</th>' +
+        "<th>この事象での呼び名</th><th>手順</th></tr></thead>" +
+        `<tbody>${html}</tbody></table>`,
+      '<div class="fnote">この事象だけに効きます。</div>' +
+        '<button class="ed-tool" data-x="reset">全体に合わせる</button>' +
+        '<button class="ed-tool pri" data-x="save">保存する</button>' +
+        '<button class="ed-tool" data-x="close">閉じる</button>',
+    );
+
+    this.bind(evt, rows);
+  }
+
+  private bind(evt: EventFlow, rows: EventLane[]): void {
+    const body = $("mBody");
+    const foot = $("mFoot");
+
+    for (const b of body.querySelectorAll<HTMLElement>("[data-up]")) {
+      b.addEventListener("click", () => {
+        const i = Number(b.dataset.up);
+        [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]];
+        this.reopen(evt, rows, body);
+      });
+    }
+    for (const b of body.querySelectorAll<HTMLElement>("[data-dn]")) {
+      b.addEventListener("click", () => {
+        const i = Number(b.dataset.dn);
+        [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]];
+        this.reopen(evt, rows, body);
+      });
+    }
+
+    foot.querySelector('[data-x="save"]')?.addEventListener("click", () => {
+      void this.save(evt, this.collect(body, rows));
+    });
+    foot.querySelector('[data-x="reset"]')?.addEventListener("click", () => {
+      void this.save(evt, []);
+    });
+    foot.querySelector('[data-x="close"]')?.addEventListener("click", closeModal);
+  }
+
+  /** 画面の入力を読んで、送る形にする。 */
+  private collect(body: HTMLElement, rows: EventLane[]): EventLane[] {
+    const out: EventLane[] = [];
+    rows.forEach((r, i) => {
+      const use = body.querySelector<HTMLInputElement>(`[data-use="${i}"]`);
+      if (!use?.checked) return;
+      const name =
+        body.querySelector<HTMLInputElement>(`[data-nm="${i}"]`)?.value.trim() ??
+        "";
+      out.push(name ? { key: r.key, name } : { key: r.key });
+    });
+    return out;
+  }
+
+  /**
+   * 並べ替えのたびに開き直す。
+   *
+   * 入力中の呼び名を持ち回る必要があるので、いまの入力を rows に写してから開く。
+   */
+  private reopen(evt: EventFlow, rows: EventLane[], body: HTMLElement): void {
+    rows.forEach((r, i) => {
+      const name = body
+        .querySelector<HTMLInputElement>(`[data-nm="${i}"]`)
+        ?.value.trim();
+      if (name !== undefined) r.name = name || undefined;
+    });
+    // 並びを保ったまま描き直したいので、いったん事象に反映してから開く。
+    const used = rows.filter(
+      (_, i) => body.querySelector<HTMLInputElement>(`[data-use="${i}"]`)?.checked,
+    );
+    this.open({ ...evt, lanes: used.length ? used : rows });
+  }
+
+  private async save(evt: EventFlow, lanes: EventLane[]): Promise<void> {
+    try {
+      await this.api.setEventLanes(evt.key, lanes);
+      closeModal();
+      this.onSaved();
+      toast(lanes.length ? "担当を更新しました" : "全体の担当に戻しました");
+    } catch (e) {
+      if (e instanceof ApiError) showApiError(e, "この事象の担当");
+      else toast(String(e), true);
+    }
   }
 }

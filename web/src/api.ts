@@ -18,6 +18,7 @@ import type {
   Envelope,
   ErrorBody,
   EventFlow,
+  EventLane,
   Lane,
   Phase,
   Severity,
@@ -180,6 +181,18 @@ export class Api {
 
   deleteEvent(key: string) {
     return this.write<null>("DELETE", `/api/events/${enc(key)}`);
+  }
+
+  /**
+   * この事象が使う担当と、その呼び名を決める。
+   *
+   * 空を送れば「全体の担当をそのまま使う」に戻る。使っている担当を外そうと
+   * すると、行き場を失う手順を添えて断られる。
+   */
+  setEventLanes(key: string, lanes: EventLane[]) {
+    return this.write<EventFlow>("PUT", `/api/events/${enc(key)}/lanes`, {
+      lanes,
+    });
   }
 
   duplicateEvent(key: string) {

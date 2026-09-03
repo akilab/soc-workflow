@@ -17,11 +17,12 @@ import {
 } from "../canvas";
 import { optColor, optLabel } from "../branch";
 import { $, esc } from "../dom";
-import { eventOf, fmtMin, validate } from "../flow";
+import { eventLanes, eventOf, fmtMin, validate } from "../flow";
 import { Inspector } from "../inspector";
 import { renderOutline, reorderedIds } from "../outline";
 import { Palette } from "../palette";
 import { Selection } from "../select";
+import { EventLaneSettings } from "../settings";
 import type { DropSpot } from "../canvas";
 import type { EventFlow } from "../types";
 import { openModal, showApiError, toast } from "../ui";
@@ -49,6 +50,7 @@ export class EditScreen {
   private readonly sel = new Selection();
   private readonly inspector: Inspector;
   private readonly palette: Palette;
+  private readonly laneSettings: EventLaneSettings;
 
   private eventKey = "";
   private mode: Mode = "edit";
@@ -68,6 +70,7 @@ export class EditScreen {
       renderAll: () => this.render(),
       renderFlow: () => this.renderFlow(),
     });
+    this.laneSettings = new EventLaneSettings(this.api, () => this.render());
     this.palette = new Palette({
       api: this.api,
       event: () => this.evt,
@@ -311,6 +314,10 @@ export class EditScreen {
         this.onBack();
       });
     });
+    $("btnLanes").addEventListener("click", () => {
+      const evt = this.evt;
+      if (evt) this.laneSettings.open(evt);
+    });
     $("btnCheck").addEventListener("click", () => this.showCheck());
     $("btnPaths").addEventListener("click", () => this.showPaths());
     $("btnExport").addEventListener("click", () => this.showExport());
@@ -343,7 +350,7 @@ export class EditScreen {
     const canvas = $("canvas");
 
     const spotFrom = (e: DragEvent) =>
-      dropSpotAt(this.api.db, e.clientX, e.clientY);
+      dropSpotAt(eventLanes(this.api.db, this.evt), e.clientX, e.clientY);
 
     canvas.addEventListener("dragover", (e) => {
       if (!this.evt) return;
@@ -355,17 +362,17 @@ export class EditScreen {
         e.dataTransfer.dropEffect =
           e.dataTransfer.effectAllowed === "move" ? "move" : "copy";
       }
-      showDropSpot(this.api.db, spotFrom(e));
+      showDropSpot(eventLanes(this.api.db, this.evt), spotFrom(e));
     });
     canvas.addEventListener("dragleave", (e) => {
       // 中の要素をまたぐたびに発火するので、本当に外へ出たときだけ消す。
       if (canvas.contains(e.relatedTarget as Node | null)) return;
-      showDropSpot(this.api.db, null);
+      showDropSpot(eventLanes(this.api.db, this.evt), null);
     });
     canvas.addEventListener("drop", (e) => {
       e.preventDefault();
       const spot = spotFrom(e);
-      showDropSpot(this.api.db, null);
+      showDropSpot(eventLanes(this.api.db, this.evt), null);
       document.body.classList.remove("dragging");
 
       const data = e.dataTransfer?.getData("text/plain") ?? "";

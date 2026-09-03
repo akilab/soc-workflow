@@ -28,6 +28,9 @@ var viewerJS string
 //
 // 部品（担当・段階・タスク・連絡先）は全部入れる。事象を 1 件に絞っても、
 // そこから参照されるものが欠けていては読めない。
+//
+// 事象ごとの担当（呼び名と使う列）は Event の中に入っているので、
+// ここで別に持つ必要はない。
 type payload struct {
 	Lanes         []*model.Lane         `json:"lanes"`
 	Phases        []*model.Phase        `json:"phases"`

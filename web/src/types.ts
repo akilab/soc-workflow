@@ -122,9 +122,25 @@ export interface EventFlow {
   title: string;
   sub: string;
   severity: Severity;
+  /**
+   * この事象が使う担当と、その並び。空なら全体の担当をそのまま使う。
+   *
+   * 全体の担当は「役割」で、事象ごとに具体的な相手が変わる。一般的なフローの
+   * 「顧客」は、A 社向けのフローでは「高橋工務店」になる。持ち替えるのは呼び名
+   * だけなので、タスクの既定の担当も事象をまたいだ集計も壊れない。
+   */
+  lanes?: EventLane[] | null;
   /** 並び順が実施順。 */
   steps: Step[];
   updatedAt: string;
+}
+
+/** この事象での担当の使い方。 */
+export interface EventLane {
+  /** 全体の Lane を指す。 */
+  key: string;
+  /** この事象での呼び名。空なら全体の名前。 */
+  name?: string;
 }
 
 export type Severity = "S1" | "S2" | "S3";

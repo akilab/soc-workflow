@@ -189,12 +189,30 @@ const (
 
 // Event は事象。対応フロー 1 本にあたる。
 type Event struct {
-	Key       string    `json:"key"`
-	Title     string    `json:"title"`
-	Sub       string    `json:"sub"`
-	Severity  Severity  `json:"severity"`
+	Key      string   `json:"key"`
+	Title    string   `json:"title"`
+	Sub      string   `json:"sub"`
+	Severity Severity `json:"severity"`
+
+	// Lanes はこの事象が使う担当と、その並び。空なら全体の担当をそのまま使う。
+	//
+	// 全体の担当は「役割」で、事象ごとに具体的な相手が変わる。一般的なフローの
+	// 「顧客」は、A 社向けのフローでは「高橋工務店」になる。役割を持ち替えるのは
+	// 呼び名だけで、タスクの既定の担当も事象をまたいだ集計も全体のキーを指したまま
+	// なので壊れない。
+	//
+	// 使う列を選べるようにもしてある。ある事象では CSIRT が出てこない、という
+	// ことは普通にあり、空の列が並ぶと図が横に伸びるだけになる。
+	Lanes []*EventLane `json:"lanes,omitempty"`
+
 	Steps     []*Step   `json:"steps"` // 並び順が実施順。そのまま図の行になる
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// EventLane はこの事象での担当の使い方。
+type EventLane struct {
+	Key  string `json:"key"`            // 全体の Lane を指す
+	Name string `json:"name,omitempty"` // この事象での呼び名。空なら全体の名前
 }
 
 // Severity は重大度。
@@ -335,6 +353,38 @@ func (e *Event) Decision(key string) *Decision {
 func (d *DB) IsClose(st *Step) bool {
 	t := d.Task(st.TaskKey)
 	return t != nil && t.Kind == KindClose
+}
+
+// EventLanes は、その事象で使う担当を解決して返す。
+//
+// 事象が指定していなければ全体の担当をそのまま返す。指定していれば、
+// その並びで、呼び名だけを差し替えて返す。呼び出し側は全体と事象の違いを
+// 気にせず、返ってきた並びをそのまま列にすればよい。
+//
+// 返すのは複製。全体の Lane をそのまま返して名前を書き換えると、
+// 1 つの事象の呼び名が全体に漏れる。
+func (d *DB) EventLanes(ev *Event) []Lane {
+	if ev == nil || len(ev.Lanes) == 0 {
+		out := make([]Lane, 0, len(d.Lanes))
+		for _, l := range d.Lanes {
+			out = append(out, *l)
+		}
+		return out
+	}
+
+	out := make([]Lane, 0, len(ev.Lanes))
+	for _, el := range ev.Lanes {
+		base := d.Lane(el.Key)
+		if base == nil {
+			continue // 消された担当を指している。黙って落とす
+		}
+		l := *base
+		if el.Name != "" {
+			l.Name = el.Name
+		}
+		out = append(out, l)
+	}
+	return out
 }
 
 // IsWait は、その手順が待ちかを返す。

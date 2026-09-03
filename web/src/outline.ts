@@ -8,7 +8,7 @@
 import { optColor, optLabel, outlineRows, decisionOf, decisionStepNo } from "./branch";
 import type { GroupRow, StepRow } from "./branch";
 import { $, esc } from "./dom";
-import { taskOf } from "./flow";
+import { eventLanes, taskOf } from "./flow";
 import { stepContacts } from "./contacts";
 import type { DB, EventFlow } from "./types";
 
@@ -116,7 +116,7 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
   let f = "";
   // 担当はアウトラインには出す。こちらは列を持たないので、
   // 「誰がやるか」を読み取れるのはこのバッジだけになる。
-  const lane = db.lanes.find((l) => l.key === st.lane);
+  const lane = eventLanes(db, evt).find((l) => l.key === st.lane);
   if (lane) {
     f += `<span class="tier" style="--tc:${lane.color}">${esc(lane.name)}</span>`;
   }

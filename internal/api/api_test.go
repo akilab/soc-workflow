@@ -1087,3 +1087,159 @@ func TestIsClose(t *testing.T) {
 		t.Error("通常の手順が終了と判定されています")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// 事象ごとの担当
+// ---------------------------------------------------------------------------
+
+// 呼び名を差し替えられること。全体の担当は変わらないこと。
+func TestEventLanesRename(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+	ev := db.Events[0]
+
+	lanes := make([]*model.EventLane, len(db.Lanes))
+	for i, l := range db.Lanes {
+		lanes[i] = &model.EventLane{Key: l.Key}
+	}
+	lanes[0].Name = "高橋工務店"
+
+	mustDo(t, h, "PUT", "/api/events/"+ev.Key+"/lanes",
+		eventLanesBody{Lanes: lanes})
+
+	after := readDB(t, h)
+	got := after.EventLanes(after.Event(ev.Key))
+	if got[0].Name != "高橋工務店" {
+		t.Errorf("この事象での呼び名が %q, 期待 %q", got[0].Name, "高橋工務店")
+	}
+	// 全体は変わらない
+	if after.Lanes[0].Name != db.Lanes[0].Name {
+		t.Errorf("全体の担当まで変わりました: %q", after.Lanes[0].Name)
+	}
+	// 他の事象にも漏れない
+	other := after.EventLanes(after.Events[1])
+	if other[0].Name != db.Lanes[0].Name {
+		t.Errorf("他の事象へ漏れました: %q", other[0].Name)
+	}
+}
+
+// 使っている担当を外そうとしたら断ること。
+func TestEventLanesRefusesRemovingUsed(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+	ev := db.Events[0]
+
+	used := ev.Steps[0].LaneKey
+	var lanes []*model.EventLane
+	for _, l := range db.Lanes {
+		if l.Key != used {
+			lanes = append(lanes, &model.EventLane{Key: l.Key})
+		}
+	}
+
+	w := do(t, h, "PUT", "/api/events/"+ev.Key+"/lanes",
+		eventLanesBody{Lanes: lanes})
+	if w.Code != http.StatusConflict {
+		t.Fatalf("状態コード %d, 期待 409 — %s", w.Code, w.Body.String())
+	}
+	if len(errorOf(t, w).Usage) == 0 {
+		t.Error("行き場を失う手順が返っていません")
+	}
+}
+
+// 使っていない担当は外せること。
+func TestEventLanesDropsUnused(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+
+	// 手順がまったく使っていない担当を持つ事象を探す
+	var target *model.Event
+	var drop string
+	for _, ev := range db.Events {
+		used := map[string]bool{}
+		for _, st := range ev.Steps {
+			used[st.LaneKey] = true
+		}
+		for _, l := range db.Lanes {
+			if !used[l.Key] {
+				target, drop = ev, l.Key
+				break
+			}
+		}
+		if target != nil {
+			break
+		}
+	}
+	if target == nil {
+		t.Skip("使われていない担当を持つ事象がありません")
+	}
+
+	var lanes []*model.EventLane
+	for _, l := range db.Lanes {
+		if l.Key != drop {
+			lanes = append(lanes, &model.EventLane{Key: l.Key})
+		}
+	}
+	mustDo(t, h, "PUT", "/api/events/"+target.Key+"/lanes",
+		eventLanesBody{Lanes: lanes})
+
+	after := readDB(t, h)
+	got := after.EventLanes(after.Event(target.Key))
+	if len(got) != len(db.Lanes)-1 {
+		t.Errorf("担当が %d 件, 期待 %d 件", len(got), len(db.Lanes)-1)
+	}
+	for _, l := range got {
+		if l.Key == drop {
+			t.Errorf("外したはずの担当が残っています: %s", drop)
+		}
+	}
+}
+
+// 空を送れば「全体をそのまま使う」に戻ること。
+func TestEventLanesResetToGlobal(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+	ev := db.Events[0]
+
+	// いったん全部を並べたうえで、先頭だけ呼び名を変える。
+	// 一部だけ送ると、外れた担当を使っている手順が行き場を失って断られる。
+	renamed := make([]*model.EventLane, len(db.Lanes))
+	for i, l := range db.Lanes {
+		renamed[i] = &model.EventLane{Key: l.Key}
+	}
+	renamed[0].Name = "臨時"
+	mustDo(t, h, "PUT", "/api/events/"+ev.Key+"/lanes",
+		eventLanesBody{Lanes: renamed})
+	mustDo(t, h, "PUT", "/api/events/"+ev.Key+"/lanes",
+		eventLanesBody{Lanes: nil})
+
+	after := readDB(t, h)
+	got := after.EventLanes(after.Event(ev.Key))
+	if len(got) != len(db.Lanes) {
+		t.Fatalf("担当が %d 件, 期待 %d 件", len(got), len(db.Lanes))
+	}
+	for i, l := range got {
+		if l.Name != db.Lanes[i].Name {
+			t.Errorf("%d 番目が %q, 期待 %q", i, l.Name, db.Lanes[i].Name)
+		}
+	}
+}
+
+// 知らない担当と重複は断ること。
+func TestEventLanesRejectsBadInput(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+	ev := db.Events[0]
+	k := db.Lanes[0].Key
+
+	for name, lanes := range map[string][]*model.EventLane{
+		"知らない担当": {{Key: "そんな担当は無い"}},
+		"重複":     {{Key: k}, {Key: k}},
+	} {
+		w := do(t, h, "PUT", "/api/events/"+ev.Key+"/lanes",
+			eventLanesBody{Lanes: lanes})
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("%s: 状態コード %d, 期待 400", name, w.Code)
+		}
+	}
+}

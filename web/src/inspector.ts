@@ -22,7 +22,7 @@ import type { WriteOptions } from "./api";
 import { OPTION_COLORS } from "./branch";
 import { $, esc } from "./dom";
 import { groupVias, stepContacts, viaMark } from "./contacts";
-import { taskOf } from "./flow";
+import { eventLanes, taskOf } from "./flow";
 import type { Decision, EventFlow, Severity, Step } from "./types";
 import {
   askModal,
@@ -399,7 +399,7 @@ export class Inspector {
       `<label>詳細</label><textarea id="s_detail">${esc(st.detail)}</textarea>` +
       '<p class="hint">&lt;code&gt; で囲んだ部分は強調表示されます。</p>' +
       '<div class="row"><div><label>担当</label><select id="s_lane">' +
-      db.lanes
+      eventLanes(db, evt)
         .map(
           (l) =>
             `<option value="${esc(l.key)}"${st.lane === l.key ? " selected" : ""}>` +

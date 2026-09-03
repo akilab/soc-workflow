@@ -71,8 +71,30 @@ function mountViewer(root, DATA, opt){
   ensureViaSprite();
   var uid = "v" + Math.floor(Math.random()*1e9).toString(36);
   var phaseByKey = {}, taskByKey = {}, groupByKey = {}, laneByKey = {}, laneIndex = {};
-  var lanes = DATA.lanes || [];
-  lanes.forEach(function(l, i){ laneByKey[l.key] = l; laneIndex[l.key] = i; });
+  /* 事象ごとの担当を解決する。指定が無ければ全体をそのまま使う。
+     呼び名だけを差し替えた複製を返す。全体のものを書き換えると、
+     1 つの事象の呼び名が他の事象へ漏れる。 */
+  function lanesOf(ev){
+    var all = DATA.lanes || [];
+    if(!ev || !ev.lanes || !ev.lanes.length){ return all.slice(); }
+    var out = [];
+    ev.lanes.forEach(function(el){
+      for(var i=0;i<all.length;i++){
+        if(all[i].key !== el.key) continue;
+        var l = {key:all[i].key, name:el.name || all[i].name, color:all[i].color};
+        out.push(l);
+        return;
+      }
+    });
+    return out;
+  }
+  /* いま描いている事象の担当。select() のたびに入れ替える。 */
+  var lanes = [];
+  function useLanes(ev){
+    lanes = lanesOf(ev);
+    laneByKey = {}; laneIndex = {};
+    lanes.forEach(function(l, i){ laneByKey[l.key] = l; laneIndex[l.key] = i; });
+  }
   DATA.phases.forEach(function(p){ phaseByKey[p.key] = p; });
   DATA.tasks.forEach(function(t){ taskByKey[t.key] = t; });
   (DATA.contactGroups || []).forEach(function(g){ groupByKey[g.key] = g; });
@@ -193,6 +215,7 @@ function mountViewer(root, DATA, opt){
      列は担当（レーン）、行は手順の順番。手順 1 つにつきボックス 1 つ。
      段階は列ではなく、ボックスの左のバーとラベルで表す。 */
   function buildGrid(ev){
+    useLanes(ev);
     grid.innerHTML = "";
     nodes = []; chips = [];
     grid.style.gridTemplateColumns = "repeat(" + Math.max(lanes.length, 1) + ", minmax(148px, 1fr))";
