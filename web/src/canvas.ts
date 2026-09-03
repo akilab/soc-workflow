@@ -99,6 +99,19 @@ export function renderCanvas(deps: CanvasDeps): void {
     el.addEventListener("mouseenter", () => hotWires([st.id]));
     el.addEventListener("mouseleave", () => hotWires(deps.selected));
 
+    // 掴んで動かせる。列が担当なので、1 回の操作で担当と順番の両方が決まる。
+    el.draggable = true;
+    el.addEventListener("dragstart", (e) => {
+      e.dataTransfer?.setData("text/plain", `step:${st.id}`);
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+      el.classList.add("drag");
+      document.body.classList.add("dragging");
+    });
+    el.addEventListener("dragend", () => {
+      el.classList.remove("drag");
+      document.body.classList.remove("dragging");
+    });
+
     grid.appendChild(el);
     nodes[i] = { el, id: st.id };
 

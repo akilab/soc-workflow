@@ -8,7 +8,7 @@
  * 「試走で見えているものが、そのまま配布物になる」を仕組みで保証している。
  */
 
-import { Api, ApiError } from "../api";
+import { Api, ApiError, stepInput } from "../api";
 import {
   dropSpotAt,
   renderCanvas,
@@ -22,6 +22,7 @@ import { Inspector } from "../inspector";
 import { renderOutline, reorderedIds } from "../outline";
 import { Palette } from "../palette";
 import { Selection } from "../select";
+import type { DropSpot } from "../canvas";
 import type { EventFlow } from "../types";
 import { openModal, showApiError, toast } from "../ui";
 
@@ -352,9 +353,57 @@ export class EditScreen {
       document.body.classList.remove("dragging");
 
       const data = e.dataTransfer?.getData("text/plain") ?? "";
-      if (!data.startsWith("task:")) return;
-      void this.palette.addStep(data.slice(5), spot ?? undefined);
+      if (data.startsWith("task:")) {
+        void this.palette.addStep(data.slice(5), spot ?? undefined);
+        return;
+      }
+      if (data.startsWith("step:") && spot) {
+        void this.moveStep(data.slice(5), spot);
+      }
     });
+  }
+
+  /**
+   * 落とした場所へ手順を動かす。担当と順番が同時に決まる。
+   *
+   * 送るのは 2 つに分かれる。担当は手順の中身なので更新、順番は事象の中の
+   * 並びなので並べ替え。どちらか片方しか変わっていなければ、その片方だけ送る。
+   */
+  private async moveStep(id: string, spot: DropSpot): Promise<void> {
+    const evt = this.evt;
+    if (!evt) return;
+
+    const from = evt.steps.findIndex((s) => s.id === id);
+    if (from < 0) return;
+    const st = evt.steps[from];
+
+    // 落とした位置は「いまの並びの何番目に割り込むか」。自分より後ろへ動かす
+    // ときは、自分が抜けたぶんだけ 1 つ手前になる。
+    let to = spot.index;
+    if (to > from) to -= 1;
+
+    const laneChanged = st.lane !== spot.lane;
+    const moved = to !== from;
+    if (!laneChanged && !moved) return; // 同じ場所に戻しただけ
+
+    await this.inspector.flush();
+    try {
+      if (laneChanged) {
+        st.lane = spot.lane;
+        await this.api.updateStep(evt.key, id, stepInput(st), { quiet: true });
+      }
+      if (moved) {
+        const ids = evt.steps.map((s) => s.id);
+        ids.splice(from, 1);
+        ids.splice(to, 0, id);
+        await this.api.orderSteps(evt.key, ids);
+      } else {
+        await this.api.load(); // 担当だけ変えた場合。画面を合わせる
+      }
+    } catch (e) {
+      this.fail(e, "手順の移動");
+      await this.api.load();
+    }
   }
 
   /**

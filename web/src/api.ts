@@ -93,6 +93,26 @@ export interface ContactInput {
   members: ContactMember[];
 }
 
+/**
+ * 手順を、サーバへ送る形にする。
+ *
+ * 手元の Step から、更新で送ってよい欄だけを取り出す。id と、サーバが決める
+ * ものは含めない。インスペクタからもキャンバスからも使う。
+ */
+export function stepInput(st: Step): StepInput {
+  return {
+    task: st.task,
+    lane: st.lane,
+    title: st.title,
+    detail: st.detail,
+    sla: st.sla,
+    escalate: st.escalate,
+    contacts: st.contacts ?? [],
+    conditions: st.conditions ?? [],
+    decision: st.decision ?? null,
+  };
+}
+
 /** 手順をどこへ置くか。どちらも省略できる。 */
 export interface StepPlacement {
   /** 挿入位置。省略すると末尾。 */

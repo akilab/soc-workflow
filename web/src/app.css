@@ -180,7 +180,10 @@ body.dragging .clane.drop{background:color-mix(in srgb, var(--cur) 7%, transpare
   box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--cur) 40%, transparent)}
 body.dragging .clane:not(.drop){opacity:.35}
 
-/* パレットから落とすときに、どこへ入るかを示す線。 */
+/* 掴んで動かしている最中のボックス。 */
+.cnode.drag{opacity:.35}
+
+/* パレットから落とすとき、または手順を動かすときに、どこへ入るかを示す線。 */
 .cdrop{position:absolute;z-index:4;height:2px;background:var(--cur);
   box-shadow:0 0 0 1px color-mix(in srgb, var(--cur) 40%, transparent);
   pointer-events:none}

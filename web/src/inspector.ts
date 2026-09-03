@@ -17,8 +17,8 @@
  * あるので、それらの前に flush() を呼ぶ。
  */
 
-import { Api, ApiError } from "./api";
-import type { StepInput, WriteOptions } from "./api";
+import { Api, ApiError, stepInput as toInput } from "./api";
+import type { WriteOptions } from "./api";
 import { OPTION_COLORS } from "./branch";
 import { $, esc } from "./dom";
 import { groupVias, stepContacts, viaMark } from "./contacts";
@@ -882,21 +882,6 @@ export class Inspector {
 }
 
 // ---------------------------------------------------------------------------
-
-/** 手順を、サーバへ送る形にする。 */
-function toInput(st: Step): StepInput {
-  return {
-    task: st.task,
-    lane: st.lane,
-    title: st.title,
-    detail: st.detail,
-    sla: st.sla,
-    escalate: st.escalate,
-    contacts: st.contacts ?? [],
-    conditions: st.conditions ?? [],
-    decision: st.decision ?? null,
-  };
-}
 
 /** その事象で使われていない判断のキーを作る。 */
 function uniqueDecisionKey(evt: EventFlow): string {
