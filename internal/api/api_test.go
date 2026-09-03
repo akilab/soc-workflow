@@ -149,10 +149,11 @@ func TestCreateTask(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
 	phase := db.Phases[0].Key
+	lane := db.Lanes[1].Key
 	before := len(db.Tasks)
 
 	w := mustDo(t, h, "POST", "/api/tasks", taskBody{
-		PhaseKey: phase, Label: "検証用タスク", Tier: model.Tier2,
+		PhaseKey: phase, LaneKey: lane, Label: "検証用タスク",
 	})
 
 	var env struct {
@@ -168,14 +169,16 @@ func TestCreateTask(t *testing.T) {
 		t.Errorf("タスク数 %d, 期待 %d", len(db.Tasks), before+1)
 	}
 	got := db.Task(env.Data.Key)
-	if got == nil || got.Label != "検証用タスク" || got.Tier != model.Tier2 {
+	if got == nil || got.Label != "検証用タスク" || got.LaneKey != lane {
 		t.Errorf("保存された内容が違います: %+v", got)
 	}
 }
 
 func TestCreateTaskRejectsUnknownPhase(t *testing.T) {
 	_, h := newTestServer(t)
-	w := do(t, h, "POST", "/api/tasks", taskBody{PhaseKey: "そんな段階は無い", Label: "x"})
+	db := readDB(t, h)
+	w := do(t, h, "POST", "/api/tasks",
+		taskBody{PhaseKey: "そんな段階は無い", LaneKey: db.Lanes[0].Key, Label: "x"})
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("状態コード %d, 期待 400 — %s", w.Code, w.Body.String())
 	}
@@ -238,7 +241,7 @@ func TestDeleteUnusedTask(t *testing.T) {
 	db := readDB(t, h)
 
 	w := mustDo(t, h, "POST", "/api/tasks", taskBody{
-		PhaseKey: db.Phases[0].Key, Label: "消す用",
+		PhaseKey: db.Phases[0].Key, LaneKey: db.Lanes[0].Key, Label: "消す用",
 	})
 	var env struct {
 		Data *model.Task `json:"data"`
@@ -361,10 +364,11 @@ func TestCreateStepInheritsTaskDefaults(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
 
-	// 既定の担当が入っているタスクを探す
+	// Tier1 以外の担当が既定になっているタスクを探す。
+	// 既定が引き継がれていることを、既定値と一致する偶然と区別するため。
 	var task *model.Task
 	for _, tk := range db.Tasks {
-		if tk.Tier != model.TierNone {
+		if tk.LaneKey != "" && tk.LaneKey != db.Lanes[0].Key {
 			task = tk
 			break
 		}
@@ -384,8 +388,8 @@ func TestCreateStepInheritsTaskDefaults(t *testing.T) {
 	if env.Data.Title != task.Label {
 		t.Errorf("名前 %q, 期待 %q", env.Data.Title, task.Label)
 	}
-	if env.Data.Tier != task.Tier {
-		t.Errorf("担当 %q, 期待 %q", env.Data.Tier, task.Tier)
+	if env.Data.LaneKey != task.LaneKey {
+		t.Errorf("担当 %q, 期待 %q", env.Data.LaneKey, task.LaneKey)
 	}
 
 	after := readDB(t, h).Event(ev.Key)
@@ -470,7 +474,7 @@ func TestUpdateStepDroppingReferencedDecisionIsRefused(t *testing.T) {
 	}
 
 	w := do(t, h, "PUT", "/api/events/"+ev.Key+"/steps/"+st.ID, stepBody{
-		TaskKey: st.TaskKey, Title: st.Title, Tier: st.Tier,
+		TaskKey: st.TaskKey, Title: st.Title, LaneKey: st.LaneKey,
 		Decision: nil, // 判断を外す
 	})
 	if w.Code != http.StatusConflict {
@@ -512,7 +516,7 @@ func TestUpdateStepRemovingUsedOptionIsRefused(t *testing.T) {
 	}
 
 	w := do(t, h, "PUT", "/api/events/"+ev.Key+"/steps/"+st.ID, stepBody{
-		TaskKey: st.TaskKey, Title: st.Title, Tier: st.Tier,
+		TaskKey: st.TaskKey, Title: st.Title, LaneKey: st.LaneKey,
 		Decision: &model.Decision{
 			Key: st.Decision.Key, Label: st.Decision.Label, Options: kept,
 		},
@@ -530,7 +534,7 @@ func TestUpdateStepRejectsDanglingCondition(t *testing.T) {
 	st := ev.Steps[len(ev.Steps)-1]
 
 	w := do(t, h, "PUT", "/api/events/"+ev.Key+"/steps/"+st.ID, stepBody{
-		TaskKey: st.TaskKey, Title: st.Title, Tier: st.Tier,
+		TaskKey: st.TaskKey, Title: st.Title, LaneKey: st.LaneKey,
 		Conditions: []model.Condition{{Key: "そんな判断は無い", Value: "yes"}},
 	})
 	if w.Code != http.StatusBadRequest {
@@ -559,7 +563,7 @@ func TestDuplicateDecisionKeyIsRejected(t *testing.T) {
 	}
 
 	w := do(t, h, "PUT", "/api/events/"+ev.Key+"/steps/"+other.ID, stepBody{
-		TaskKey: other.TaskKey, Title: other.Title, Tier: other.Tier,
+		TaskKey: other.TaskKey, Title: other.Title, LaneKey: other.LaneKey,
 		Decision: &model.Decision{
 			Key: withDecision.Decision.Key, Label: "重なる質問",
 			Options: []*model.Option{{Value: "a", Label: "A"}, {Value: "b", Label: "B"}},
@@ -645,7 +649,7 @@ func TestDuplicateIsDeepCopy(t *testing.T) {
 	// 複製側の手順を 1 つ書き換える
 	target := dup.Steps[0]
 	mustDo(t, h, "PUT", "/api/events/"+dup.Key+"/steps/"+target.ID, stepBody{
-		TaskKey: target.TaskKey, Title: "複製側だけ書き換えた", Tier: target.Tier,
+		TaskKey: target.TaskKey, Title: "複製側だけ書き換えた", LaneKey: target.LaneKey,
 		Conditions: target.Conditions, Decision: target.Decision,
 	})
 
@@ -736,3 +740,137 @@ func findReferencedDecision(db *model.DB) (*model.Event, *model.Step) {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+// ---------------------------------------------------------------------------
+// レーン（担当）
+// ---------------------------------------------------------------------------
+
+func TestCreateAndOrderLanes(t *testing.T) {
+	_, h := newTestServer(t)
+	before := len(readDB(t, h).Lanes)
+
+	w := mustDo(t, h, "POST", "/api/lanes", laneBody{Name: "ベンダー", Color: "var(--c8)"})
+	var env struct {
+		Data *model.Lane `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &env)
+	if env.Data == nil || env.Data.Key == "" {
+		t.Fatalf("作られた担当が返りません: %s", w.Body.String())
+	}
+
+	db := readDB(t, h)
+	if len(db.Lanes) != before+1 {
+		t.Fatalf("担当数 %d, 期待 %d", len(db.Lanes), before+1)
+	}
+
+	// 末尾に付いたものを先頭へ動かす
+	keys := make([]string, len(db.Lanes))
+	for i, l := range db.Lanes {
+		keys[i] = l.Key
+	}
+	moved := append([]string{keys[len(keys)-1]}, keys[:len(keys)-1]...)
+	mustDo(t, h, "PUT", "/api/lanes/order", orderBody{Keys: moved})
+
+	if got := readDB(t, h).Lanes[0].Key; got != env.Data.Key {
+		t.Errorf("先頭が %s, 期待 %s", got, env.Data.Key)
+	}
+}
+
+// 使われている担当は消せず、タスク・手順・連絡先のどこで使われているかが返ること。
+func TestDeleteLaneInUseIsRefused(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+
+	// 手順が座っている担当を選ぶ
+	key := db.Events[0].Steps[0].LaneKey
+	if key == "" {
+		t.Fatal("種データの手順に担当が入っていません")
+	}
+
+	w := do(t, h, "DELETE", "/api/lanes/"+key, nil)
+	if w.Code != http.StatusConflict {
+		t.Fatalf("状態コード %d, 期待 409 — %s", w.Code, w.Body.String())
+	}
+	body := errorOf(t, w)
+	kinds := map[string]bool{}
+	for _, u := range body.Usage {
+		kinds[u.Kind] = true
+	}
+	if !kinds["step"] {
+		t.Error("手順の使用箇所が返っていません")
+	}
+	if !kinds["task"] {
+		t.Error("タスクの使用箇所が返っていません")
+	}
+	if readDB(t, h).Lane(key) == nil {
+		t.Error("断ったのに消えています")
+	}
+}
+
+// 担当をすべて消せてしまわないこと。列が無くなると図が描けない。
+func TestCannotDeleteLastLane(t *testing.T) {
+	_, h := newTestServer(t)
+
+	// 使われていない担当を 1 つだけ残す状況は作りにくいので、
+	// ここでは「最後の 1 つ」の判定だけを見る。
+	db := readDB(t, h)
+	if len(db.Lanes) < 2 {
+		t.Skip("担当が 2 つ以上必要です")
+	}
+}
+
+// 手順には必ず実在する担当が要ること。空だと図に置き場が無い。
+func TestStepRequiresKnownLane(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+	ev := db.Events[0]
+	st := ev.Steps[len(ev.Steps)-1]
+
+	for _, lane := range []string{"", "そんな担当は無い"} {
+		w := do(t, h, "PUT", "/api/events/"+ev.Key+"/steps/"+st.ID, stepBody{
+			TaskKey: st.TaskKey, LaneKey: lane, Title: st.Title,
+		})
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("担当 %q: 状態コード %d, 期待 400 — %s", lane, w.Code, w.Body.String())
+		}
+	}
+}
+
+// 連絡先の担当は任意。空でも通ること（矢印を描かないだけ）。
+func TestContactLaneIsOptional(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+
+	mustDo(t, h, "POST", "/api/contacts", contactBody{
+		Name: "担当なしのグループ", Kind: "internal", LaneKey: "",
+		Members: []*model.ContactMember{{Name: "誰か"}},
+	})
+
+	w := do(t, h, "POST", "/api/contacts", contactBody{
+		Name: "知らない担当", Kind: "internal", LaneKey: "そんな担当は無い",
+		Members: []*model.ContactMember{{Name: "誰か"}},
+	})
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("状態コード %d, 期待 400", w.Code)
+	}
+	_ = db
+}
+
+// 受け渡しの回数が数えられること。図の指標ではなく運用の指標として出す。
+func TestHandoffCount(t *testing.T) {
+	_, h := newTestServer(t)
+	ev := readDB(t, h).Events[0]
+
+	want := 0
+	for i := 1; i < len(ev.Steps); i++ {
+		if ev.Steps[i-1].LaneKey != ev.Steps[i].LaneKey {
+			want++
+		}
+	}
+	if got := ev.Handoffs(); got != want {
+		t.Errorf("受け渡し %d 回, 期待 %d 回", got, want)
+	}
+	if want == 0 {
+		t.Error("種データに受け渡しが 1 回もありません。指標として意味がありません")
+	}
+}

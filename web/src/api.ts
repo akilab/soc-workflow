@@ -18,11 +18,11 @@ import type {
   Envelope,
   ErrorBody,
   EventFlow,
+  Lane,
   Phase,
   Severity,
   Step,
   Task,
-  Tier,
   Usage,
 } from "./types";
 
@@ -59,12 +59,17 @@ export interface EventInput {
 
 export interface TaskInput {
   phase: string;
+  lane: string;
   label: string;
   note: string;
-  tier: Tier;
 }
 
 export interface PhaseInput {
+  name: string;
+  color: string;
+}
+
+export interface LaneInput {
   name: string;
   color: string;
 }
@@ -73,17 +78,18 @@ export interface ContactInput {
   name: string;
   kind: ContactKind;
   note: string;
+  lane: string;
   members: ContactMember[];
 }
 
 /** 手順の中身。更新のときに丸ごと置き換える。 */
 export interface StepInput {
   task: string;
+  lane: string;
   title: string;
   detail: string;
   sla: string;
   escalate: boolean;
-  tier: Tier;
   contacts: string[];
   conditions: Condition[];
   decision: Decision | null;
@@ -91,7 +97,14 @@ export interface StepInput {
 
 export class Api {
   /** 手元のデータ。load() を呼ぶまでは空。 */
-  db: DB = { version: 0, phases: [], tasks: [], contactGroups: [], events: [] };
+  db: DB = {
+    version: 0,
+    lanes: [],
+    phases: [],
+    tasks: [],
+    contactGroups: [],
+    events: [],
+  };
 
   /** サーバから最後に受け取った版。 */
   rev = -1;
@@ -196,6 +209,27 @@ export class Api {
       "GET",
       `/api/tasks/${enc(key)}/usage`,
     );
+    return env.data ?? [];
+  }
+
+  createLane(input: LaneInput) {
+    return this.write<Lane>("POST", "/api/lanes", input);
+  }
+
+  updateLane(key: string, input: LaneInput) {
+    return this.write<Lane>("PUT", `/api/lanes/${enc(key)}`, input);
+  }
+
+  deleteLane(key: string) {
+    return this.write<null>("DELETE", `/api/lanes/${enc(key)}`);
+  }
+
+  orderLanes(keys: string[]) {
+    return this.write<null>("PUT", "/api/lanes/order", { keys } as OrderBody);
+  }
+
+  async laneUsage(key: string): Promise<Usage[]> {
+    const env = await this.request<Usage[]>("GET", `/api/lanes/${enc(key)}/usage`);
     return env.data ?? [];
   }
 

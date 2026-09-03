@@ -13,11 +13,12 @@
  * だから中身は declare global で囲う。
  */
 
-import type { ContactGroup, EventFlow, Phase, Task } from "./types";
+import type { ContactGroup, EventFlow, Lane, Phase, Task } from "./types";
 
 declare global {
   /** mountViewer に渡すデータ。書き出し HTML の DATA と同じ形。 */
   interface ViewerData {
+    lanes: Lane[];
     phases: Phase[];
     tasks: Task[];
     contactGroups: ContactGroup[];
@@ -62,7 +63,4 @@ declare global {
 
   /** 連絡先の区分の表示定義。viewer.js の KIND。 */
   const KIND: Record<string, { l: string; c: string }>;
-
-  /** 担当の表示定義。viewer.js の TIER。 */
-  const TIER: Record<string, { l: string; c: string }>;
 }

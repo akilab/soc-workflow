@@ -192,8 +192,8 @@ func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
 		st := &model.Step{
 			ID:         stepIDGen(db)(),
 			TaskKey:    task.Key,
-			Title:      task.Label, // この事象での言い方は、まずタスク名から始める
-			Tier:       task.Tier,  // 担当はタスクの既定値を初期値にする
+			Title:      task.Label,   // この事象での言い方は、まずタスク名から始める
+			LaneKey:    task.LaneKey, // 担当はタスクの既定値を初期値にする
 			Contacts:   []string{},
 			Conditions: []model.Condition{},
 		}
@@ -215,11 +215,11 @@ func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
 // stepBody は手順の中身。更新のときに丸ごと置き換える。
 type stepBody struct {
 	TaskKey    string            `json:"task"`
+	LaneKey    string            `json:"lane"`
 	Title      string            `json:"title"`
 	Detail     string            `json:"detail"`
 	SLA        string            `json:"sla"`
 	Escalate   bool              `json:"escalate"`
-	Tier       model.Tier        `json:"tier"`
 	Contacts   []string          `json:"contacts"`
 	Conditions []model.Condition `json:"conditions"`
 	Decision   *model.Decision   `json:"decision"`
@@ -245,7 +245,7 @@ func (s *Server) updateStep(w http.ResponseWriter, r *http.Request) {
 		}
 
 		st.TaskKey, st.Title, st.Detail, st.SLA = in.TaskKey, in.Title, in.Detail, in.SLA
-		st.Escalate, st.Tier = in.Escalate, in.Tier
+		st.LaneKey, st.Escalate = in.LaneKey, in.Escalate
 		st.Contacts = strs(in.Contacts)
 		st.Conditions = conds(in.Conditions)
 		st.Decision = in.Decision
@@ -267,8 +267,9 @@ func checkStep(db *model.DB, ev *model.Event, cur *model.Step, in stepBody) erro
 	if db.Task(in.TaskKey) == nil {
 		return errf(http.StatusBadRequest, "知らないタスクです: %s", in.TaskKey)
 	}
-	if !in.Tier.Valid() {
-		return errf(http.StatusBadRequest, "担当の値が不正です: %s", in.Tier)
+	// 担当は図のどの列に座るかを決める。空だと行き場が無いので必須。
+	if db.Lane(in.LaneKey) == nil {
+		return errf(http.StatusBadRequest, "知らない担当です: %s", in.LaneKey)
 	}
 	for _, k := range in.Contacts {
 		if db.ContactGroup(k) == nil {

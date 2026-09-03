@@ -118,7 +118,7 @@ export class EditScreen {
   }
 
   private renderCheckBadge(evt: EventFlow): void {
-    const r = validate(this.api.db, evt);
+    const r = validate(evt);
     const b = $("btnCheck");
     b.className = "ed-tool" + (r.issues.length ? " warn" : " good");
     b.textContent = r.issues.length ? `検証 ${r.issues.length} 件` : "検証 OK";
@@ -152,6 +152,7 @@ export class EditScreen {
     this.viewer = mountViewer(
       $("runRoot"),
       {
+        lanes: db.lanes,
         phases: db.phases,
         tasks: db.tasks,
         contactGroups: db.contactGroups,
@@ -174,7 +175,7 @@ export class EditScreen {
   private showCheck(): void {
     const evt = this.evt;
     if (!evt) return;
-    const r = validate(this.api.db, evt);
+    const r = validate(evt);
 
     const html = r.issues.length
       ? r.issues
@@ -193,7 +194,7 @@ export class EditScreen {
   private showPaths(): void {
     const evt = this.evt;
     if (!evt) return;
-    const r = validate(this.api.db, evt);
+    const r = validate(evt);
     const max = Math.max(0, ...r.paths.map((p) => p.minutes));
 
     const rows = r.paths

@@ -1,13 +1,21 @@
 /**
- * フローキャンバス。段階を列にして、手順をボックスとして並べ、接続線を引く。
+ * フローキャンバス。列は担当（レーン）、行は手順の順番。
+ *
+ * 段階は列にしない。段階を列にすると、受信の直後に報告へ飛ぶようなフローで
+ * 線が端から端まで伸び、そこからまた戻ってくる。「段階は時間とともに一方向へ
+ * 進む」という前提が、実際の対応では成り立たないため。
+ * 実データで測ると、段階を軸にした線は最大 4 列ぶん動くのに対し、担当を軸に
+ * すると全 54 本が隣の列までに収まった。受け渡しは Tier1 と Tier2、Tier2 と
+ * CSIRT のように、隣り合う責任範囲の間でしか起きないからである。
+ *
+ * 行が実施順そのものなので、手順の流れを表す線は必ず下へ進み、決して戻らない。
+ * 線 i は行 i と行 i+1 のあいだの帯しか通らないので、2 本の線が同じ帯を
+ * 共有することがなく、交差は起こり得ない。迂回路の計算は要らない。
  *
  * 線は DOM を実際に測ってから引く。文字の長さも折り返しも先には分からないので、
- * 描いてもらってから位置を読む。だから描画は 2 段——ボックスを置き、
- * 次のフレームで測って線を引く。
+ * ボックスを置き、次のフレームで測って線を引く。
  *
- * 接続線の規則は書き出し HTML 側（internal/export/viewer.js）と揃える。
- * 右から出て左から入る。同じ列に戻るときは、間にすき間があればそこを通し、
- * 無ければ下へ迂回する。
+ * 描き方の規則は書き出し HTML 側（internal/export/viewer.js）と揃える。
  */
 
 import { condSentence, optColor, optLabel } from "./branch";
@@ -22,6 +30,14 @@ interface Node {
   id: string;
 }
 
+/** 連絡の矢印の行き先に置く札。 */
+interface Chip {
+  /** 何番目の手順から出るか。 */
+  i: number;
+  el: HTMLElement;
+  color: string;
+}
+
 export interface CanvasDeps {
   db: DB;
   evt: EventFlow;
@@ -30,14 +46,7 @@ export interface CanvasDeps {
   onPick: (id: string, e: MouseEvent) => void;
 }
 
-/**
- * 列の最小幅。段階の数から決めるので、列が減れば横スクロールも減る。
- * 列幅 166 + 列間 32 + 左右のレーン 22×2。
- */
-function gridMinWidth(db: DB): string {
-  const n = db.phases.length;
-  return `${n * 166 + (n - 1) * 32 + 44}px`;
-}
+let chips: Chip[] = [];
 
 export function renderCanvas(deps: CanvasDeps): void {
   const { db, evt } = deps;
@@ -45,62 +54,95 @@ export function renderCanvas(deps: CanvasDeps): void {
   const wires = $("cwires");
 
   grid.innerHTML = "";
-  grid.appendChild(wires);
-  grid.style.minWidth = gridMinWidth(db);
+  chips = [];
+  const lanes = db.lanes;
+  grid.style.gridTemplateColumns = `repeat(${Math.max(lanes.length, 1)}, minmax(160px, 1fr))`;
+
+  // レーンの帯と見出し。全行にまたがる。
+  lanes.forEach((l, li) => {
+    const bg = document.createElement("div");
+    bg.className = "clane" + (li === lanes.length - 1 ? " last" : "");
+    bg.style.setProperty("--lc", l.color);
+    bg.style.gridColumn = String(li + 1);
+    grid.appendChild(bg);
+
+    const h = document.createElement("div");
+    h.className = "clane-h";
+    h.style.setProperty("--lc", l.color);
+    h.style.gridColumn = String(li + 1);
+    const n = evt.steps.filter((s) => s.lane === l.key).length;
+    h.innerHTML = `${esc(l.name)}<u>${n || ""}</u>`;
+    grid.appendChild(h);
+  });
 
   const nodes: (Node | undefined)[] = [];
 
-  for (const p of db.phases) {
-    const col = document.createElement("div");
-    col.className = "ccol";
-    col.dataset.p = p.key;
-    col.style.setProperty("--pc", p.color);
+  evt.steps.forEach((st, i) => {
+    const li = Math.max(0, lanes.findIndex((l) => l.key === st.lane));
+    const t = taskOf(db, st.task);
+    const phase = db.phases.find((p) => p.key === t?.phase);
 
-    const cnt = evt.steps.filter((s) => taskOf(db, s.task)?.phase === p.key).length;
-    col.innerHTML = `<h2>${esc(p.name)}<u>${cnt || ""}</u></h2>`;
+    const el = document.createElement("div");
+    el.className = "cnode" + (deps.selected.includes(st.id) ? " sel" : "");
+    el.style.setProperty("--pc", phase?.color ?? "var(--line)");
+    el.style.gridColumn = String(li + 1);
+    el.style.gridRow = String(i + 2);
+    el.innerHTML = nodeHTML(db, evt, st, i, phase?.name ?? "");
 
-    evt.steps.forEach((st, i) => {
-      const t = taskOf(db, st.task);
-      if (!t || t.phase !== p.key) return;
+    el.addEventListener("click", (e) => deps.onPick(st.id, e));
+    // 選ばなくても辿れるように、ホバー中はその手順に繋がる線だけを強調する。
+    el.addEventListener("mouseenter", () => hotWires([st.id]));
+    el.addEventListener("mouseleave", () => hotWires(deps.selected));
 
-      const el = document.createElement("div");
-      el.className = "cnode" + (deps.selected.includes(st.id) ? " sel" : "");
-      el.style.setProperty("--pc", p.color);
-      el.innerHTML = nodeHTML(db, evt, st, i);
+    grid.appendChild(el);
+    nodes[i] = { el, id: st.id };
 
-      el.addEventListener("click", (e) => deps.onPick(st.id, e));
-      // 選ばなくても辿れるように、ホバー中はその手順に繋がる線だけを強調する。
-      el.addEventListener("mouseenter", () => hotWires([st.id]));
-      el.addEventListener("mouseleave", () => hotWires(deps.selected));
-
-      col.appendChild(el);
-      nodes[i] = { el, id: st.id };
-    });
-
-    const ghost = document.createElement("div");
-    ghost.className = "ghost";
-    ghost.textContent = "ここに入ります";
-    col.appendChild(ghost);
-
-    grid.appendChild(col);
-  }
+    // 連絡の行き先。エスカレーションも顧客連絡も同じ 1 つの規則で描ける。
+    // レーンが設定されていない連絡先（管理職など）には矢印を出さない。
+    const byLane = new Map<string, string[]>();
+    for (const g of stepContacts(db, st)) {
+      if (!g.lane || g.lane === st.lane) continue;
+      if (!lanes.some((l) => l.key === g.lane)) continue;
+      byLane.set(g.lane, [...(byLane.get(g.lane) ?? []), g.name]);
+    }
+    for (const [laneKey, names] of byLane) {
+      const lane = lanes.find((l) => l.key === laneKey)!;
+      const chip = document.createElement("div");
+      chip.className = "cct";
+      chip.style.setProperty("--lc", lane.color);
+      chip.style.gridColumn = String(lanes.indexOf(lane) + 1);
+      chip.style.gridRow = String(i + 2);
+      chip.innerHTML = names.map((n) => esc(n)).join("<br>");
+      chip.title = `${st.title} → ${names.join("、")}`;
+      grid.appendChild(chip);
+      chips.push({ i, el: chip, color: lane.color });
+    }
+  });
 
   if (!evt.steps.length) {
     const empty = document.createElement("div");
     empty.className = "cempty";
+    empty.style.gridColumn = `1 / -1`;
     empty.innerHTML =
       "<b>まだ手順がありません</b>右の「タスクパレット」タブからドラッグしてください。<br>" +
-      "段階の列への配置と接続線は自動で決まります。";
+      "担当の列への配置と接続線は自動で決まります。";
     grid.appendChild(empty);
   }
+
+  grid.appendChild(wires);
 
   // 置いてもらってから測る。
   requestAnimationFrame(() => paintWires(nodes, deps.selected));
 }
 
 /** ボックス 1 つの中身。 */
-function nodeHTML(db: DB, evt: EventFlow, st: Step, i: number): string {
-  const t = taskOf(db, st.task);
+function nodeHTML(
+  db: DB,
+  evt: EventFlow,
+  st: Step,
+  i: number,
+  phaseName: string,
+): string {
   let flags = "";
 
   if (st.decision) {
@@ -128,10 +170,7 @@ function nodeHTML(db: DB, evt: EventFlow, st: Step, i: number): string {
     const marks = [...vias]
       .map((v) => {
         const d = VIA[v] ?? { m: "?", c: "#7d8798" };
-        return (
-          `<i${d.ico ? ' class="ico"' : ""} style="--vc:${d.c}">` +
-          `${viaMark(d)}</i>`
-        );
+        return `<i${d.ico ? ' class="ico"' : ""} style="--vc:${d.c}">${viaMark(d)}</i>`;
       })
       .join("");
     flags += `<span class="f-ct" title="${esc(tip.join("\n"))}">${marks}</span>`;
@@ -139,17 +178,10 @@ function nodeHTML(db: DB, evt: EventFlow, st: Step, i: number): string {
 
   if (st.sla) flags += `<span class="f-sla">${esc(st.sla)}</span>`;
 
-  // 担当はタイトルの上に置く。「自分の手順か」を先に判断できるようにするため。
-  // 手順の性質（判断・条件・エスカレ・SLA）とは別の種類の情報なので行を分ける。
-  const tier =
-    st.tier && TIER[st.tier]
-      ? `<span class="who" style="--tc:${TIER[st.tier].c}" title="この手順の担当">` +
-        `${TIER[st.tier].l.replace("・CSIRT", "")}</span>`
-      : "";
-
   return (
-    `<span class="num">${i + 1}</span>${tier}` +
-    `<b>${esc(st.title)}</b><span class="tk">${esc(t?.label ?? "")}</span>` +
+    `<span class="num">${i + 1}</span>` +
+    (phaseName ? `<span class="ph">${esc(phaseName)}</span>` : "") +
+    `<b>${esc(st.title)}</b>` +
     (flags ? `<span class="flags">${flags}</span>` : "")
   );
 }
@@ -164,8 +196,7 @@ export function hotWires(ids: string[]): void {
 
   wires.classList.toggle("focus", ids.length > 0);
   for (const p of wires.querySelectorAll<SVGPathElement>("path[data-a]")) {
-    const on =
-      ids.includes(p.dataset.a ?? "") || ids.includes(p.dataset.b ?? "");
+    const on = ids.includes(p.dataset.a ?? "") || ids.includes(p.dataset.b ?? "");
     p.classList.toggle("hot", on);
     p.setAttribute("marker-end", `url(#${on ? "eah-hot" : "eah"})`);
   }
@@ -200,6 +231,8 @@ const ARROW =
   ' viewBox="0 0 10 8" refX="9.5" refY="4" markerUnits="userSpaceOnUse"' +
   ' markerWidth="8" markerHeight="6.5" orient="auto"';
 
+const HEAD = 7; // 矢印の長さ。線の終点をこのぶん手前で止める
+
 function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
   const grid = $("cgrid");
   const wires = $("cwires");
@@ -208,74 +241,27 @@ function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
   wires.setAttribute("viewBox", `0 0 ${grid.clientWidth} ${grid.clientHeight}`);
 
   const seq = nodes.filter((n): n is Node => !!n);
-  if (seq.length < 2) {
-    wires.innerHTML = "";
-    grid.style.paddingBottom = "16px";
-    setHint(0);
-    return;
-  }
-
-  let maxBottom = 0;
-  for (const n of seq) {
-    maxBottom = Math.max(maxBottom, n.el.getBoundingClientRect().bottom - box.top);
-  }
-
-  /**
-   * 同じ列の 2 つのボックスの間に、線を通せるすき間があればその y を返す。
-   * 無ければ null（＝下へ迂回する）。書き出し HTML 側と同じ規則。
-   */
-  function gapLane(a: HTMLElement, b: HTMLElement): number | null {
-    const ra = a.getBoundingClientRect();
-    const rb = b.getBoundingClientRect();
-    if (Math.abs(ra.left - rb.left) > 2) return null;
-
-    const up = ra.top < rb.top ? ra : rb;
-    const low = ra.top < rb.top ? rb : ra;
-    const gap = low.top - up.bottom;
-    if (gap < 12) return null;
-
-    const y = up.bottom + gap / 2 - box.top;
-    for (const n of seq) {
-      if (n.el === a || n.el === b) continue;
-      const r = n.el.getBoundingClientRect();
-      if (Math.abs(r.left - ra.left) > 2) continue;
-      if (r.top - box.top < y && r.bottom - box.top > y) return null; // 他のボックスに当たる
-    }
-    return y;
-  }
-
   let out =
     "<defs>" +
     `<marker id="eah"${ARROW}><path d="M0,0 L10,4 L0,8 z"/></marker>` +
     `<marker id="eah-hot"${ARROW}><path d="M0,0 L10,4 L0,8 z"/></marker>` +
     "</defs>";
 
-  let back = 0;
   for (let k = 0; k < seq.length - 1; k++) {
     const ra = seq[k].el.getBoundingClientRect();
     const rb = seq[k + 1].el.getBoundingClientRect();
-    const x1 = ra.right - box.left;
-    const y1 = ra.top - box.top + ra.height / 2;
-    const x2 = rb.left - box.left - 5;
-    const y2 = rb.top - box.top + rb.height / 2;
+    // 規則: 下から出て、上から入る
+    const ax = ra.left - box.left + ra.width / 2;
+    const ay = ra.bottom - box.top;
+    const bx = rb.left - box.left + rb.width / 2;
+    const by = rb.top - box.top - HEAD;
 
     let d: string;
-    if (x2 > x1 + 10) {
-      // 素直に右へ進む。
-      const dx = Math.max(24, (x2 - x1) * 0.45);
-      d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+    if (Math.abs(ax - bx) < 2) {
+      d = `M ${ax} ${ay} L ${bx} ${by}`; // 同じ列。まっすぐ下へ
     } else {
-      // 戻る線。左右のレーンの内側に収める。外へ出すと切れる。
-      const gx = Math.min(grid.clientWidth - 8, x1 + 18);
-      const hx = Math.max(6, x2 - 18);
-      const gy = gapLane(seq[k].el, seq[k + 1].el);
-      if (gy !== null) {
-        d = ortho([[x1, y1], [gx, y1], [gx, gy], [hx, gy], [hx, y2], [x2, y2]], 9);
-      } else {
-        const ch = maxBottom + 20 + back * 12;
-        back++;
-        d = ortho([[x1, y1], [gx, y1], [gx, ch], [hx, ch], [hx, y2], [x2, y2]], 10);
-      }
+      const my = (ay + by) / 2; // 横へ移るのは行と行のあいだだけ
+      d = ortho([[ax, ay], [ax, my], [bx, my], [bx, by]], 10);
     }
 
     // どの手順どうしを繋いだ線かを持たせておき、強調に使う。
@@ -284,24 +270,42 @@ function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
       ' marker-end="url(#eah)"/>';
   }
 
+  // 連絡の矢印。手順の座っている行の中を横切るだけなので、
+  // 行と行のあいだを通る手順の線とはぶつからない。
+  for (const c of chips) {
+    const src = nodes[c.i];
+    if (!src) continue;
+    const ra = src.el.getBoundingClientRect();
+    const rc = c.el.getBoundingClientRect();
+    const y = ra.top - box.top + ra.height / 2;
+    const right = rc.left > ra.left;
+    const x1 = (right ? ra.right : ra.left) - box.left;
+    const x2 = (right ? rc.left - 3 : rc.right + 3) - box.left;
+    const dir = right ? 1 : -1;
+    out +=
+      `<path class="ca" d="M ${x1} ${y} L ${x2} ${y}" style="stroke:${c.color}"/>` +
+      `<polygon class="ca" points="${x2 - 6 * dir},${y - 4} ${x2 - 6 * dir},${y + 4} ${x2},${y}"` +
+      ` style="fill:${c.color}"/>`;
+  }
+
   wires.innerHTML = out;
   hotWires(selected);
-  grid.style.paddingBottom = `${back ? 34 + back * 13 : 16}px`;
-  wires.setAttribute("viewBox", `0 0 ${grid.clientWidth} ${grid.clientHeight}`);
-  setHint(back);
+  setHint(seq.length);
 }
 
 /**
- * ここで数えているのは「下へ迂回した線」。
- * 検証の「前の段階への後戻り」とは別の指標なので、文言を分けてある。
+ * 受け渡しの回数を出す。
+ *
+ * 図の見た目の指標ではない。受け渡しは 1 回ごとにボールが落ちうる場所なので、
+ * 回数が多いフローは図が読みにくいのではなく運用が危ない。
  */
-function setHint(back: number): void {
+function setHint(steps: number): void {
   const h = $("canvHint");
   h.textContent =
-    back > 5
-      ? `迂回する線が ${back} 本 — 並び順を見直してください`
-      : "右のタスクパレットからドラッグして投入";
-  h.style.color = back > 5 ? "var(--s2)" : "";
+    steps < 2
+      ? "右のタスクパレットからドラッグして投入"
+      : `${steps} 手順`;
+  h.style.color = "";
 }
 
 /** 選ばれているボックスが見えるところまでスクロールする。 */

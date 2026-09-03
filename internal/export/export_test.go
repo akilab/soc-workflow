@@ -75,12 +75,38 @@ func TestExportEmbedsData(t *testing.T) {
 
 	// 事象を 1 つに絞っても、参照される部品は全部入っていること。
 	// 欠けていると、開いた側で段階も担当も引けなくなる。
-	if !strings.Contains(s, `"tasks"`) || !strings.Contains(s, `"contactGroups"`) {
-		t.Error("タスクか連絡先が入っていません")
+	// 一度 lanes を入れ忘れ、列がまったく描かれない書き出しを作った。
+	var payload struct {
+		Lanes         []*model.Lane         `json:"lanes"`
+		Phases        []*model.Phase        `json:"phases"`
+		Tasks         []*model.Task         `json:"tasks"`
+		ContactGroups []*model.ContactGroup `json:"contactGroups"`
 	}
-	for _, p := range db.Phases {
-		if !strings.Contains(s, p.Name) {
-			t.Errorf("段階 %q が入っていません", p.Name)
+	raw := embedded(t, s)
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		t.Fatalf("埋め込んだデータが読めません: %v", err)
+	}
+	if len(payload.Lanes) != len(db.Lanes) {
+		t.Errorf("担当が %d 件、期待 %d 件", len(payload.Lanes), len(db.Lanes))
+	}
+	if len(payload.Phases) != len(db.Phases) {
+		t.Errorf("段階が %d 件、期待 %d 件", len(payload.Phases), len(db.Phases))
+	}
+	if len(payload.Tasks) != len(db.Tasks) {
+		t.Errorf("タスクが %d 件、期待 %d 件", len(payload.Tasks), len(db.Tasks))
+	}
+	if len(payload.ContactGroups) != len(db.ContactGroups) {
+		t.Errorf("連絡先が %d 件、期待 %d 件", len(payload.ContactGroups), len(db.ContactGroups))
+	}
+
+	// 手順の担当が、埋め込んだ担当の中で解決すること。
+	byKey := map[string]bool{}
+	for _, l := range payload.Lanes {
+		byKey[l.Key] = true
+	}
+	for _, st := range ev.Steps {
+		if !byKey[st.LaneKey] {
+			t.Errorf("手順 %q の担当 %q が書き出しの中で解決しません", st.Title, st.LaneKey)
 		}
 	}
 }
@@ -186,6 +212,16 @@ func TestFileName(t *testing.T) {
 			t.Errorf("FileName(%q) = %q, 期待 %q", in, got, want)
 		}
 	}
+}
+
+// embedded は書き出した HTML から、埋め込まれたデータの JSON を取り出す。
+func embedded(t *testing.T, s string) string {
+	t.Helper()
+	raw := between(s, "var DATA=", ";\nmountViewer")
+	if raw == "" {
+		t.Fatal("埋め込んだデータを取り出せません")
+	}
+	return raw
 }
 
 // between は a と b に挟まれた部分を返す。

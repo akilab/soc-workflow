@@ -31,8 +31,17 @@ export interface Issue {
 export interface Validation {
   issues: Issue[];
   paths: FlowPath[];
-  /** 前の段階へ戻っている回数。 */
-  back: number;
+  /** 担当の受け渡しの回数。 */
+  handoffs: number;
+}
+
+/** 担当が切り替わる回数を数える。 */
+export function countHandoffs(evt: EventFlow): number {
+  let n = 0;
+  for (let i = 1; i < evt.steps.length; i++) {
+    if (evt.steps[i - 1].lane !== evt.steps[i].lane) n++;
+  }
+  return n;
 }
 
 /** 段階ごとの手順数。事象カードの帯に使う。 */
@@ -138,7 +147,7 @@ export function enumeratePaths(evt: EventFlow): FlowPath[] {
  *
  * 見るのは「対応者がその通りに辿れるか」。文法ではなく運用の成立を見ている。
  */
-export function validate(db: DB, evt: EventFlow): Validation {
+export function validate(evt: EventFlow): Validation {
   const issues: Issue[] = [];
 
   // 1. まだ現れていない判断を条件が参照していないか。
@@ -192,22 +201,24 @@ export function validate(db: DB, evt: EventFlow): Validation {
     }
   }
 
-  // 4. 前の段階への後戻りが多すぎないか。
-  //    多いと接続線が混む。線を整える前に、フロー自体の並びを疑う。
-  const order = db.phases.map((p) => p.key);
-  let back = 0;
-  for (let i = 1; i < evt.steps.length; i++) {
-    const a = taskOf(db, evt.steps[i - 1].task);
-    const b = taskOf(db, evt.steps[i].task);
-    if (a && b && order.indexOf(b.phase) < order.indexOf(a.phase)) back++;
-  }
-  if (back > 5) {
+  // 4. 担当の受け渡しが多すぎないか。
+  //
+  //    これは図の見た目の指標ではない。受け渡しは 1 回ごとに
+  //    「ボールが落ちうる場所」になるので、回数が多いフローは
+  //    図が読みにくいのではなく運用が危ない。
+  //
+  //    列が段階だった頃は「前の段階への後戻り」を数えていた。あれは
+  //    線が混むことの指標で、軸を担当に変えた時点で意味を失った。
+  const handoffs = countHandoffs(evt);
+  if (handoffs > 8) {
     issues.push({
       lv: "wrn",
-      t: `前の段階への後戻りが ${back} 回あります`,
-      d: "接続線が混み、図が読みにくくなります。線を整える前に、フロー自体の並び順を見直してください。",
+      t: `担当の受け渡しが ${handoffs} 回あります`,
+      d:
+        "受け渡しは 1 回ごとに引き継ぎ漏れが起きうる場所です。" +
+        "同じ担当で続けられる手順がまとまっていないか、見直してください。",
     });
   }
 
-  return { issues, paths, back };
+  return { issues, paths, handoffs };
 }

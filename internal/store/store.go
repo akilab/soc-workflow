@@ -90,12 +90,15 @@ func (s *JSONStore) load(seed []byte) error {
 		return fmt.Errorf("読み込めません: %w", err)
 	}
 
+	// 古い版なら、構造体に読み込む前に JSON のまま直す。
+	raw, mErr := migrateRaw(raw)
+	if mErr != nil {
+		return fmt.Errorf("%s: %w", s.path, mErr)
+	}
+
 	var db model.DB
 	if err := json.Unmarshal(raw, &db); err != nil {
 		return fmt.Errorf("JSON として読めません（%s）: %w", s.path, err)
-	}
-	if err := migrate(&db); err != nil {
-		return err
 	}
 	normalize(&db)
 	s.db = &db
@@ -108,19 +111,16 @@ func (s *JSONStore) load(seed []byte) error {
 }
 
 // migrate は古い版のデータを現在の形に合わせる。
-func migrate(db *model.DB) error {
-	if db.Version > model.Version {
-		return fmt.Errorf("このデータは新しい版です（データ %d / このアプリ %d）。"+
-			"アプリを更新してください", db.Version, model.Version)
+func normalizeLanes(db *model.DB) {
+	if db.Lanes == nil {
+		db.Lanes = []*model.Lane{}
 	}
-	// 版が上がったらここに移行処理を足す。
-	db.Version = model.Version
-	return nil
 }
 
 // normalize は nil のスライスを空スライスにする。
 // JSON に null ではなく [] を出したいのと、画面側で null を気にしないで済むように。
 func normalize(db *model.DB) {
+	normalizeLanes(db)
 	if db.Phases == nil {
 		db.Phases = []*model.Phase{}
 	}

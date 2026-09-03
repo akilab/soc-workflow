@@ -106,10 +106,10 @@ func (s *Server) orderPhases(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 type taskBody struct {
-	PhaseKey string     `json:"phase"`
-	Label    string     `json:"label"`
-	Note     string     `json:"note"`
-	Tier     model.Tier `json:"tier"`
+	PhaseKey string `json:"phase"`
+	LaneKey  string `json:"lane"`
+	Label    string `json:"label"`
+	Note     string `json:"note"`
 }
 
 func (b taskBody) check(db *model.DB) error {
@@ -119,8 +119,9 @@ func (b taskBody) check(db *model.DB) error {
 	if db.Phase(b.PhaseKey) == nil {
 		return errf(http.StatusBadRequest, "知らない段階です: %s", b.PhaseKey)
 	}
-	if !b.Tier.Valid() {
-		return errf(http.StatusBadRequest, "担当の値が不正です: %s", b.Tier)
+	// 既定の担当。手順に投入するときの初期値になるので、実在する必要がある。
+	if db.Lane(b.LaneKey) == nil {
+		return errf(http.StatusBadRequest, "知らない担当です: %s", b.LaneKey)
 	}
 	return nil
 }
@@ -136,7 +137,7 @@ func (s *Server) createTask(w http.ResponseWriter, r *http.Request) {
 		}
 		t := &model.Task{
 			Key:      uniqueKey("task", func(k string) bool { return db.Task(k) != nil }),
-			PhaseKey: in.PhaseKey, Label: in.Label, Note: in.Note, Tier: in.Tier,
+			PhaseKey: in.PhaseKey, LaneKey: in.LaneKey, Label: in.Label, Note: in.Note,
 		}
 		db.Tasks = append(db.Tasks, t)
 		return t, nil
@@ -157,9 +158,10 @@ func (s *Server) updateTask(w http.ResponseWriter, r *http.Request) {
 		if err := in.check(db); err != nil {
 			return nil, err
 		}
-		// 担当（Tier）はタスクの既定値。すでに使われている手順には波及させない。
+		// 担当はタスクの既定値。すでに使われている手順には波及させない。
 		// 事象ごとに担当を変えているものを、部品側の変更で上書きしてしまうため。
-		t.PhaseKey, t.Label, t.Note, t.Tier = in.PhaseKey, in.Label, in.Note, in.Tier
+		// 段階（色）は波及する。あちらはタスクそのものの性質だから。
+		t.PhaseKey, t.LaneKey, t.Label, t.Note = in.PhaseKey, in.LaneKey, in.Label, in.Note
 		return t, nil
 	})
 }
@@ -223,18 +225,26 @@ func (s *Server) taskUsage(w http.ResponseWriter, r *http.Request) {
 // メンバーは順序を持つだけの単純な並びで、他から参照されない。
 // 編集ダイアログもグループ単位で開くので、メンバー個別の API は要らない。
 type contactBody struct {
-	Name    string                 `json:"name"`
-	Kind    model.ContactKind      `json:"kind"`
-	Note    string                 `json:"note"`
+	Name string            `json:"name"`
+	Kind model.ContactKind `json:"kind"`
+	Note string            `json:"note"`
+
+	// LaneKey は連絡の矢印が向かう先。空なら矢印を描かない。
+	// 「管理職」のように対応する列が無いグループもあるので、必須にしない。
+	LaneKey string `json:"lane"`
+
 	Members []*model.ContactMember `json:"members"`
 }
 
-func (b contactBody) check() error {
+func (b contactBody) check(db *model.DB) error {
 	if strings.TrimSpace(b.Name) == "" {
 		return errf(http.StatusBadRequest, "連絡先グループの名前が空です")
 	}
 	if !b.Kind.Valid() {
 		return errf(http.StatusBadRequest, "連絡先の区分が不正です: %s", b.Kind)
+	}
+	if b.LaneKey != "" && db.Lane(b.LaneKey) == nil {
+		return errf(http.StatusBadRequest, "知らない担当です: %s", b.LaneKey)
 	}
 	for i, m := range b.Members {
 		if m == nil {
@@ -253,7 +263,7 @@ func (s *Server) createContactGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.mutate(w, func(db *model.DB) (any, error) {
-		if err := in.check(); err != nil {
+		if err := in.check(db); err != nil {
 			return nil, err
 		}
 		g := &model.ContactGroup{
@@ -261,6 +271,7 @@ func (s *Server) createContactGroup(w http.ResponseWriter, r *http.Request) {
 			Name:    in.Name,
 			Kind:    in.Kind,
 			Note:    in.Note,
+			LaneKey: in.LaneKey,
 			Members: members(in.Members),
 		}
 		db.ContactGroups = append(db.ContactGroups, g)
@@ -279,10 +290,10 @@ func (s *Server) updateContactGroup(w http.ResponseWriter, r *http.Request) {
 		if g == nil {
 			return nil, notFound("連絡先グループ", key)
 		}
-		if err := in.check(); err != nil {
+		if err := in.check(db); err != nil {
 			return nil, err
 		}
-		g.Name, g.Kind, g.Note = in.Name, in.Kind, in.Note
+		g.Name, g.Kind, g.Note, g.LaneKey = in.Name, in.Kind, in.Note, in.LaneKey
 		g.Members = members(in.Members)
 		return g, nil
 	})

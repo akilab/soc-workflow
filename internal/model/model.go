@@ -4,21 +4,38 @@
 // 事象が 100 件に増えても 1 MB に届かないので、起動時に全部読み、
 // メモリ上で扱い、変更のたびに書き戻す。詳しい判断の理由は docs/SPEC.md に書いてある。
 //
-// 順序は「配列の並び」で表す。手順の実施順も、連絡先の連絡順も、フェーズの並びも同じ。
-// リレーショナルに持つと sort_order の張り替えが要るが、配列なら入れ替えるだけで済む。
+// 順序は「配列の並び」で表す。手順の実施順も、連絡先の連絡順も、
+// レーンの並びも段階の並びも同じ。リレーショナルに持つと sort_order の
+// 張り替えが要るが、配列なら入れ替えるだけで済む。
+//
+// # 手順を分類する 2 つの軸
+//
+// 手順には「誰がやるか（Lane）」と「対応のどの段階か（Phase）」の 2 つがある。
+// このうち Lane を図の列にし、Phase は色とラベルで表す。
+//
+// 逆にしていた時期がある。段階を列にすると、受信の直後に報告へ飛ぶような
+// フローで線が端から端まで伸び、そこからまた戻ってくる。段階は時間とともに
+// 一方向に進む——という前提が、実際の対応では成り立たないためだった。
+// 実データで測ると、段階を軸にした線は最大 4 列ぶん動くのに対し、
+// 担当を軸にすると全 54 本が「隣の列まで」に収まる。受け渡しは Tier1 と Tier2、
+// Tier2 と CSIRT のように、隣り合う責任範囲の間でしか起きないからである。
 package model
 
 import "time"
 
 // Version はデータの形の版。形を変えたら上げて、読み込み時に移行する。
-const Version = 1
+//
+//	1: 最初の形。手順の担当は Tier（t1/t2/t3 の固定値）で、図の列は段階だった。
+//	2: 担当を Lane（設定可能）にし、図の列を担当に変えた。段階は色とラベルになった。
+const Version = 2
 
 // DB はファイルに保存される全体。これがそのまま JSON になる。
 type DB struct {
 	Version int `json:"version"`
 
 	// 部品 — 事象に属さず、複数の事象から参照される
-	Phases        []*Phase        `json:"phases"`        // フロー図の列。並び順が意味を持つ
+	Lanes         []*Lane         `json:"lanes"`         // フロー図の列。並び順が左からの順
+	Phases        []*Phase        `json:"phases"`        // 対応の段階。色とラベルで表す
 	Tasks         []*Task         `json:"tasks"`         // フロー図のボックスの元
 	ContactGroups []*ContactGroup `json:"contactGroups"` // 連絡先のカテゴリ
 
@@ -26,11 +43,22 @@ type DB struct {
 	Events []*Event `json:"events"`
 }
 
-// Phase は対応の段階。フロー図の 1 列にあたる。
+// Lane は担当。誰がその手順をやるか。フロー図では 1 つの列になる。
 //
-// フェーズは「対応の段階」であって「作業の種類」ではない。
-// 段階は時間とともに一方向に進むもの、種類はどの段階でも起こりうるもので、
-// 判断やエスカレーションは後者なので列にしない（手順の属性で表す）。
+// 固定の 3 段階ではなく、設定できる並びにしてある。顧客・管理職・外部機関・
+// ベンダーなど、フローに出てくる相手は組織によって違い、呼び方も違うため。
+// 連絡先グループと同じ考え方。
+type Lane struct {
+	Key   string `json:"key"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+// Phase は対応の段階。受信・確認、情報収集、封じ込め、復旧、記録・報告など。
+//
+// 図の列ではなく、ボックスの色とラベルで表す。段階は列にすると破綻するが
+// （package のコメント参照）、分類としては要る。「いま情報収集ばかりしていて
+// 封じ込めが薄い」といった偏りは、設計する側が見たい情報である。
 type Phase struct {
 	Key   string `json:"key"`
 	Name  string `json:"name"`
@@ -41,30 +69,28 @@ type Phase struct {
 type Task struct {
 	Key      string `json:"key"`
 	PhaseKey string `json:"phase"`
+	LaneKey  string `json:"lane"` // 既定の担当。手順に投入するときの初期値になる
 	Label    string `json:"label"`
 	Note     string `json:"note"`
-	Tier     Tier   `json:"tier"` // 既定の担当。手順に投入するときの初期値になる
 }
-
-// Tier は担当。誰がその手順をやるか。
-type Tier string
-
-const (
-	TierNone Tier = ""
-	Tier1    Tier = "t1" // 受信・一次トリアージ・記録
-	Tier2    Tier = "t2" // 詳細分析・封じ込め・復旧
-	Tier3    Tier = "t3" // Tier3・CSIRT。法令報告や顧客通知など
-)
 
 // ContactGroup は連絡先のカテゴリ。管理職・Tier2・顧客別など。
 //
 // 手順が参照するのは個人ではなくグループ。夜間は管理職の 1 番から順に掛け、
 // 繋がらなければ次へ——という運用をそのまま表すため、メンバーは順序を持つ。
 type ContactGroup struct {
-	Key     string           `json:"key"`
-	Name    string           `json:"name"`
-	Kind    ContactKind      `json:"kind"`
-	Note    string           `json:"note"`
+	Key  string      `json:"key"`
+	Name string      `json:"name"`
+	Kind ContactKind `json:"kind"`
+	Note string      `json:"note"`
+
+	// LaneKey は連絡の矢印が向かう先。空なら矢印を描かない。
+	//
+	// これがあるおかげで、エスカレーションと顧客連絡を同じ 1 つの規則で描ける。
+	// 「Tier2 アナリスト」に繋がる手順からは Tier2 の列へ、「A社」に繋がる
+	// 手順からは顧客の列へ、同じ形の矢印が伸びる。
+	LaneKey string `json:"lane"`
+
 	Members []*ContactMember `json:"members"` // 並び順が連絡順
 }
 
@@ -130,7 +156,7 @@ type Event struct {
 	Title     string    `json:"title"`
 	Sub       string    `json:"sub"`
 	Severity  Severity  `json:"severity"`
-	Steps     []*Step   `json:"steps"` // 並び順が実施順
+	Steps     []*Step   `json:"steps"` // 並び順が実施順。そのまま図の行になる
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
@@ -147,14 +173,20 @@ const (
 //
 // フロー図のボックスは、タスクではなく手順に 1 対 1 で対応する。
 // 1 つの事象で同じタスクを 2 回使うことがあるため（隔離を復旧の前後で行う、など）。
+//
+// 図では、配列の位置がそのまま行になり、LaneKey が列になる。
+// 行が実施順そのものなので、手順の流れを表す線は必ず下へ進み、決して戻らない。
+// 線 i は行 i と行 i+1 のあいだの帯だけを通るので、2 本の線が同じ帯を
+// 共有することがなく、交差は起こり得ない。
 type Step struct {
-	ID       string   `json:"id"`
-	TaskKey  string   `json:"task"`   // 参照するタスク。どの列のどのボックスかが決まる
-	Title    string   `json:"title"`  // この事象での言い方
-	Detail   string   `json:"detail"` // 手順の詳細。<code> で強調できる
-	SLA      string   `json:"sla"`    // "15分" "即時" など。任意
+	ID      string `json:"id"`
+	TaskKey string `json:"task"`   // 参照するタスク。段階（色）が決まる
+	LaneKey string `json:"lane"`   // 担当。図のどの列に座るかが決まる
+	Title   string `json:"title"`  // この事象での言い方
+	Detail  string `json:"detail"` // 手順の詳細。<code> で強調できる
+	SLA     string `json:"sla"`    // "15分" "即時" など。任意
+
 	Escalate bool     `json:"escalate"`
-	Tier     Tier     `json:"tier"`     // 担当。投入時にタスクの既定値が入る
 	Contacts []string `json:"contacts"` // 参照する ContactGroup のキー
 
 	// Conditions は表示条件。複数ある場合は AND で結合する。
@@ -187,11 +219,21 @@ type Option struct {
 
 // ---------------------------------------------------------------------------
 // 参照を引くための小さなヘルパー。
-// 件数が小さい（フェーズ 5・タスク 44・連絡先 14 程度）ので、
+// 件数が小さい（レーン 4・段階 5・タスク 44・連絡先 14 程度）ので、
 // 索引を持たずに線形に探す。100 事象に増えても走査は 1ms に満たない。
 // ---------------------------------------------------------------------------
 
-// Phase はキーからフェーズを返す。見つからなければ nil。
+// Lane はキーからレーンを返す。見つからなければ nil。
+func (d *DB) Lane(key string) *Lane {
+	for _, l := range d.Lanes {
+		if l.Key == key {
+			return l
+		}
+	}
+	return nil
+}
+
+// Phase はキーから段階を返す。見つからなければ nil。
 func (d *DB) Phase(key string) *Phase {
 	for _, p := range d.Phases {
 		if p.Key == key {
@@ -251,20 +293,26 @@ func (e *Event) Decision(key string) *Decision {
 	return nil
 }
 
+// Handoffs は担当の受け渡しが何回あるかを数える。
+//
+// 受け渡しは 1 回ごとに「ボールが落ちうる場所」になる。回数が多いフローは、
+// 図が読みにくいのではなく運用が危ない。図の見た目の指標ではなく、
+// フローそのものの質を測る指標として出す。
+func (e *Event) Handoffs() int {
+	n := 0
+	for i := 1; i < len(e.Steps); i++ {
+		if e.Steps[i-1].LaneKey != e.Steps[i].LaneKey {
+			n++
+		}
+	}
+	return n
+}
+
 // ---------------------------------------------------------------------------
 // 値の妥当性。
 // 列挙のような値はここで一括して見る。ハンドラごとに書くと、
 // 種類を足したときに直し漏れる場所ができる。
 // ---------------------------------------------------------------------------
-
-// Valid は担当として使える値かを返す。空（未指定）も許す。
-func (t Tier) Valid() bool {
-	switch t {
-	case TierNone, Tier1, Tier2, Tier3:
-		return true
-	}
-	return false
-}
 
 // Valid は連絡先の区分として使える値かを返す。
 func (k ContactKind) Valid() bool {

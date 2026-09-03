@@ -114,10 +114,11 @@ function stepEl(deps: OutlineDeps, r: StepRow, box: HTMLElement): HTMLElement {
   el.dataset.id = st.id;
 
   let f = "";
-  if (st.tier && TIER[st.tier]) {
-    f +=
-      `<span class="tier" style="--tc:${TIER[st.tier].c}">` +
-      `${TIER[st.tier].l.replace("・CSIRT", "")}</span>`;
+  // 担当はアウトラインには出す。こちらは列を持たないので、
+  // 「誰がやるか」を読み取れるのはこのバッジだけになる。
+  const lane = db.lanes.find((l) => l.key === st.lane);
+  if (lane) {
+    f += `<span class="tier" style="--tc:${lane.color}">${esc(lane.name)}</span>`;
   }
   if (stepContacts(db, st).some((c) => c.kind === "customer")) {
     f += '<span class="cust" title="お客様連絡あり">&#9679;客</span>';

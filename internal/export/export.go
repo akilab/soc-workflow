@@ -25,7 +25,11 @@ var viewerCSS string
 var viewerJS string
 
 // payload は HTML に埋め込むデータ。viewer.js の mountViewer が受け取る形。
+//
+// 部品（担当・段階・タスク・連絡先）は全部入れる。事象を 1 件に絞っても、
+// そこから参照されるものが欠けていては読めない。
 type payload struct {
+	Lanes         []*model.Lane         `json:"lanes"`
 	Phases        []*model.Phase        `json:"phases"`
 	Tasks         []*model.Task         `json:"tasks"`
 	ContactGroups []*model.ContactGroup `json:"contactGroups"`
@@ -38,6 +42,7 @@ type payload struct {
 // そこから参照される部品が欠けていては読めないため。
 func HTML(db *model.DB, events []*model.Event, title string) ([]byte, error) {
 	data, err := json.Marshal(payload{
+		Lanes:         db.Lanes,
 		Phases:        db.Phases,
 		Tasks:         db.Tasks,
 		ContactGroups: db.ContactGroups,

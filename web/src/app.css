@@ -159,25 +159,40 @@ body.resizing{cursor:col-resize;user-select:none}
 
 /* ---------- キャンバス（中央・上） ---------- */
 .canvas{position:relative;overflow:auto;flex:1 1 auto;padding:14px 16px 16px;min-height:0}
-/* 左右の余白は、後戻りの線を通すためのレーン。 */
-.cgrid{position:relative;display:flex;gap:32px;padding:0 22px 24px;min-height:100%}
-.ccol{flex:1 1 0;min-width:166px;display:flex;flex-direction:column;gap:16px;position:relative;
-  border-radius:9px;padding:0 4px 4px;transition:background .18s,box-shadow .18s,opacity .18s}
-/* 見出しは縦スクロールしても消えないよう固定する */
-.ccol>h2{margin:0;font-size:10.5px;letter-spacing:.1em;font-weight:700;white-space:nowrap;
-  color:var(--pc);padding:6px 2px 5px;border-bottom:2px solid var(--pc);opacity:.95;
+/* 列＝担当（レーン）、行＝手順の順番。
+   行が実施順そのものなので、線は必ず下へ進み、決して戻らない。
+   線 i は行 i と行 i+1 のあいだの帯しか通らないため、交差は起こり得ない。 */
+.cgrid{position:relative;display:grid;column-gap:0;row-gap:16px;
+  padding:0 4px 20px;align-content:start;min-height:100%}
+/* レーンの帯。全行にまたがって背景と区切り線を出す */
+.clane{grid-row:1 / -1;position:relative;z-index:0;
+  border-left:1px solid var(--line);background:color-mix(in srgb, var(--lc) 4%, transparent);
+  transition:background .18s,box-shadow .18s,opacity .18s}
+.clane.last{border-right:1px solid var(--line)}
+.clane-h{grid-row:1;position:sticky;top:-14px;z-index:3;
+  margin:0;font-size:10.5px;letter-spacing:.1em;font-weight:700;white-space:nowrap;
+  color:var(--lc);padding:6px 8px 5px;border-bottom:2px solid var(--lc);
   display:flex;justify-content:space-between;align-items:baseline;gap:6px;
-  position:sticky;top:-14px;z-index:3;background:var(--panel)}
-.ccol>h2 u{text-decoration:none;font-family:var(--mono);font-size:9.5px;opacity:.7}
-body.dragging .ccol.drop{background:color-mix(in srgb, var(--cur) 6%, transparent);box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--cur) 40%, transparent)}
-body.dragging .ccol:not(.drop){opacity:.35}
-.ccol .ghost{border:1px dashed var(--cur);border-radius:8px;height:52px;display:none;
-  align-items:center;justify-content:center;font-size:11px;color:var(--cur)}
-body.dragging .ccol.drop .ghost{display:flex}
+  background:var(--panel)}
+.clane-h u{text-decoration:none;font-family:var(--mono);font-size:9.5px;opacity:.7}
+body.dragging .clane.drop{background:color-mix(in srgb, var(--cur) 7%, transparent);
+  box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--cur) 40%, transparent)}
+body.dragging .clane:not(.drop){opacity:.35}
 
-.cnode{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc);
-  border-radius:8px;padding:9px 11px 9px 12px;cursor:pointer;position:relative;
+/* 連絡の相手。矢印の行き先に置く小さな札 */
+.cct{position:relative;z-index:2;align-self:center;justify-self:center;
+  max-width:88%;font-size:10px;line-height:1.35;text-align:center;
+  color:var(--lc);background:var(--panel);
+  border:1px dashed color-mix(in srgb, var(--lc) 55%, transparent);
+  border-radius:999px;padding:3px 9px}
+
+.cnode{position:relative;z-index:2;margin:0 16px 0 12px;
+  background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc);
+  border-radius:8px;padding:9px 11px 9px 12px;cursor:pointer;
   transition:border-color .16s,background .16s,box-shadow .16s,transform .16s}
+/* 段階は列ではなくなったので、ボックスの中でラベルと左のバーで示す */
+.cnode .ph{display:block;font-size:9.5px;letter-spacing:.04em;font-weight:700;
+  color:var(--pc);margin-bottom:2px}
 .cnode:hover{background:var(--panel3)}
 .cnode.sel{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px color-mix(in srgb, var(--cur) 20%, transparent)}
 .cnode.new{animation:pop .32s ease-out}
@@ -194,7 +209,10 @@ body.dragging .ccol.drop .ghost{display:flex}
 .cnode .f-dec{color:var(--dec)} .cnode .f-cond{color:var(--decFg)}
 .cnode .f-esc{color:var(--s1);font-weight:700}
 .cnode .f-sla{color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:0 5px}
-.cwires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.cwires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
+/* 連絡の矢印。手順の流れとは別種の線なので、点線にして区別する */
+.cwires path.ca{stroke-width:1.4;stroke-dasharray:2 3;opacity:.85;fill:none}
+.cwires.focus path.ca{opacity:.25}
 /* 既定の線は少し明るく。選択・ホバー中は、繋がる線だけを残して他を沈める。
    セレクタを直接の子に限定しないと、矢印（marker 内の path）まで fill:none になって消える。 */
 .cwires>path{stroke:var(--wire);stroke-width:2;opacity:.62;fill:none;
@@ -446,12 +464,9 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 /* ---------- 担当（Tier）と連絡先 ---------- */
 .ol-f .tier{color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 3px;font-size:9px}
 .ol-f .cust{color:#ff5c8a}
-/* 担当はタイトルの上に置く。手順の性質を示す記号とは別の種類の情報なので、
-   同じ行に並べると「エスカレ先が Tier1」のように読み違えられる。 */
-.cnode .who{display:block;width:fit-content;margin:0 0 5px;font-family:var(--mono);
-  font-size:9.5px;font-weight:700;line-height:1.6;letter-spacing:.04em;
-  color:var(--tc);border:1px solid var(--tc);border-radius:4px;padding:0 6px;
-  background:color-mix(in srgb, var(--tc) 12%, transparent)}
+/* 担当を示すバッジは要らなくなった。列そのものが担当を表すため。
+   「! エスカレ ［Tier1］」と並んで「Tier1 にエスカレする」と読み違えられる
+   問題も、これで構造ごと消えた。 */
 .cnode .f-ct{display:inline-flex;gap:3px;align-items:center}
 .cnode .f-ct i{font-style:normal;width:14px;height:14px;border-radius:4px;font-size:9px;
   display:inline-flex;align-items:center;justify-content:center;

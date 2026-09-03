@@ -177,13 +177,29 @@ func TestSeedIsConsistent(t *testing.T) {
 		t.Fatalf("種データが読めません: %v", err)
 	}
 
+	if len(db.Lanes) == 0 {
+		t.Fatal("担当が 1 つもありません。フロー図の列が作れません")
+	}
 	for _, task := range db.Tasks {
 		if db.Phase(task.PhaseKey) == nil {
-			t.Errorf("タスク %q が知らないフェーズ %q を指しています", task.Key, task.PhaseKey)
+			t.Errorf("タスク %q が知らない段階 %q を指しています", task.Key, task.PhaseKey)
+		}
+		if db.Lane(task.LaneKey) == nil {
+			t.Errorf("タスク %q が知らない担当 %q を指しています", task.Key, task.LaneKey)
+		}
+	}
+	for _, g := range db.ContactGroups {
+		// 空は「矢印を描かない」の意味なので許す。
+		if g.LaneKey != "" && db.Lane(g.LaneKey) == nil {
+			t.Errorf("連絡先 %q が知らない担当 %q を指しています", g.Key, g.LaneKey)
 		}
 	}
 	for _, ev := range db.Events {
 		for _, st := range ev.Steps {
+			if db.Lane(st.LaneKey) == nil {
+				t.Errorf("%s / 手順 %q が知らない担当 %q を指しています",
+					ev.Key, st.Title, st.LaneKey)
+			}
 			if db.Task(st.TaskKey) == nil {
 				t.Errorf("%s / 手順 %q が知らないタスク %q を指しています",
 					ev.Key, st.Title, st.TaskKey)

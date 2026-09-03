@@ -9,17 +9,37 @@
  */
 
 /** データの形の版。internal/model.Version と合わせる。 */
-export const VERSION = 1;
+export const VERSION = 2;
 
 export interface DB {
   version: number;
+  /** フロー図の列。並び順が左からの順。 */
+  lanes: Lane[];
   phases: Phase[];
   tasks: Task[];
   contactGroups: ContactGroup[];
   events: EventFlow[];
 }
 
-/** 対応の段階。フロー図の 1 列。 */
+/**
+ * 担当。誰がその手順をやるか。フロー図では 1 つの列になる。
+ *
+ * 固定の 3 段階ではなく設定できる並びにしてある。フローに出てくる相手は
+ * 組織によって違い、呼び方も違うため（顧客・管理職・外部機関・ベンダー）。
+ */
+export interface Lane {
+  key: string;
+  name: string;
+  color: string;
+}
+
+/**
+ * 対応の段階。受信・確認、情報収集、封じ込め、復旧、記録・報告など。
+ *
+ * 図の列ではなく、ボックスの色とラベルで表す。段階を列にすると、受信の直後に
+ * 報告へ飛ぶようなフローで線が端から端まで伸びて戻ってくる。段階は時間とともに
+ * 一方向に進む——という前提が、実際の対応では成り立たないため。
+ */
 export interface Phase {
   key: string;
   name: string;
@@ -31,13 +51,11 @@ export interface Task {
   key: string;
   /** Go 側は PhaseKey。json タグが phase。 */
   phase: string;
+  /** 既定の担当。手順に投入するときの初期値になる。 */
+  lane: string;
   label: string;
   note: string;
-  tier: Tier;
 }
-
-/** 担当。誰がその手順をやるか。空は未指定。 */
-export type Tier = "" | "t1" | "t2" | "t3";
 
 /** 連絡先のカテゴリ。管理職・Tier2・顧客別など。 */
 export interface ContactGroup {
@@ -45,6 +63,12 @@ export interface ContactGroup {
   name: string;
   kind: ContactKind;
   note: string;
+  /**
+   * 連絡の矢印が向かう先。空なら矢印を描かない。
+   *
+   * これがあるおかげで、エスカレーションと顧客連絡を同じ 1 つの規則で描ける。
+   */
+  lane: string;
   /** 並び順が連絡順。夜間は 1 番から順に掛ける、をそのまま表す。 */
   members: ContactMember[];
 }
@@ -95,13 +119,14 @@ export type Severity = "S1" | "S2" | "S3";
  */
 export interface Step {
   id: string;
-  /** Go 側は TaskKey。json タグが task。 */
+  /** Go 側は TaskKey。json タグが task。段階（色）が決まる。 */
   task: string;
+  /** 担当。図のどの列に座るかが決まる。 */
+  lane: string;
   title: string;
   detail: string;
   sla: string;
   escalate: boolean;
-  tier: Tier;
   /** 参照する ContactGroup のキー。 */
   contacts: string[];
   /** 表示条件。複数あれば AND。空なら常に表示。 */
@@ -156,13 +181,6 @@ export interface ErrorBody {
 // ---------------------------------------------------------------------------
 // 表示のための定数
 // ---------------------------------------------------------------------------
-
-/** 担当の表示名。viewer 側（internal/export/viewer.js の TIER）と揃える。 */
-export const TIER_LABEL: Record<Exclude<Tier, "">, string> = {
-  t1: "Tier1",
-  t2: "Tier2",
-  t3: "Tier3・CSIRT",
-};
 
 /** 連絡先の区分の表示名。 */
 export const KIND_LABEL: Record<ContactKind, string> = {

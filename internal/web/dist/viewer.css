@@ -70,20 +70,40 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 
 .v-stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;
   padding:16px 18px 22px;overflow-x:auto}
-/* 左右の余白は、後戻りの線を通すためのレーン。下の余白（迂回路）と同じ役割。 */
-.v-grid{position:relative;display:flex;gap:46px;min-width:1330px;padding:0 26px 104px}
-.v-col{flex:1 1 0;min-width:178px;display:flex;flex-direction:column;gap:18px}
-.v-col>h2{margin:0 0 6px;font-size:11px;letter-spacing:.13em;font-weight:700;white-space:nowrap;
-  color:var(--pc,var(--faint));padding-bottom:6px;border-bottom:2px solid var(--pc,var(--line));opacity:.9}
+/* 列＝担当（レーン）、行＝手順の順番。
+   行が実施順そのものなので、手順の流れを表す線は必ず下へ進み、決して戻らない。
+   線 i は行 i と行 i+1 のあいだの帯しか通らないため、2 本の線が同じ帯を
+   共有することがなく、交差は起こり得ない。
+   段階（フェーズ）は列ではなく、ボックスの左のバーとラベルで表す。 */
+.v-grid{position:relative;display:grid;min-width:640px;padding:0 4px 26px;
+  column-gap:0;row-gap:16px;align-content:start}
+/* レーンの帯。全行にまたがって背景と区切り線を出す */
+.v-lane{grid-row:1 / -1;position:relative;z-index:0;
+  border-left:1px solid var(--line);background:color-mix(in srgb, var(--lc) 3.5%, transparent)}
+.v-lane.last{border-right:1px solid var(--line)}
+.v-lane-h{grid-row:1;position:sticky;top:0;z-index:3;text-align:center;
+  font-size:11px;letter-spacing:.1em;font-weight:700;white-space:nowrap;
+  color:var(--lc);padding:5px 4px 6px;background:var(--panel);
+  border-bottom:2px solid var(--lc)}
 
-/* フェーズ色は左のバーで常に見えるようにし、状態は枠線・地色・記号で示す。
+/* 段階の色は左のバーとラベルで示し、状態は枠線・地色・記号で示す。
    （色だけに頼らないという設計判断を守りつつ、カテゴリ色を消さない） */
-.v-node{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc,var(--line));
-  border-radius:8px;padding:10px 12px 10px 13px;cursor:pointer;position:relative;
+.v-node{position:relative;z-index:2;margin:0 14px 0 10px;
+  background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--pc,var(--line));
+  border-radius:8px;padding:8px 11px 9px 12px;cursor:pointer;
   transition:opacity .18s,border-color .18s,background .18s,box-shadow .18s}
-.v-node .n{font-size:13.5px;display:block;line-height:1.5;font-weight:600}
-.v-node .t{font-size:11px;color:var(--faint);display:block;line-height:1.45;margin-top:2px}
-.v-node .mk{position:absolute;top:8px;right:9px;font-family:var(--mono);font-size:12px;font-weight:700}
+.v-node .ph{font-size:10px;letter-spacing:.04em;color:var(--pc,var(--faint));
+  display:block;font-weight:700;margin-bottom:1px}
+.v-node .n{font-size:13px;display:block;line-height:1.45;font-weight:600}
+.v-node .t{font-size:11px;color:var(--faint);display:block;line-height:1.4;margin-top:2px}
+.v-node .mk{position:absolute;top:7px;right:9px;font-family:var(--mono);font-size:12px;font-weight:700}
+
+/* 連絡の相手。矢印の行き先に置く小さな札 */
+.v-ct{position:relative;z-index:2;align-self:center;justify-self:center;
+  max-width:88%;font-size:10.5px;line-height:1.35;text-align:center;
+  color:var(--lc);background:var(--panel);
+  border:1px dashed color-mix(in srgb, var(--lc) 55%, transparent);
+  border-radius:999px;padding:3px 9px}
 .v-node:hover{background:var(--panel3)}
 .v-node.done{border-color:var(--ok);background:var(--ok-bg)}
 .v-node.done .mk{color:var(--ok)}
@@ -93,7 +113,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-node.skip .mk{color:var(--skip)}
 .v-node .dec{position:absolute;bottom:7px;right:9px;font-size:11px;color:var(--dec)}
 
-.v-wires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.v-wires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
+.v-wires path.ca{fill:none;stroke:var(--cac);stroke-width:1.4;stroke-dasharray:2 3;opacity:.85}
+.v-wires polygon.ca{fill:var(--cac)}
 .v-wires path.w{fill:none;stroke:var(--cur);stroke-width:2;opacity:.85;stroke-linecap:round}
 .v-wires path.w.done{stroke:var(--ok)}
 .v-wires path.w.pend{stroke:var(--faint);stroke-dasharray:5 4;opacity:.7}

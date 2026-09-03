@@ -65,17 +65,14 @@ var KIND = {
   customer: {l:"お客様",     c:"#ff5c8a"},
   external: {l:"外部",       c:"#a97bff"}
 };
-var TIER = {
-  t1: {l:"Tier1", c:"#5ad1e6"},
-  t2: {l:"Tier2", c:"#ffb02e"},
-  t3: {l:"Tier3・CSIRT", c:"#ff6b6b"}
-};
 
 function mountViewer(root, DATA, opt){
   opt = opt || {};
   ensureViaSprite();
   var uid = "v" + Math.floor(Math.random()*1e9).toString(36);
-  var phaseByKey = {}, taskByKey = {}, groupByKey = {};
+  var phaseByKey = {}, taskByKey = {}, groupByKey = {}, laneByKey = {}, laneIndex = {};
+  var lanes = DATA.lanes || [];
+  lanes.forEach(function(l, i){ laneByKey[l.key] = l; laneIndex[l.key] = i; });
   DATA.phases.forEach(function(p){ phaseByKey[p.key] = p; });
   DATA.tasks.forEach(function(t){ taskByKey[t.key] = t; });
   (DATA.contactGroups || []).forEach(function(g){ groupByKey[g.key] = g; });
@@ -125,6 +122,7 @@ function mountViewer(root, DATA, opt){
 
   var cur = null, answers = {}, done = {}, startedAt = null, timer = null;
   var nodes = [];               // step index -> ボックス要素
+  var chips = [];               // {i, el} 連絡の矢印の行き先に置く札
   var KEY = opt.storageKey || "";
 
   function save(){
@@ -162,37 +160,79 @@ function mountViewer(root, DATA, opt){
     evlist.appendChild(b);
   });
 
-  /* ---- キャンバス（手順1つにつきボックス1つ） ---- */
+  /* ---- キャンバス ----
+     列は担当（レーン）、行は手順の順番。手順 1 つにつきボックス 1 つ。
+     段階は列ではなく、ボックスの左のバーとラベルで表す。 */
   function buildGrid(ev){
     grid.innerHTML = "";
-    nodes = [];
-    grid.appendChild(wires);
-    DATA.phases.forEach(function(p){
-      var col = document.createElement("div");
-      col.className = "v-col";
-      col.style.setProperty("--pc", p.color);
-      col.innerHTML = '<h2>' + esc(p.name) + '</h2>';
-      ev.steps.forEach(function(st, i){
-        var tk = taskByKey[st.task];
-        if(!tk || tk.phase !== p.key) return;
-        var el = document.createElement("div");
-        el.className = "v-node";
-        el.style.setProperty("--pc", p.color);
-        el.innerHTML = '<span class="mk"></span><span class="n">' + esc(tk.label) + '</span>'
-          + '<span class="t">' + esc(tk.note || "") + '</span>'
-          + (st.decision ? '<span class="dec">&#9670;</span>' : '');
-        el.addEventListener("click", function(){
-          var rows = $("slist").querySelectorAll(".v-s");
-          if(rows[i]) rows[i].scrollIntoView({behavior:"smooth", block:"center"});
-        });
-        col.appendChild(el);
-        nodes[i] = el;
-      });
-      grid.appendChild(col);
+    nodes = []; chips = [];
+    grid.style.gridTemplateColumns = "repeat(" + Math.max(lanes.length, 1) + ", minmax(148px, 1fr))";
+
+    lanes.forEach(function(l, li){
+      var bg = document.createElement("div");
+      bg.className = "v-lane" + (li === lanes.length - 1 ? " last" : "");
+      bg.style.setProperty("--lc", l.color);
+      bg.style.gridColumn = (li + 1);
+      grid.appendChild(bg);
+
+      var h = document.createElement("div");
+      h.className = "v-lane-h";
+      h.style.setProperty("--lc", l.color);
+      h.style.gridColumn = (li + 1);
+      h.textContent = l.name;
+      grid.appendChild(h);
     });
+
+    ev.steps.forEach(function(st, i){
+      var li = laneIndex[st.lane];
+      if(li === undefined) li = 0;
+      var tk = taskByKey[st.task], ph = tk ? phaseByKey[tk.phase] : null;
+
+      var el = document.createElement("div");
+      el.className = "v-node";
+      el.style.setProperty("--pc", ph ? ph.color : "var(--line)");
+      el.style.gridColumn = (li + 1);
+      el.style.gridRow = (i + 2);
+      el.innerHTML = '<span class="mk"></span>'
+        + (ph ? '<span class="ph">' + esc(ph.name) + '</span>' : '')
+        + '<span class="n">' + esc(tk ? tk.label : st.title) + '</span>'
+        + '<span class="t">' + esc(tk && tk.note ? tk.note : "") + '</span>'
+        + (st.decision ? '<span class="dec">&#9670;</span>' : '');
+      el.addEventListener("click", function(){
+        var rows = $("slist").querySelectorAll(".v-s");
+        if(rows[i]) rows[i].scrollIntoView({behavior:"smooth", block:"center"});
+      });
+      grid.appendChild(el);
+      nodes[i] = el;
+
+      /* 連絡の行き先。エスカレーションも顧客連絡も、同じ 1 つの規則で描ける。
+         レーンが設定されていない連絡先（管理職など）には矢印を出さない。 */
+      var byLane = {};
+      (st.contacts || []).forEach(function(k){
+        var g = groupByKey[k];
+        if(!g || !g.lane || g.lane === st.lane) return;
+        if(laneIndex[g.lane] === undefined) return;
+        (byLane[g.lane] = byLane[g.lane] || []).push(g);
+      });
+      Object.keys(byLane).forEach(function(lk){
+        var chip = document.createElement("div");
+        chip.className = "v-ct";
+        chip.style.setProperty("--lc", laneByKey[lk].color);
+        chip.style.gridColumn = (laneIndex[lk] + 1);
+        chip.style.gridRow = (i + 2);
+        chip.innerHTML = byLane[lk].map(function(g){ return esc(g.name); }).join("<br>");
+        grid.appendChild(chip);
+        chips.push({i:i, el:chip, color:laneByKey[lk].color});
+      });
+    });
+
+    grid.appendChild(wires);
   }
 
-  /* ---- 接続線 ---- */
+  /* ---- 接続線 ----
+     行が実施順そのものなので、線は必ず下へ進む。線 i は行 i と行 i+1 の
+     あいだの帯しか通らないので、2 本の線が同じ帯を共有することがなく、
+     交差は起こり得ない。迂回路の計算は要らない。 */
   function ortho(pts, r){
     var d = "M " + pts[0][0] + " " + pts[0][1];
     for(var i=1;i<pts.length-1;i++){
@@ -205,22 +245,12 @@ function mountViewer(root, DATA, opt){
     }
     return d + " L " + pts[pts.length-1][0] + " " + pts[pts.length-1][1];
   }
-  /* 同じ列の 2 ボックスの間に線を通せるすき間があれば、その y を返す */
-  function gapLane(a, b, box){
-    var ra=a.getBoundingClientRect(), rb=b.getBoundingClientRect();
-    if(Math.abs(ra.left-rb.left) > 2) return null;
-    var up = ra.top<rb.top?ra:rb, low = ra.top<rb.top?rb:ra;
-    var gap = low.top - up.bottom;
-    if(gap < 12) return null;
-    var y = up.bottom + gap/2 - box.top;
-    for(var i=0;i<nodes.length;i++){
-      var el = nodes[i];
-      if(!el || el===a || el===b) continue;
-      var r = el.getBoundingClientRect();
-      if(Math.abs(r.left-ra.left) > 2) continue;
-      if(r.top-box.top < y && r.bottom-box.top > y) return null;
-    }
-    return y;
+
+  /* 横向きの小さな三角。marker は色をなぞれないので、その場で描く。
+     dir は +1 が右、-1 が左。 */
+  function headH(x, y, dir, color){
+    return '<polygon class="ca" points="' + (x-6*dir) + ',' + (y-4) + ' ' + (x-6*dir) + ',' + (y+4)
+      + ' ' + x + ',' + y + '" style="fill:' + color + '"/>';
   }
 
   function paint(ev, ci){
@@ -238,40 +268,35 @@ function mountViewer(root, DATA, opt){
       seq.push({i:i, el:el, done:!!done[i], known:vis===true});
     });
 
-    var maxBottom = 0;
-    nodes.forEach(function(el){ if(el) maxBottom = Math.max(maxBottom, el.getBoundingClientRect().bottom - box.top); });
-
-    var HEAD=7, OUT=26, IN=26, back=0;
+    var HEAD = 7;
     var out = '<defs>'
-      + '<marker id="ah_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--cur)"/></marker>'
-      + '<marker id="ahd_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--ok)"/></marker>'
-      + '<marker id="ahp_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerWidth="7" markerHeight="6" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--faint)"/></marker>'
+      + '<marker id="ah_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="6.5" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--cur)"/></marker>'
+      + '<marker id="ahd_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="6.5" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--ok)"/></marker>'
+      + '<marker id="ahp_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="6.5" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--faint)"/></marker>'
       + '</defs>';
 
     for(var k=0;k<seq.length-1;k++){
-      var a = seq[k].el, b = seq[k+1].el;
-      var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-      /* 規則: 必ず右から出て、左から入る */
-      var x1 = ra.right - box.left,        y1 = ra.top - box.top + ra.height/2;
-      var x2 = rb.left - box.left - HEAD,  y2 = rb.top - box.top + rb.height/2;
+      var a = seq[k], b = seq[k+1];
+      var ra = a.el.getBoundingClientRect(), rb = b.el.getBoundingClientRect();
+      /* 規則: 下から出て、上から入る */
+      var ax = ra.left - box.left + ra.width/2, ay = ra.bottom - box.top;
+      var bx = rb.left - box.left + rb.width/2, by = rb.top - box.top - HEAD;
       var d;
-      if(x2 > x1 + 10){
-        var dx = Math.max(26, (x2-x1)*0.45);
-        d = "M " + x1 + " " + y1 + " C " + (x1+dx) + " " + y1 + ", " + (x2-dx) + " " + y2 + ", " + x2 + " " + y2;
+
+      if(Math.abs(ax - bx) < 2){
+        d = "M " + ax + " " + ay + " L " + bx + " " + by;      /* 同じ列。まっすぐ下へ */
+      }else if(b.i === a.i + 1){
+        var my = (ay + by) / 2;                                 /* 隣り合う行。行間で横へ移る */
+        d = ortho([[ax,ay],[ax,my],[bx,my],[bx,by]], 10);
       }else{
-        /* 左右のレーンの内側に収める。外へ出すと切れる。 */
-        var gx = Math.min(grid.clientWidth-8, x1+OUT);
-        var hx = Math.max(8, x2-IN);
-        var gy = gapLane(a, b, box);
-        if(gy !== null){
-          d = ortho([[x1,y1],[gx,y1],[gx,gy],[hx,gy],[hx,y2],[x2,y2]], 9);
-        }else{
-          var ch = maxBottom + 22 + back*13; back++;
-          d = ortho([[x1,y1],[gx,y1],[gx,ch],[hx,ch],[hx,y2],[x2,y2]], 11);
-        }
+        /* あいだに対象外の手順がある。真下を通ると重なるので、
+           ボックスの脇（レーンの余白）を降りる。横へ移るのは行間だけ。 */
+        var gx = Math.min(grid.clientWidth - 5, ra.right - box.left + 8);
+        d = ortho([[ax,ay],[ax,ay+9],[gx,ay+9],[gx,by-9],[bx,by-9],[bx,by]], 8);
       }
+
       /* 状態は色と線種の両方で示す（色だけに頼らない） */
-      var st2 = seq[k].done && seq[k+1].done ? "done" : (seq[k].known && seq[k+1].known ? "" : "pend");
+      var st2 = a.done && b.done ? "done" : (a.known && b.known ? "" : "pend");
       var mk2 = st2==="done" ? "ahd_"+uid : (st2==="pend" ? "ahp_"+uid : "ah_"+uid);
       out += '<path class="w ' + st2 + '" d="' + d + '" marker-end="url(#' + mk2 + ')" />';
 
@@ -282,6 +307,23 @@ function mountViewer(root, DATA, opt){
       out += '<circle class="' + st2 + '" cx="' + pt.x + '" cy="' + pt.y + '" r="10" />'
            + '<text class="' + st2 + '" x="' + pt.x + '" y="' + pt.y + '">' + (k+2) + '</text>';
     }
+
+    /* 連絡の矢印。手順の座っている行の中を横切るだけなので、
+       行と行のあいだを通る手順の線とはぶつからない。 */
+    chips.forEach(function(c){
+      var src = nodes[c.i];
+      if(!src || src.classList.contains("skip")){ c.el.style.visibility = "hidden"; return; }
+      c.el.style.visibility = "";
+      var ra = src.getBoundingClientRect(), rc = c.el.getBoundingClientRect();
+      var y = ra.top - box.top + ra.height/2;
+      var right = rc.left > ra.left;
+      var x1 = (right ? ra.right : ra.left) - box.left;
+      var x2 = (right ? rc.left - 3 : rc.right + 3) - box.left;
+      out += '<path class="ca" d="M ' + x1 + ' ' + y + ' L ' + x2 + ' ' + y
+           + '" style="stroke:' + c.color + '"/>'
+           + headH(x2, y, right ? 1 : -1, c.color);
+    });
+
     wires.innerHTML = out;
   }
 
@@ -321,9 +363,10 @@ function mountViewer(root, DATA, opt){
       if(isCur) tags += '<span class="tag now">現在</span>';
       /* 「担当」と書いておかないと、隣の「エスカレ判断」と並んだときに
          エスカレ先だと読み違えられる。 */
-      if(st.tier && TIER[st.tier])
-        tags += '<span class="tag tier" style="--tc:' + TIER[st.tier].c + '">担当 '
-              + TIER[st.tier].l + '</span>';
+      var ln = laneByKey[st.lane];
+      if(ln)
+        tags += '<span class="tag tier" style="--tc:' + ln.color + '">担当 '
+              + esc(ln.name) + '</span>';
       if(st.sla) tags += '<span class="tag sla">SLA ' + esc(st.sla) + '</span>';
       if(st.escalate) tags += '<span class="tag esc">エスカレ判断</span>';
       if(cts.some(function(g){ return g.kind === "customer"; }))
@@ -449,7 +492,7 @@ function mountViewer(root, DATA, opt){
       }
       n++;
       var head = "  " + (done[i] ? "[x]" : "[ ]") + " " + n + ". " + st.title;
-      if(st.tier && TIER[st.tier]) head += "［" + TIER[st.tier].l + "］";
+      if(laneByKey[st.lane]) head += "［" + laneByKey[st.lane].name + "］";
       if(st.sla) head += "（SLA " + st.sla + "）";
       lines.push(head);
       (st.contacts || []).forEach(function(k){

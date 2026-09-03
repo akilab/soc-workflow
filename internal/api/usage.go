@@ -13,18 +13,39 @@ import (
 // 何件あるかだけでなく、どの事象のどの手順かまで返す。
 // 「黙って消さない」ためには、消せない理由を画面に出せる形で渡す必要がある。
 type Usage struct {
-	Kind       string `json:"kind"`                 // "task" | "step"
-	Key        string `json:"key"`                  // タスクキー、または手順 ID
+	Kind       string `json:"kind"`                 // "task" | "step" | "contact"
+	Key        string `json:"key"`                  // タスク／連絡先のキー、または手順 ID
 	Label      string `json:"label"`                // 人が読む名前
 	Event      string `json:"event,omitempty"`      // 手順の場合、属する事象のキー
 	EventTitle string `json:"eventTitle,omitempty"` // 同、事象の名前
 }
 
-// tasksUsingPhase はそのフェーズに属するタスクを返す。
+// tasksUsingPhase はその段階に属するタスクを返す。
 func tasksUsingPhase(db *model.DB, phaseKey string) []Usage {
+	return tasksMatching(db, func(t *model.Task) bool { return t.PhaseKey == phaseKey })
+}
+
+// usingLane はそのレーンを指しているものを全部返す。
+//
+// レーンはタスク・手順・連絡先の 3 か所から参照される。消すと図の列が
+// 無くなり、そこに座っていた手順の行き場が無くなる。
+func usingLane(db *model.DB, laneKey string) []Usage {
+	out := tasksMatching(db, func(t *model.Task) bool { return t.LaneKey == laneKey })
+	out = append(out, collectSteps(db, func(s *model.Step) bool {
+		return s.LaneKey == laneKey
+	})...)
+	for _, g := range db.ContactGroups {
+		if g.LaneKey == laneKey {
+			out = append(out, Usage{Kind: "contact", Key: g.Key, Label: g.Name})
+		}
+	}
+	return out
+}
+
+func tasksMatching(db *model.DB, match func(*model.Task) bool) []Usage {
 	var out []Usage
 	for _, t := range db.Tasks {
-		if t.PhaseKey == phaseKey {
+		if match(t) {
 			out = append(out, Usage{Kind: "task", Key: t.Key, Label: t.Label})
 		}
 	}
