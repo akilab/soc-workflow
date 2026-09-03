@@ -669,10 +669,13 @@ export class Inspector {
       return '<button class="mini" id="d_make" style="margin-top:13px">◆ この手順を判断ステップにする</button>';
     }
     const d = st.decision;
+    // 回答キーは出さない。画面のどこにも人向けの文字として現れず、利用者に
+    // とっての識別子は質問文のほうだから。JSON を直に読むときのために、
+    // 見出しの title にだけ入れておく。
     return (
-      '<div class="sect"><h4>判断ステップ <button class="x" id="d_del">&times;</button></h4>' +
+      `<div class="sect" title="回答キー: ${esc(d.key)}">` +
+      '<h4>判断ステップ <button class="x" id="d_del">&times;</button></h4>' +
       `<label>質問文</label><input type="text" id="d_label" value="${esc(d.label)}">` +
-      `<label>回答キー</label><input type="text" id="d_key" value="${esc(d.key)}">` +
       '<label>選択肢</label><div id="d_opts">' +
       d.options
         .map(
@@ -683,7 +686,8 @@ export class Inspector {
         )
         .join("") +
       '</div><button class="mini" id="d_add">＋ 選択肢を追加</button>' +
-      '<p class="hint">判断ステップには完了ボタンを出しません。回答しないと先へ進めません。</p></div>'
+      '<p class="hint">判断ステップには完了ボタンを出しません。回答しないと先へ進めません。<br>' +
+      "この判断より後ろの手順に、答えごとの表示条件を付けられます。</p></div>"
     );
   }
 
@@ -708,23 +712,6 @@ export class Inspector {
       st.decision.label = el.value;
       this.d.renderFlow();
       this.queue(evt.key, st);
-    });
-
-    // 回答キーを変えると、それを指している条件も一緒に付け替える。
-    // 片方だけ変えると、条件が行き場を失う（サーバも断る）。
-    //
-    // ここだけは打つたびではなく、欄を離れたときに確定させる。打っている途中の
-    // キーは他の判断と衝突しうるし、衝突するとサーバが断って入力が巻き戻る。
-    on<HTMLInputElement>("d_key", "change", (el) => {
-      const d = st.decision;
-      if (!d) return;
-      const old = d.key;
-      const next = el.value.trim();
-      if (!next || next === old) {
-        el.value = old;
-        return;
-      }
-      void this.renameDecisionKey(evt, st, old, next);
     });
 
     on("d_add", "click", () => {
@@ -758,43 +745,6 @@ export class Inspector {
           d.options = d.options.filter((_, i) => i !== oi);
         });
       });
-    }
-  }
-
-  /**
-   * 回答キーを付け替える。参照している条件も一緒に直す。
-   *
-   * 条件を先に直してから判断を直す。逆にすると、間の一瞬だけ条件が
-   * 存在しないキーを指す状態になり、サーバに断られる。
-   */
-  private async renameDecisionKey(
-    evt: EventFlow,
-    st: Step,
-    old: string,
-    next: string,
-  ): Promise<void> {
-    await this.flush();
-
-    const affected = evt.steps.filter(
-      (s) => s !== st && (s.conditions ?? []).some((c) => c.key === old),
-    );
-
-    try {
-      st.decision!.key = next;
-      for (const s of affected) {
-        s.conditions = s.conditions.map((c) =>
-          c.key === old ? { ...c, key: next } : c,
-        );
-      }
-      // 判断を先に送る。条件が指す先を先に用意しないと断られる。
-      await this.d.api.updateStep(evt.key, st.id, toInput(st), { quiet: true });
-      for (const s of affected) {
-        await this.d.api.updateStep(evt.key, s.id, toInput(s), { quiet: true });
-      }
-      await this.d.api.load();
-    } catch (e) {
-      this.fail(e, "回答キーの変更");
-      await this.d.api.load();
     }
   }
 
