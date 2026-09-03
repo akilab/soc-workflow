@@ -34,9 +34,18 @@ export class Selection {
    *
    * 範囲は手順の並び順で取る。画面上の見た目ではなく実施順を基準にするのは、
    * まとめて操作したい単位が「連続する手順」だから。
+   *
+   * 何も付けずに、いま単独で選んでいるものをもう一度押したら選択を外す。
+   * 押して選ぶ操作しか無いと、選択を解除する手段が画面のどこにも無くなる。
    */
   set(evt: EventFlow, id: string, e?: MouseEvent): void {
     const ids = evt.steps.map((s) => s.id);
+    const plain = !e || (!e.ctrlKey && !e.metaKey && !e.shiftKey);
+
+    if (plain && this.ids.length === 1 && this.ids[0] === id) {
+      this.clear();
+      return;
+    }
 
     if (e && (e.ctrlKey || e.metaKey)) {
       const i = this.ids.indexOf(id);

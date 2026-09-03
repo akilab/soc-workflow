@@ -113,12 +113,13 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-node .mk{position:absolute;top:7px;right:9px;font-family:var(--mono);font-size:12px;font-weight:700}
 
 /* 連絡の相手。矢印の行き先に置く札。
-   手順のボックスではないので破線で区別するが、小さすぎると読めない。 */
+   手順のボックスは角のある四角にしたので、こちらは丸くしておく。
+   形が違えば「手順ではない」ことが一目で分かる。 */
 .v-ct{position:relative;z-index:2;align-self:center;justify-self:center;
   max-width:92%;font-size:12px;font-weight:600;line-height:1.4;text-align:center;
   color:var(--lc);background:var(--panel2);
   border:1px dashed var(--lc);
-  border-radius:0;padding:6px 11px}
+  border-radius:999px;padding:6px 14px}
 .v-node:hover{background:var(--panel3)}
 .v-node.done{border-color:var(--ok);background:var(--ok-bg)}
 .v-node.done .mk{color:var(--ok)}
