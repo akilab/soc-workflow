@@ -950,3 +950,48 @@ func TestDuplicateStepRenumbersDecision(t *testing.T) {
 		}
 	}
 }
+
+// 手順を足すとき、担当を指定できること。
+// 図の列が担当になったので、どの列に落としたかがそのまま意味を持つ。
+func TestCreateStepWithLane(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+	ev := db.Events[0]
+
+	// タスクの既定とは違う担当を選ぶ
+	task := db.Tasks[0]
+	var other string
+	for _, l := range db.Lanes {
+		if l.Key != task.LaneKey {
+			other = l.Key
+			break
+		}
+	}
+	if other == "" {
+		t.Fatal("担当が 2 つ以上必要です")
+	}
+
+	w := mustDo(t, h, "POST", "/api/events/"+ev.Key+"/steps",
+		stepCreateBody{TaskKey: task.Key, LaneKey: other})
+	var env struct {
+		Data *model.Step `json:"data"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &env)
+
+	if env.Data.LaneKey != other {
+		t.Errorf("担当 %q, 期待 %q（タスクの既定は %q）",
+			env.Data.LaneKey, other, task.LaneKey)
+	}
+}
+
+// 知らない担当を指定したら断ること。
+func TestCreateStepRejectsUnknownLane(t *testing.T) {
+	_, h := newTestServer(t)
+	db := readDB(t, h)
+
+	w := do(t, h, "POST", "/api/events/"+db.Events[0].Key+"/steps",
+		stepCreateBody{TaskKey: db.Tasks[0].Key, LaneKey: "そんな担当は無い"})
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("状態コード %d, 期待 400 — %s", w.Code, w.Body.String())
+	}
+}

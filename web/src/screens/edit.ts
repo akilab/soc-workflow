@@ -9,12 +9,18 @@
  */
 
 import { Api, ApiError } from "../api";
-import { renderCanvas, scrollToSelected } from "../canvas";
+import {
+  dropSpotAt,
+  renderCanvas,
+  scrollToSelected,
+  showDropSpot,
+} from "../canvas";
 import { optColor, optLabel } from "../branch";
 import { $, esc } from "../dom";
 import { eventOf, fmtMin, validate } from "../flow";
 import { Inspector } from "../inspector";
 import { renderOutline, reorderedIds } from "../outline";
+import { Palette } from "../palette";
 import { Selection } from "../select";
 import type { EventFlow } from "../types";
 import { openModal, showApiError, toast } from "../ui";
@@ -41,6 +47,7 @@ export class EditScreen {
   private readonly onBack: () => void;
   private readonly sel = new Selection();
   private readonly inspector: Inspector;
+  private readonly palette: Palette;
 
   private eventKey = "";
   private mode: Mode = "edit";
@@ -60,6 +67,11 @@ export class EditScreen {
       renderAll: () => this.render(),
       renderFlow: () => this.renderFlow(),
     });
+    this.palette = new Palette({
+      api: this.api,
+      event: () => this.evt,
+      onChanged: () => toast("手順を追加しました"),
+    });
     this.bind();
   }
 
@@ -78,7 +90,9 @@ export class EditScreen {
   /** 描き直す。データが入れ替わったときにも呼ばれる。 */
   render(): void {
     const evt = this.renderFlow();
-    if (evt) this.inspector.render(evt);
+    if (!evt) return;
+    this.inspector.render(evt);
+    this.palette.render();
   }
 
   /**
@@ -298,11 +312,48 @@ export class EditScreen {
       b.addEventListener("click", () => this.setTab(b.dataset.tab ?? "ins"));
     }
 
+    this.bindDrop();
     this.bindSplitters();
 
     // 窓の大きさが変わると座標が変わる。線を引き直す。
     window.addEventListener("resize", () => {
       if (this.mode === "edit" && this.evt) this.render();
+    });
+  }
+
+  /**
+   * パレットからキャンバスへ落とせるようにする。
+   *
+   * 落とした列がそのまま担当になり、落とした高さが挿入位置になる。
+   * 列が段階だった頃は、どこに落としても結果が同じだった（段階はタスクが
+   * 決めるので）。軸を担当に変えたことで、置く動作そのものが意味を持つ。
+   */
+  private bindDrop(): void {
+    const canvas = $("canvas");
+
+    const spotFrom = (e: DragEvent) =>
+      dropSpotAt(this.api.db, e.clientX, e.clientY);
+
+    canvas.addEventListener("dragover", (e) => {
+      if (!this.evt) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+      showDropSpot(this.api.db, spotFrom(e));
+    });
+    canvas.addEventListener("dragleave", (e) => {
+      // 中の要素をまたぐたびに発火するので、本当に外へ出たときだけ消す。
+      if (canvas.contains(e.relatedTarget as Node | null)) return;
+      showDropSpot(this.api.db, null);
+    });
+    canvas.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const spot = spotFrom(e);
+      showDropSpot(this.api.db, null);
+      document.body.classList.remove("dragging");
+
+      const data = e.dataTransfer?.getData("text/plain") ?? "";
+      if (!data.startsWith("task:")) return;
+      void this.palette.addStep(data.slice(5), spot ?? undefined);
     });
   }
 

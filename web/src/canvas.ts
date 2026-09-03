@@ -325,3 +325,84 @@ export function scrollToSelected(): void {
   const el = document.querySelector(".cnode.sel");
   el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
 }
+
+// ---------------------------------------------------------------------------
+// パレットからの投入
+// ---------------------------------------------------------------------------
+
+/** 落とす先。どの担当の、何番目に入るか。 */
+export interface DropSpot {
+  lane: string;
+  index: number;
+}
+
+/**
+ * ドラッグ中の座標から、落とし先を決める。
+ *
+ * 列が担当になったので、どの列に落としたかがそのまま「誰がやるか」になる。
+ * 縦の位置は挿入位置。行が実施順そのものなので、境目に落とせば順番も決まる。
+ *
+ * レーンの帯は db.lanes の順に並べているので、何番目かがそのまま担当を指す。
+ */
+export function dropSpotAt(db: DB, x: number, y: number): DropSpot | null {
+  const grid = document.getElementById("cgrid");
+  if (!grid) return null;
+
+  const lanes = [...grid.querySelectorAll<HTMLElement>(".clane")];
+  const li = lanes.findIndex((el) => {
+    const r = el.getBoundingClientRect();
+    return x >= r.left && x < r.right;
+  });
+  if (li < 0 || !db.lanes[li]) return null;
+
+  // 手順の順に並んだボックスの、上下どちら側に落ちたかで挿入位置を決める。
+  const boxes = [...grid.querySelectorAll<HTMLElement>(".cnode")];
+  let index = boxes.length;
+  for (let i = 0; i < boxes.length; i++) {
+    const r = boxes[i].getBoundingClientRect();
+    if (y < r.top + r.height / 2) {
+      index = i;
+      break;
+    }
+  }
+  return { lane: db.lanes[li].key, index };
+}
+
+/** 落とし先を画面に示す。列を光らせ、入る位置に線を引く。 */
+export function showDropSpot(db: DB, spot: DropSpot | null): void {
+  const grid = document.getElementById("cgrid");
+  if (!grid) return;
+
+  const lanes = [...grid.querySelectorAll<HTMLElement>(".clane")];
+  lanes.forEach((el, i) => {
+    el.classList.toggle("drop", !!spot && db.lanes[i]?.key === spot.lane);
+  });
+
+  let line = grid.querySelector<HTMLElement>(".cdrop");
+  if (!spot) {
+    line?.remove();
+    return;
+  }
+  if (!line) {
+    line = document.createElement("div");
+    line.className = "cdrop";
+    grid.appendChild(line);
+  }
+
+  const box = grid.getBoundingClientRect();
+  const boxes = [...grid.querySelectorAll<HTMLElement>(".cnode")];
+  const target = boxes[spot.index];
+  const prev = boxes[spot.index - 1];
+  // 入る位置の上の境目。末尾なら最後のボックスの下。
+  const y = target
+    ? target.getBoundingClientRect().top - box.top - 9
+    : prev
+      ? prev.getBoundingClientRect().bottom - box.top + 9
+      : 44;
+
+  const li = db.lanes.findIndex((l) => l.key === spot.lane);
+  const lr = lanes[li]?.getBoundingClientRect();
+  line.style.top = `${y}px`;
+  line.style.left = lr ? `${lr.left - box.left + 10}px` : "10px";
+  line.style.width = lr ? `${lr.width - 20}px` : "100%";
+}

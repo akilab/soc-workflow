@@ -180,6 +180,14 @@ body.dragging .clane.drop{background:color-mix(in srgb, var(--cur) 7%, transpare
   box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--cur) 40%, transparent)}
 body.dragging .clane:not(.drop){opacity:.35}
 
+/* パレットから落とすときに、どこへ入るかを示す線。 */
+.cdrop{position:absolute;z-index:4;height:2px;background:var(--cur);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--cur) 40%, transparent);
+  pointer-events:none}
+.cdrop::before,.cdrop::after{content:"";position:absolute;top:-3px;width:8px;height:8px;
+  background:var(--cur);border-radius:50%}
+.cdrop::before{left:-4px} .cdrop::after{right:-4px}
+
 /* 連絡の相手。矢印の行き先に置く札。
    手順のボックスは角のある四角にしたので、こちらは丸くしておく。
    形が違えば「手順ではない」ことが一目で分かる。 */

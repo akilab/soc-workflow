@@ -163,7 +163,7 @@ func copyStep(src *model.Step, id string) *model.Step {
 // 手順
 // ---------------------------------------------------------------------------
 
-// stepCreateBody は手順の追加。参照するタスクと、入れる位置だけを受け取る。
+// stepCreateBody は手順の追加。参照するタスクと、置き場所だけを受け取る。
 //
 // 中身は渡さない。パレットからタスクを置くと、そのタスクの名前と既定の担当が
 // 入った手順ができ、細かいところはインスペクタで直す——という画面の流れに合わせる。
@@ -171,6 +171,11 @@ type stepCreateBody struct {
 	TaskKey string `json:"task"`
 	// Index は挿入位置。省略すると末尾に付く。
 	Index *int `json:"index,omitempty"`
+	// LaneKey は担当。省略するとタスクの既定値を使う。
+	//
+	// 図の列が担当になったので、どの列に落としたかがそのまま意味を持つ。
+	// 「このフローでは Tier1 がやる」を、置く動作だけで表せる。
+	LaneKey string `json:"lane,omitempty"`
 }
 
 func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
@@ -189,11 +194,19 @@ func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
 			return nil, errf(http.StatusBadRequest, "知らないタスクです: %s", in.TaskKey)
 		}
 
+		lane := in.LaneKey
+		if lane == "" {
+			lane = task.LaneKey // 指定が無ければタスクの既定値
+		}
+		if db.Lane(lane) == nil {
+			return nil, errf(http.StatusBadRequest, "知らない担当です: %s", lane)
+		}
+
 		st := &model.Step{
 			ID:         stepIDGen(db)(),
 			TaskKey:    task.Key,
-			Title:      task.Label,   // この事象での言い方は、まずタスク名から始める
-			LaneKey:    task.LaneKey, // 担当はタスクの既定値を初期値にする
+			Title:      task.Label, // この事象での言い方は、まずタスク名から始める
+			LaneKey:    lane,
 			Contacts:   []string{},
 			Conditions: []model.Condition{},
 		}

@@ -93,6 +93,14 @@ export interface ContactInput {
   members: ContactMember[];
 }
 
+/** 手順をどこへ置くか。どちらも省略できる。 */
+export interface StepPlacement {
+  /** 挿入位置。省略すると末尾。 */
+  index?: number;
+  /** 担当。省略するとタスクの既定値。 */
+  lane?: string;
+}
+
 /** 手順の中身。更新のときに丸ごと置き換える。 */
 export interface StepInput {
   task: string;
@@ -164,10 +172,16 @@ export class Api {
   // 手順
   // -------------------------------------------------------------------------
 
-  /** 手順を足す。中身はサーバがタスクから写す。index を省くと末尾。 */
-  createStep(eventKey: string, task: string, index?: number) {
-    const body: { task: string; index?: number } = { task };
-    if (index !== undefined) body.index = index;
+  /**
+   * 手順を足す。中身はサーバがタスクから写す。
+   *
+   * index を省くと末尾。lane を省くとタスクの既定の担当になる。
+   * キャンバスへ落としたときは、落とした列がそのまま担当になる。
+   */
+  createStep(eventKey: string, task: string, at?: StepPlacement) {
+    const body: { task: string; index?: number; lane?: string } = { task };
+    if (at?.index !== undefined) body.index = at.index;
+    if (at?.lane) body.lane = at.lane;
     return this.write<Step>("POST", `/api/events/${enc(eventKey)}/steps`, body);
   }
 
