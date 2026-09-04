@@ -268,7 +268,9 @@ body.dragging .clane:not(.drop){opacity:.35}
   font-weight:700;color:var(--dim);display:flex;align-items:center;justify-content:center}
 .cnode.sel .num{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
 .cnode b{display:block;font-size:13px;font-weight:600;line-height:1.5;word-break:break-word}
-.cnode span.tk{display:block;font-size:10.5px;color:var(--faint);line-height:1.4;margin-top:2px}
+/* タスクの補足。書き出し HTML の .v-node .t と同じ値にする（viewer.css）。
+   同じ図なので、片方だけ大きさや色が違うと別物に見える。 */
+.cnode .t{display:block;font-size:11px;color:var(--faint);line-height:1.4;margin-top:2px}
 /* フラグはタイトルの下に置く。絶対配置だと長い SLA が文字に重なる。 */
 .cnode .flags{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:6px;
   padding-top:5px;border-top:1px solid var(--line-soft);font-size:10px;font-family:var(--mono)}

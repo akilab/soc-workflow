@@ -214,10 +214,16 @@ function nodeHTML(
     (phaseName ? `<i class="ph">${esc(phaseName)}</i>` : "") +
     (laneName ? `<i class="who">${esc(laneName)}</i>` : "");
 
+  // タスクの補足。「どこを見るか」の手がかりで、深夜の対応で効く。
+  // 書き出し HTML のボックスにはずっと出ていたのに、こちらには無かった。
+  // 同じ図が 2 か所で違って見えるのを避ける。
+  const note = taskOf(db, st.task)?.note ?? "";
+
   return (
     `<span class="num">${i + 1}</span>` +
     (cls ? `<span class="cls">${cls}</span>` : "") +
     `<b>${esc(st.title)}</b>` +
+    (note ? `<span class="t">${esc(note)}</span>` : "") +
     (flags ? `<span class="flags">${flags}</span>` : "")
   );
 }

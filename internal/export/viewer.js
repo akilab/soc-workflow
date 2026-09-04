@@ -268,7 +268,9 @@ function mountViewer(root, DATA, opt){
            同じページの下の手順一覧は st.title を出しているので、そことも
            食い違っていた。元のタスク名は手順一覧の分類行に出る。 */
         + '<span class="n">' + esc(st.title) + '</span>'
-        + '<span class="t">' + esc(tk && tk.note ? tk.note : "") + '</span>'
+        /* 補足が無いときは行そのものを出さない。空の span でも margin が残る。
+           エディタ側（canvas.ts）と同じ条件にしてある。 */
+        + (tk && tk.note ? '<span class="t">' + esc(tk.note) + '</span>' : '')
         + (st.decision ? '<span class="dec">&#9670;</span>' : '')
         + (isClose(st) ? '<span class="fin">終了</span>' : '')
         + (isWait(st) ? '<span class="wt">待ち</span>' : '');
