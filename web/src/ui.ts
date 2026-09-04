@@ -191,12 +191,18 @@ export function showApiError(err: ApiError, context: string): void {
           : `<li>${esc(u.label)}</li>`,
       )
       .join("");
+    // 妨げているものによって、直し方が違う。「参照を外す」で済むのは
+    // タスクや連絡先の話で、これを元にした事象は外しようがない。
+    const hint = err.usage.every((u) => u.kind === "event")
+      ? "これらは、この事象を元にして作られたものです。" +
+        "先にそちらを削除するか、別の事象から作り直してください。"
+      : "先にこれらの参照を外してください。";
     openModal(
       context,
       "削除できません",
       `<div class="ins"><div class="cfm"><p>${esc(err.message)}</p>` +
         `<ul class="uses">${rows}</ul>` +
-        `<p class="hint">先にこれらの参照を外してください。</p></div></div>`,
+        `<p class="hint">${hint}</p></div></div>`,
     );
     return;
   }

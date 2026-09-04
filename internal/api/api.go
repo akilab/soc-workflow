@@ -77,6 +77,8 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("PUT /api/events/{key}", s.updateEvent)
 	mux.HandleFunc("DELETE /api/events/{key}", s.deleteEvent)
 	mux.HandleFunc("POST /api/events/{key}/duplicate", s.duplicateEvent)
+	mux.HandleFunc("POST /api/events/{key}/derive", s.deriveEvent)
+	mux.HandleFunc("POST /api/events/{key}/reviewed", s.reviewedEvent)
 	mux.HandleFunc("PUT /api/events/{key}/lanes", s.setEventLanes)
 
 	mux.HandleFunc("POST /api/events/{key}/steps", s.createStep)

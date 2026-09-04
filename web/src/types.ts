@@ -130,6 +130,16 @@ export interface EventFlow {
    * だけなので、タスクの既定の担当も事象をまたいだ集計も壊れない。
    */
   lanes?: EventLane[] | null;
+  /**
+   * 元にした事象。空なら独立したフロー。
+   *
+   * 顧客ごとに手順そのものが変わるので、共通フローを元に顧客別を作る。
+   * 元の変更は自動では伝わらない。伝わってしまうと「どこを見ているか」が
+   * 黙って変わる。代わりに、元が新しくなったことを知らせる。
+   */
+  base?: string;
+  /** 元のどの時点まで見たか。元の updatedAt がこれより新しければ古い。 */
+  baseSyncedAt?: string;
   /** 並び順が実施順。 */
   steps: Step[];
   updatedAt: string;
@@ -167,6 +177,14 @@ export interface Step {
   conditions: Condition[];
   /** あればこの手順は判断ステップになる。 */
   decision?: Decision | null;
+  /**
+   * 元にした事象の、どの手順から来たか。空ならこの事象で足された手順。
+   *
+   * 手順 ID は事象をまたいで一意なので、写すと振り直される。
+   * それだけでは「共通のこの手順が、ここではこう変わっている」という対応が
+   * 取れなくなるため、出どころを覚えておく。
+   */
+  from?: string;
 }
 
 /** 「どの判断の、どの答えのときに表示するか」。 */
@@ -207,7 +225,7 @@ export interface HistoryState {
 
 /** 「それがどこで使われているか」1 件分。削除を断られたときに返る。 */
 export interface Usage {
-  kind: "task" | "step";
+  kind: "task" | "step" | "contact" | "event";
   key: string;
   label: string;
   event?: string;

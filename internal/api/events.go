@@ -84,10 +84,23 @@ func (s *Server) updateEvent(w http.ResponseWriter, r *http.Request) {
 func (s *Server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
 	s.mutate(w, r, func(db *model.DB) (any, error) {
-		if db.Event(key) == nil {
+		ev := db.Event(key)
+		if ev == nil {
 			return nil, notFound("事象", key)
 		}
-		// 事象を指しているものは無いので、確認は要らない。
+		// これを元にした事象があるなら消せない。消すと派生側が
+		// 「何と比べればよいのか」を失い、違いを見せられなくなる。
+		if d := db.Derived(key); len(d) > 0 {
+			usage := make([]Usage, 0, len(d))
+			for _, x := range d {
+				usage = append(usage, Usage{Kind: "event", Key: x.Key, Label: x.Title})
+			}
+			return nil, &apiErr{
+				code:  http.StatusConflict,
+				msg:   fmt.Sprintf("「%s」を元にした事象が %d 件あります", ev.Title, len(d)),
+				usage: usage,
+			}
+		}
 		db.Events = remove(db.Events, func(x *model.Event) bool { return x.Key == key })
 		return nil, nil
 	})
@@ -117,21 +130,98 @@ func (s *Server) duplicateEvent(w http.ResponseWriter, r *http.Request) {
 			return nil, notFound("事象", key)
 		}
 
-		dup := &model.Event{
-			Key:      uniqueKey("ev", func(k string) bool { return db.Event(k) != nil }),
-			Title:    src.Title + "（複製）",
-			Sub:      src.Sub,
-			Severity: src.Severity,
-			Steps:    make([]*model.Step, 0, len(src.Steps)),
-		}
-		nextID := stepIDGen(db)
-		for _, st := range src.Steps {
-			dup.Steps = append(dup.Steps, copyStep(st, nextID()))
-		}
-		touch(dup)
+		// 複製は元と対等な別のフロー。ただし元にした事象（BaseKey）は引き継ぐ
+		// ——「A 社向け」を複製したら「B 社向け」も同じ共通フローの派生になる。
+		// 手順の FromID は copyStep が値ごと写すので、そのまま残る。
+		dup := cloneEvent(db, src, src.Title+"（複製）")
+		dup.BaseKey, dup.BaseSyncedAt = src.BaseKey, src.BaseSyncedAt
 		db.Events = append(db.Events, dup)
 		return dup, nil
 	})
+}
+
+// deriveEvent は、この事象を元にした事象を作る。
+//
+// 複製と違うのは、元をどう見るか。複製は対等な別物、派生は「共通に対する
+// この顧客のやり方」で、共通との違いをあとから見られる。
+func (s *Server) deriveEvent(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Title string `json:"title"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	key := r.PathValue("key")
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		src := db.Event(key)
+		if src == nil {
+			return nil, notFound("事象", key)
+		}
+		// 派生の派生は作らせない。何と比べているのかが人にも辿れなくなる。
+		if src.BaseKey != "" {
+			return nil, errf(http.StatusConflict,
+				"「%s」自体が別の事象を元にしています。元の事象から作ってください", src.Title)
+		}
+
+		title := strings.TrimSpace(in.Title)
+		if title == "" {
+			title = src.Title + "（顧客別）"
+		}
+
+		ev := cloneEvent(db, src, title)
+		ev.BaseKey = src.Key
+		ev.BaseSyncedAt = src.UpdatedAt
+		// どの手順から来たかを覚える。これが無いと、あとで違いを取れない。
+		for i, st := range src.Steps {
+			ev.Steps[i].FromID = st.ID
+		}
+		db.Events = append(db.Events, ev)
+		return ev, nil
+	})
+}
+
+// reviewedEvent は「元との違いを見た」ことにする。
+//
+// 元が更新されると派生側に印が出る。取り込むかどうかは人が決めるので、
+// 見た結果「取り込まなくてよい」という判断もありうる。その意思を残す口。
+func (s *Server) reviewedEvent(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("key")
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		ev := db.Event(key)
+		if ev == nil {
+			return nil, notFound("事象", key)
+		}
+		base := db.Event(ev.BaseKey)
+		if base == nil {
+			return nil, errf(http.StatusConflict, "「%s」は他の事象を元にしていません", ev.Title)
+		}
+		ev.BaseSyncedAt = base.UpdatedAt
+		touch(ev)
+		return ev, nil
+	})
+}
+
+// cloneEvent は事象を丸ごと写す。複製と派生で共通の部分。
+func cloneEvent(db *model.DB, src *model.Event, title string) *model.Event {
+	ev := &model.Event{
+		Key:      uniqueKey("ev", func(k string) bool { return db.Event(k) != nil }),
+		Title:    title,
+		Sub:      src.Sub,
+		Severity: src.Severity,
+		Steps:    make([]*model.Step, 0, len(src.Steps)),
+	}
+	// 事象ごとの担当（呼び名と使う列）も写す。写さないと、呼び名を決めた
+	// フローを複製したとたんに全体の呼び名へ戻ってしまう。
+	for _, l := range src.Lanes {
+		cp := *l
+		ev.Lanes = append(ev.Lanes, &cp)
+	}
+	nextID := stepIDGen(db)
+	for _, st := range src.Steps {
+		ev.Steps = append(ev.Steps, copyStep(st, nextID()))
+	}
+	touch(ev)
+	return ev
 }
 
 // copyStep は手順を値ごと複製する。

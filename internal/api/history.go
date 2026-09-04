@@ -151,6 +151,8 @@ var actionLabel = map[string]string{
 	"PUT /api/events/{key}":            "事象の変更",
 	"DELETE /api/events/{key}":         "事象の削除",
 	"POST /api/events/{key}/duplicate": "事象の複製",
+	"POST /api/events/{key}/derive":    "顧客別フローの作成",
+	"POST /api/events/{key}/reviewed":  "共通との違いの確認",
 	"PUT /api/events/order":            "事象の並べ替え",
 	"PUT /api/events/{key}/lanes":      "この事象の担当の変更",
 

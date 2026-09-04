@@ -211,6 +211,18 @@ export class Api {
     return this.write<EventFlow>("POST", `/api/events/${enc(key)}/duplicate`);
   }
 
+  /** この事象を元にした顧客別のフローを作る。 */
+  deriveEvent(key: string, title: string) {
+    return this.write<EventFlow>("POST", `/api/events/${enc(key)}/derive`, {
+      title,
+    });
+  }
+
+  /** 元との違いを見たことにする。元が更新されたという印を消す。 */
+  reviewedEvent(key: string) {
+    return this.write<EventFlow>("POST", `/api/events/${enc(key)}/reviewed`);
+  }
+
   orderEvents(keys: string[]) {
     return this.write<null>("PUT", "/api/events/order", { keys } as OrderBody);
   }

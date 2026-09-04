@@ -205,8 +205,33 @@ type Event struct {
 	// ことは普通にあり、空の列が並ぶと図が横に伸びるだけになる。
 	Lanes []*EventLane `json:"lanes,omitempty"`
 
+	// BaseKey は、この事象の元にした事象。空なら独立したフロー。
+	//
+	// 顧客ごとに手順そのものが変わる（やることが増減し、SLA も報告先も違う）ため、
+	// 共通フローを元に顧客別を作る形にしてある。
+	//
+	// 元の変更が自動で伝わることは **しない**。対応フローは「どこを見ていて、
+	// どこを見ていないか」を表すもので、それが黙って変わるのは危険だから。
+	// 代わりに、元が新しくなったことを知らせて、取り込むかは人が決める。
+	BaseKey string `json:"base,omitempty"`
+
+	// BaseSyncedAt は、元の事象のどの時点まで見たか。
+	// 元の UpdatedAt がこれより新しければ「元が更新されている」と出す。
+	BaseSyncedAt time.Time `json:"baseSyncedAt,omitempty"`
+
 	Steps     []*Step   `json:"steps"` // 並び順が実施順。そのまま図の行になる
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// Derived は、この事象を元にして作られた事象。
+func (d *DB) Derived(key string) []*Event {
+	var out []*Event
+	for _, e := range d.Events {
+		if e.BaseKey == key {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // EventLane はこの事象での担当の使い方。
@@ -251,6 +276,14 @@ type Step struct {
 	// Decision があれば、この手順は判断ステップになる。
 	// 対応者に選択肢を尋ね、答えが以降の手順の Conditions を解決する。
 	Decision *Decision `json:"decision,omitempty"`
+
+	// FromID は、元にした事象のどの手順から来たか（Event.BaseKey を参照する側）。
+	//
+	// 手順 ID は事象をまたいで一意なので、複製すると振り直される。
+	// それだけでは「共通のこの手順が、顧客別ではこう変わっている」という
+	// 対応が取れなくなるため、出どころを覚えておく。
+	// 空なら、その顧客のために足された手順。
+	FromID string `json:"from,omitempty"`
 }
 
 // Condition は「どの判断の、どの答えのときに表示するか」。

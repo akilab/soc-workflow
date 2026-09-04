@@ -6,6 +6,7 @@
  */
 
 import { Api, ApiError } from "../api";
+import { derivedOf, diffFrom, diffSummary } from "../derive";
 import { $, esc, onAction } from "../dom";
 import { phaseDist, validate } from "../flow";
 import type { EventFlow, Severity } from "../types";
@@ -62,6 +63,7 @@ export class EventsScreen {
       `<div class="ew-card" data-a="open" data-key="${esc(ev.key)}">` +
       `<div class="ew-hd"><span class="sev ${esc(ev.severity)}">${esc(ev.severity)}</span>` +
       `<b>${esc(ev.title)}</b></div>` +
+      this.relation(ev) +
       `<p class="ew-sub">${esc(ev.sub || "（説明なし）")}</p>` +
       `<div class="ew-bar">${bar}</div>` +
       `<div class="ew-dist">${legend}</div>` +
@@ -73,9 +75,48 @@ export class EventsScreen {
       '<div class="ew-acts">' +
       `<button data-a="open" data-key="${esc(ev.key)}">開く</button>` +
       `<button data-a="dup" data-key="${esc(ev.key)}">複製</button>` +
+      // 派生の派生は作れないので、元になれるものにだけ出す。
+      (ev.base
+        ? ""
+        : `<button data-a="derive" data-key="${esc(ev.key)}">顧客別を作る</button>`) +
       `<button data-a="exp" data-key="${esc(ev.key)}">書き出し</button>` +
       `<button data-a="del" data-key="${esc(ev.key)}" class="dg">削除</button>` +
       "</div></div>"
+    );
+  }
+
+  /**
+   * 共通フローとの関係。
+   *
+   * 顧客別は「共通の何を変えたか」が、共通は「どれが自分を元にしているか」が、
+   * 一覧の時点で見えていないと、開くまで関係が分からない。
+   */
+  private relation(ev: EventFlow): string {
+    const db = this.api.db;
+
+    if (ev.base) {
+      const d = diffFrom(db, ev);
+      if (!d) return "";
+      const name = d.base ? esc(d.base.title) : "（元の事象がありません）";
+      return (
+        '<p class="ew-rel">' +
+        `<span class="from" title="この事象は「${name}」を元にしています">` +
+        `↳ ${name}</span>` +
+        `<span class="dif">${esc(diffSummary(d))}</span>` +
+        (d.outdated
+          ? '<span class="old" title="元の事象がこのあと更新されています。' +
+            '取り込むかどうかは、違いを見て決めてください">元が更新されています</span>'
+          : "") +
+        "</p>"
+      );
+    }
+
+    const kids = derivedOf(db, ev.key);
+    if (!kids.length) return "";
+    return (
+      '<p class="ew-rel"><span class="base" ' +
+      `title="${esc(kids.map((k) => k.title).join("、"))}">` +
+      `顧客別 ${kids.length} 件</span></p>`
     );
   }
 
@@ -93,6 +134,9 @@ export class EventsScreen {
           break;
         case "dup":
           void this.duplicate(key);
+          break;
+        case "derive":
+          void this.derive(key);
           break;
         case "exp":
           this.showExport(key);
@@ -150,6 +194,44 @@ export class EventsScreen {
       if (created) this.onOpen(created.key);
     } catch (e) {
       this.fail(e, "事象の作成");
+    }
+  }
+
+  /**
+   * この事象を元に、顧客別のフローを作る。
+   *
+   * 複製と分けてあるのは、元をどう見るかが違うから。複製は対等な別物、
+   * 顧客別は「共通に対するこの顧客のやり方」で、あとから違いを見られる。
+   */
+  private async derive(key: string): Promise<void> {
+    const ev = this.api.db.events.find((e) => e.key === key);
+    if (!ev) return;
+
+    const v = await askModal({
+      title: "顧客別のフローを作る",
+      sub: ev.title,
+      okLabel: "作る",
+      fields: [
+        {
+          k: "title",
+          label: "名前",
+          value: `${ev.title}（顧客別）`,
+          required: true,
+          placeholder: "例: 高橋工務店向け",
+          hint:
+            "いまの中身をそのまま写します。ここから手順を足したり外したりしてください。" +
+            "共通との違いは、編集ビューの「共通との違い」でいつでも見られます。",
+        },
+      ],
+    });
+    if (!v) return;
+
+    try {
+      const made = await this.api.deriveEvent(key, v.title);
+      toast(`「${v.title}」を作りました`);
+      if (made) this.onOpen(made.key);
+    } catch (e) {
+      this.fail(e, "顧客別フローの作成");
     }
   }
 

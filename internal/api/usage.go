@@ -13,7 +13,7 @@ import (
 // 何件あるかだけでなく、どの事象のどの手順かまで返す。
 // 「黙って消さない」ためには、消せない理由を画面に出せる形で渡す必要がある。
 type Usage struct {
-	Kind       string `json:"kind"`                 // "task" | "step" | "contact"
+	Kind       string `json:"kind"`                 // "task" | "step" | "contact" | "event"
 	Key        string `json:"key"`                  // タスク／連絡先のキー、または手順 ID
 	Label      string `json:"label"`                // 人が読む名前
 	Event      string `json:"event,omitempty"`      // 手順の場合、属する事象のキー

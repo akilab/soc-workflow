@@ -16,7 +16,9 @@ import {
   showDropSpot,
 } from "../canvas";
 import { optColor, optLabel } from "../branch";
-import { $, esc } from "../dom";
+import { changedDetail, diffFrom, diffSummary } from "../derive";
+import type { StepDiff } from "../derive";
+import { $, $as, esc } from "../dom";
 import { eventLanes, eventOf, fmtMin, validate } from "../flow";
 import { Inspector } from "../inspector";
 import { renderOutline, reorderedIds } from "../outline";
@@ -25,7 +27,7 @@ import { Selection } from "../select";
 import { EventLaneSettings } from "../settings";
 import type { DropSpot } from "../canvas";
 import type { EventFlow } from "../types";
-import { openModal, showApiError, toast } from "../ui";
+import { closeModal, openModal, showApiError, toast } from "../ui";
 
 type Mode = "edit" | "run";
 
@@ -146,7 +148,27 @@ export class EditScreen {
     });
 
     this.renderCheckBadge(evt);
+    this.renderDiffBadge(evt);
     return evt;
+  }
+
+  /**
+   * 「共通との違い」ボタン。顧客別フローのときだけ出す。
+   *
+   * 元が更新されていれば、開かなくても分かるように印を付ける。
+   * 気づかないまま古い前提で直すのが一番まずい。
+   */
+  private renderDiffBadge(evt: EventFlow): void {
+    const b = $as<HTMLButtonElement>("btnDiff");
+    const d = diffFrom(this.api.db, evt);
+    b.hidden = !d;
+    if (!d) return;
+
+    b.classList.toggle("warn", d.outdated);
+    b.innerHTML = `共通との違い<u>${esc(diffSummary(d))}</u>` + (d.outdated ? " !" : "");
+    b.title = d.outdated
+      ? "元の事象がこのあと更新されています"
+      : `「${d.base?.title ?? ""}」との違いを見る`;
   }
 
   // -------------------------------------------------------------------------
@@ -250,6 +272,99 @@ export class EditScreen {
     openModal("検証", evt.title, html);
   }
 
+  /**
+   * 共通フローとの違い。
+   *
+   * 顧客ごとに手順そのものが変わるので、「この顧客だけ何をしているのか」が
+   * 分からないと、共通を直したときに何を見直せばよいか決められない。
+   */
+  private showDiff(): void {
+    const evt = this.evt;
+    if (!evt) return;
+    const db = this.api.db;
+    const d = diffFrom(db, evt);
+    if (!d) return;
+
+    if (!d.base) {
+      openModal(
+        "共通との違い",
+        evt.title,
+        '<p class="cfm">元にした事象が見つかりません。' +
+          "データファイルを直接編集した場合に起きます。</p>",
+      );
+      return;
+    }
+
+    const WORD: Record<StepDiff["kind"], string> = {
+      same: "同じ",
+      changed: "変更",
+      added: "追加",
+      removed: "削除",
+    };
+
+    let no = 0;
+    const rows = d.rows
+      .map((r) => {
+        const st = r.kind === "removed" ? r.base : r.step;
+        // 番号はこの事象での実施順。削除された手順にはこの事象での位置が無い。
+        const n = r.kind === "removed" ? "—" : String(++no);
+        const why =
+          r.kind === "changed"
+            ? changedDetail(db, r)
+            : r.kind === "added"
+              ? "この事象のために足された手順です"
+              : r.kind === "removed"
+                ? "共通にはありますが、この事象では実施しません"
+                : "";
+        return (
+          `<tr class="d-${r.kind}"><td class="num">${n}</td>` +
+          `<td><span class="tag">${WORD[r.kind]}</span></td>` +
+          `<td><b>${esc(st.title)}</b>` +
+          (why ? `<span class="why">${esc(why)}</span>` : "") +
+          "</td></tr>"
+        );
+      })
+      .join("");
+
+    const head =
+      `<p class="cfm">「<b>${esc(d.base.title)}</b>」を元にしています。` +
+      `${esc(diffSummary(d))}。` +
+      (d.reordered ? "手順の前後関係も変えてあります。" : "") +
+      "</p>" +
+      (d.outdated
+        ? '<p class="cfm"><em>元の事象が、このあと更新されています。</em>' +
+          "取り込むかどうかは、上の違いを見て決めてください。" +
+          "見たうえで今のままでよければ、下の「確認した」を押すと印が消えます。</p>"
+        : "");
+
+    openModal(
+      "共通との違い",
+      evt.title,
+      head +
+        '<table class="tbl difftbl"><thead><tr>' +
+        "<th>#</th><th>状態</th><th>手順</th></tr></thead>" +
+        `<tbody>${rows}</tbody></table>`,
+      (d.outdated
+        ? '<button class="ed-tool" id="diffAck">確認した</button>'
+        : "") + '<button class="ed-tool pri" data-x="close">閉じる</button>',
+    );
+
+    $("mFoot")
+      .querySelector("#diffAck")
+      ?.addEventListener("click", () => void this.ackDiff(evt.key));
+  }
+
+  private async ackDiff(key: string): Promise<void> {
+    try {
+      await this.api.reviewedEvent(key);
+      closeModal();
+      toast("確認しました");
+    } catch (e) {
+      if (e instanceof ApiError) showApiError(e, "確認を記録できませんでした");
+      else throw e;
+    }
+  }
+
   private showPaths(): void {
     const evt = this.evt;
     if (!evt) return;
@@ -328,6 +443,7 @@ export class EditScreen {
       const evt = this.evt;
       if (evt) this.laneSettings.open(evt);
     });
+    $("btnDiff").addEventListener("click", () => this.showDiff());
     $("btnCheck").addEventListener("click", () => this.showCheck());
     $("btnPaths").addEventListener("click", () => this.showPaths());
     $("btnExport").addEventListener("click", () => this.showExport());
