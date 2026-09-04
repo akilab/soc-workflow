@@ -28,7 +28,7 @@ func (s *Server) setEventLanes(w http.ResponseWriter, r *http.Request) {
 	}
 	key := r.PathValue("key")
 
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(key)
 		if ev == nil {
 			return nil, notFound("事象", key)

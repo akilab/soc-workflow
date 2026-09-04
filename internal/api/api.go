@@ -26,6 +26,8 @@ type Server struct {
 
 	revMu sync.Mutex
 	rev   int64
+
+	hist history
 }
 
 // New は Server を作る。
@@ -40,6 +42,9 @@ func (s *Server) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/db", s.getDB)
+
+	mux.HandleFunc("POST /api/undo", s.undo)
+	mux.HandleFunc("POST /api/redo", s.redo)
 
 	mux.HandleFunc("GET /api/export.html", s.exportAll)
 	mux.HandleFunc("GET /api/events/{key}/export.html", s.exportOne)
@@ -93,9 +98,14 @@ func (s *Server) Routes() *http.ServeMux {
 // 2 つのタブで開いているときに、片方が古いデータのまま画面を出し続けるのを防ぐ。
 // 手元の rev と食い違ったら GET /api/db を取り直せばよい。
 // 28KB なので取り直しは一瞬で、衝突を解決する仕掛けを持つ必要がない。
+//
+// history は取り消し／やり直しで戻る操作の名前。押せないときは空。
+// すべての応答に添えるので、画面は書き込みのたびにボタンの状態を更新できる
+// （そのためだけに問い合わせを増やさない）。
 type envelope struct {
-	Rev  int64 `json:"rev"`
-	Data any   `json:"data,omitempty"`
+	Rev     int64     `json:"rev"`
+	Data    any       `json:"data,omitempty"`
+	History histState `json:"history"`
 }
 
 // errBody はエラー応答。
@@ -151,7 +161,8 @@ func (s *Server) bumpRev() int64 {
 // ok は成功を返す。
 func (s *Server) ok(w http.ResponseWriter, rev int64, data any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if err := json.NewEncoder(w).Encode(envelope{Rev: rev, Data: data}); err != nil {
+	env := envelope{Rev: rev, Data: data, History: s.hist.state()}
+	if err := json.NewEncoder(w).Encode(env); err != nil {
 		// 書き出し中の失敗は状態コードを送り直せない。記録だけして諦める。
 		return
 	}
@@ -184,7 +195,22 @@ func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 //
 // fn がエラーを返せば変更は丸ごと破棄され、rev も上がらない。
 // 中途半端に適用された状態が残らないので、ハンドラは検査を好きな順に書ける。
-func (s *Server) mutate(w http.ResponseWriter, fn func(*model.DB) (any, error)) {
+//
+// 変更の前に控えを取り、成功したときだけ履歴へ積む。断られた要求で
+// 取り消しの手数が増えると、押しても何も変わらない手ができてしまう。
+func (s *Server) mutate(w http.ResponseWriter, r *http.Request, fn func(*model.DB) (any, error)) {
+	label, group := describe(r)
+
+	var before []byte
+	if label != "" {
+		var err error
+		if before, err = s.st.Snapshot(); err != nil {
+			// 控えが取れないなら、取り消せない変更を黙って通さない。
+			writeErr(w, errf(http.StatusInternalServerError, "控えを作れません: %v", err))
+			return
+		}
+	}
+
 	var result any
 	err := s.st.Write(func(db *model.DB) error {
 		var e error
@@ -195,7 +221,38 @@ func (s *Server) mutate(w http.ResponseWriter, fn func(*model.DB) (any, error)) 
 		writeErr(w, err)
 		return
 	}
+
+	s.hist.push(label, group, before)
 	s.ok(w, s.bumpRev(), result)
+}
+
+// undo と redo は同じ形なので 1 つにしてある。
+func (s *Server) undo(w http.ResponseWriter, r *http.Request) { s.stepHistory(w, true) }
+func (s *Server) redo(w http.ResponseWriter, r *http.Request) { s.stepHistory(w, false) }
+
+func (s *Server) stepHistory(w http.ResponseWriter, back bool) {
+	now, err := s.st.Snapshot()
+	if err != nil {
+		writeErr(w, errf(http.StatusInternalServerError, "控えを作れません: %v", err))
+		return
+	}
+
+	e, ok := s.hist.take(back, now)
+	if !ok {
+		word := "やり直せる操作"
+		if back {
+			word = "取り消せる操作"
+		}
+		writeErr(w, errf(http.StatusConflict, "%sがありません", word))
+		return
+	}
+
+	if err := s.st.Restore(e.snap); err != nil {
+		writeErr(w, err)
+		return
+	}
+	// 何が戻ったのかを画面に出せるよう、言葉を返す。
+	s.ok(w, s.bumpRev(), map[string]string{"label": e.label})
 }
 
 // ---------------------------------------------------------------------------

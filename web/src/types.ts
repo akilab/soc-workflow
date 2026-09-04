@@ -195,6 +195,14 @@ export interface Option {
 export interface Envelope<T> {
   rev: number;
   data?: T;
+  /** 取り消し／やり直しで戻る操作の名前。押せないときは空。 */
+  history: HistoryState;
+}
+
+/** サーバが覚えている取り消しの状態。すべての応答に添えられる。 */
+export interface HistoryState {
+  undo: string;
+  redo: string;
 }
 
 /** 「それがどこで使われているか」1 件分。削除を断られたときに返る。 */

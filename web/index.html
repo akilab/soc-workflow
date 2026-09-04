@@ -34,6 +34,12 @@
   <div class="ed-top">
     <button class="ed-back" id="btnBack">← 事象一覧</button>
     <div class="ed-title" id="edTitle"></div>
+    <!-- 取り消し・やり直し。試して戻せることが、この道具の使い方そのものなので
+         見えるところに置く。キーボードは Ctrl+Z / Ctrl+Shift+Z で全画面から使える。 -->
+    <div class="ed-undo">
+      <button class="ed-tool" id="btnUndo" type="button" disabled>↶</button>
+      <button class="ed-tool" id="btnRedo" type="button" disabled>↷</button>
+    </div>
     <div class="ed-spacer"></div>
     <button class="ed-tool" data-th type="button"></button>
     <button class="ed-tool" id="btnLanes">担当</button>

@@ -28,6 +28,9 @@ body.resizing{cursor:col-resize;user-select:none}
 
 /* ---------- 共通の部品 ---------- */
 .ed-spacer{flex:1}
+/* 取り消し・やり直し。記号だけなので幅をそろえて、対の操作に見えるようにする。 */
+.ed-undo{display:flex;gap:4px;margin-left:12px;flex:none}
+.ed-undo button{width:30px;padding:0;font-size:15px;line-height:1.6;font-family:var(--sans)}
 .ed-tool{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
   padding:7px 14px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap}
 .ed-tool:hover{border-color:var(--hover);background:var(--panel3)}

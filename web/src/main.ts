@@ -9,13 +9,13 @@
 import "./app.css";
 
 import { Api, ApiError } from "./api";
-import { $ } from "./dom";
+import { $, $as } from "./dom";
 import { ContactsScreen } from "./screens/contacts";
 import { EditScreen } from "./screens/edit";
 import { EventsScreen } from "./screens/events";
 import { TasksScreen } from "./screens/tasks";
 import { Settings } from "./settings";
-import { closeModal } from "./ui";
+import { closeModal, showApiError, toast } from "./ui";
 
 type Screen = "events" | "edit" | "contacts" | "tasks";
 
@@ -52,6 +52,7 @@ class App {
 
     // データが入れ替わったら描き直す。書き込みのたびに api が呼ぶ。
     this.api.onChange = () => this.render();
+    this.api.onHistory = () => this.syncUndo();
   }
 
   async start(): Promise<void> {
@@ -95,9 +96,67 @@ class App {
     $("mask").addEventListener("click", (e) => {
       if (e.target === $("mask")) closeModal(); // 外側を押したら閉じる
     });
+    $("btnUndo").addEventListener("click", () => void this.stepHistory(true));
+    $("btnRedo").addEventListener("click", () => void this.stepHistory(false));
+
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeModal();
+      if (e.key === "Escape") {
+        closeModal();
+        return;
+      }
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+
+      // 入力欄の中では、ブラウザ自身の取り消し（打った文字を戻す）に任せる。
+      // ここで横取りすると、1 文字消したいだけなのに手順ごと戻ってしまう。
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable]")) return;
+      // ダイアログが開いているあいだも触らない。裏側のデータが
+      // 入れ替わると、いま書いている内容が何に対するものか分からなくなる。
+      if ($("mask").classList.contains("on")) return;
+
+      const k = e.key.toLowerCase();
+      if (k === "z" && !e.shiftKey) {
+        e.preventDefault();
+        void this.stepHistory(true);
+      } else if ((k === "z" && e.shiftKey) || k === "y") {
+        e.preventDefault();
+        void this.stepHistory(false);
+      }
     });
+  }
+
+  /**
+   * 1 手戻す（または進める）。
+   *
+   * 送る前に保存待ちの入力を出しきる。入力は 400ms 止まってから送られるので、
+   * 打った直後に取り消すと、戻したあとに古い入力が届いて元へ戻ってしまう。
+   */
+  private async stepHistory(back: boolean): Promise<void> {
+    try {
+      // 出しきるのが先。打った直後の Ctrl+Z は、まだ送っていない入力が
+      // 履歴に載っていないので、順序を逆にすると黙って空振りする。
+      await this.edit.flush();
+      if (!(back ? this.api.history.undo : this.api.history.redo)) return;
+
+      const label = await this.api.stepHistory(back);
+      toast(back ? `${label}を取り消しました` : `${label}をやり直しました`);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        showApiError(e, back ? "取り消せませんでした" : "やり直せませんでした");
+      } else throw e;
+    }
+  }
+
+  /** ボタンの出し分け。何が戻るのかは説明に出す。 */
+  private syncUndo(): void {
+    const h = this.api.history;
+    const set = (id: string, label: string, verb: string, keys: string) => {
+      const b = $as<HTMLButtonElement>(id);
+      b.disabled = !label;
+      b.title = label ? `${label}を${verb}（${keys}）` : `${verb}操作はありません`;
+    };
+    set("btnUndo", h.undo, "取り消す", "Ctrl+Z");
+    set("btnRedo", h.redo, "やり直す", "Ctrl+Shift+Z");
   }
 
   /**

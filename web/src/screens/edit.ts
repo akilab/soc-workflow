@@ -91,6 +91,16 @@ export class EditScreen {
     this.setMode("edit");
   }
 
+  /**
+   * 保存待ちの入力を送りきる。
+   *
+   * 取り消しの前に必ず呼ぶ。入力は 400ms 止まってから送られるので、
+   * 打った直後に取り消すと、戻したあとに古い入力が届いて元に戻ってしまう。
+   */
+  flush(): Promise<void> {
+    return this.inspector.flush();
+  }
+
   /** 描き直す。データが入れ替わったときにも呼ばれる。 */
   render(): void {
     const evt = this.renderFlow();

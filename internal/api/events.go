@@ -44,7 +44,7 @@ func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		if err := in.check(); err != nil {
 			return nil, err
 		}
@@ -67,7 +67,7 @@ func (s *Server) updateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(key)
 		if ev == nil {
 			return nil, notFound("事象", key)
@@ -83,7 +83,7 @@ func (s *Server) updateEvent(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		if db.Event(key) == nil {
 			return nil, notFound("事象", key)
 		}
@@ -98,7 +98,7 @@ func (s *Server) orderEvents(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		next, err := reorder(db.Events, in.Keys, func(e *model.Event) string { return e.Key })
 		if err != nil {
 			return nil, err
@@ -111,7 +111,7 @@ func (s *Server) orderEvents(w http.ResponseWriter, r *http.Request) {
 // duplicateEvent は事象を丸ごと複製する。案 A と案 B を並べて比べるための操作。
 func (s *Server) duplicateEvent(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		src := db.Event(key)
 		if src == nil {
 			return nil, notFound("事象", key)
@@ -184,7 +184,7 @@ func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	evKey := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
 			return nil, notFound("事象", evKey)
@@ -233,7 +233,7 @@ func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
 // どの条件からも参照されない状態になる（元の手順の条件はそのまま生きる）。
 func (s *Server) duplicateStep(w http.ResponseWriter, r *http.Request) {
 	evKey, id := r.PathValue("key"), r.PathValue("id")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
 			return nil, notFound("事象", evKey)
@@ -295,7 +295,7 @@ func (s *Server) updateStep(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	evKey, id := r.PathValue("key"), r.PathValue("id")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
 			return nil, notFound("事象", evKey)
@@ -409,7 +409,7 @@ func checkDecision(ev *model.Event, cur *model.Step, d *model.Decision) error {
 
 func (s *Server) deleteStep(w http.ResponseWriter, r *http.Request) {
 	evKey, id := r.PathValue("key"), r.PathValue("id")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
 			return nil, notFound("事象", evKey)
@@ -437,7 +437,7 @@ func (s *Server) orderSteps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	evKey := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
 			return nil, notFound("事象", evKey)

@@ -31,7 +31,7 @@ func (s *Server) createLane(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		if err := in.check(); err != nil {
 			return nil, err
 		}
@@ -51,7 +51,7 @@ func (s *Server) updateLane(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		l := db.Lane(key)
 		if l == nil {
 			return nil, notFound("担当", key)
@@ -66,7 +66,7 @@ func (s *Server) updateLane(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteLane(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		l := db.Lane(key)
 		if l == nil {
 			return nil, notFound("担当", key)
@@ -89,7 +89,7 @@ func (s *Server) orderLanes(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		next, err := reorder(db.Lanes, in.Keys, func(l *model.Lane) string { return l.Key })
 		if err != nil {
 			return nil, err

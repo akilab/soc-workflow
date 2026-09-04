@@ -25,6 +25,14 @@ type Store interface {
 	Read(fn func(*model.DB))
 	// Write は変更。fn がエラーを返せば変更は破棄され、保存もされない。
 	Write(fn func(*model.DB) error) error
+	// Snapshot は今のデータを JSON にして返す。取り消しの記録に使う。
+	//
+	// 全部で 28KB しかないので、操作ごとの差分ではなく丸ごと控える。
+	// 差分と逆操作を作ると、操作の種類ぶんだけ「戻し方」を書くことになり、
+	// 1 つ書き忘れると黙って壊れる。丸ごとなら書き戻しは 1 通りしかない。
+	Snapshot() ([]byte, error)
+	// Restore は Snapshot が返したものを丸ごと書き戻す。
+	Restore(raw []byte) error
 	// Flush は保存待ちの変更をすぐ書き出す。
 	Flush() error
 	// Close は保存してからロックを解放する。
@@ -168,6 +176,36 @@ func (s *JSONStore) Write(fn func(*model.DB) error) error {
 		return err
 	}
 	normalize(s.db)
+	s.dirty = true
+	s.mu.Unlock()
+
+	s.scheduleSave()
+	return nil
+}
+
+// Snapshot は今のデータを JSON にして返す。
+func (s *JSONStore) Snapshot() ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	raw, err := json.Marshal(s.db)
+	if err != nil {
+		return nil, fmt.Errorf("JSON にできません: %w", err)
+	}
+	return raw, nil
+}
+
+// Restore は控えを丸ごと書き戻す。
+//
+// 読めない控えで今のデータを潰さないよう、先に解析してから差し替える。
+func (s *JSONStore) Restore(raw []byte) error {
+	var db model.DB
+	if err := json.Unmarshal(raw, &db); err != nil {
+		return fmt.Errorf("控えを読めません: %w", err)
+	}
+	normalize(&db)
+
+	s.mu.Lock()
+	s.db = &db
 	s.dirty = true
 	s.mu.Unlock()
 

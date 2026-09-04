@@ -38,7 +38,7 @@ func (s *Server) createPhase(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		if err := in.check(); err != nil {
 			return nil, err
 		}
@@ -58,7 +58,7 @@ func (s *Server) updatePhase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		p := db.Phase(key)
 		if p == nil {
 			return nil, notFound("段階", key)
@@ -73,7 +73,7 @@ func (s *Server) updatePhase(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deletePhase(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		p := db.Phase(key)
 		if p == nil {
 			return nil, notFound("段階", key)
@@ -91,7 +91,7 @@ func (s *Server) orderPhases(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		next, err := reorder(db.Phases, in.Keys, func(p *model.Phase) string { return p.Key })
 		if err != nil {
 			return nil, err
@@ -135,7 +135,7 @@ func (s *Server) createTask(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		if err := in.check(db); err != nil {
 			return nil, err
 		}
@@ -155,7 +155,7 @@ func (s *Server) updateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		t := db.Task(key)
 		if t == nil {
 			return nil, notFound("タスク", key)
@@ -175,7 +175,7 @@ func (s *Server) updateTask(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteTask(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		t := db.Task(key)
 		if t == nil {
 			return nil, notFound("タスク", key)
@@ -193,7 +193,7 @@ func (s *Server) orderTasks(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		next, err := reorder(db.Tasks, in.Keys, func(t *model.Task) string { return t.Key })
 		if err != nil {
 			return nil, err
@@ -269,7 +269,7 @@ func (s *Server) createContactGroup(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		if err := in.check(db); err != nil {
 			return nil, err
 		}
@@ -292,7 +292,7 @@ func (s *Server) updateContactGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		g := db.ContactGroup(key)
 		if g == nil {
 			return nil, notFound("連絡先グループ", key)
@@ -308,7 +308,7 @@ func (s *Server) updateContactGroup(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteContactGroup(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		g := db.ContactGroup(key)
 		if g == nil {
 			return nil, notFound("連絡先グループ", key)
@@ -327,7 +327,7 @@ func (s *Server) orderContactGroups(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.mutate(w, func(db *model.DB) (any, error) {
+	s.mutate(w, r, func(db *model.DB) (any, error) {
 		next, err := reorder(db.ContactGroups, in.Keys,
 			func(g *model.ContactGroup) string { return g.Key })
 		if err != nil {

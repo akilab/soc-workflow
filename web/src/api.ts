@@ -19,6 +19,7 @@ import type {
   ErrorBody,
   EventFlow,
   EventLane,
+  HistoryState,
   Lane,
   Phase,
   Severity,
@@ -150,6 +151,17 @@ export class Api {
 
   /** サーバから最後に受け取った版。 */
   rev = -1;
+
+  /**
+   * 取り消し／やり直しで戻る操作の名前。押せないときは空。
+   *
+   * 応答すべてに添えられているので、書き込みのたびに自動で新しくなる。
+   * ボタンの状態を知るためだけに問い合わせを増やさない。
+   */
+  history: HistoryState = { undo: "", redo: "" };
+
+  /** 履歴の状態が変わったときに呼ばれる。ボタンの出し分けに使う。 */
+  onHistory: ((h: HistoryState) => void) | null = null;
 
   /** データが入れ替わったときに呼ばれる。画面の描き直しに使う。 */
   onChange: (() => void) | null = null;
@@ -352,6 +364,27 @@ export class Api {
   }
 
   // -------------------------------------------------------------------------
+  // 取り消し・やり直し
+  // -------------------------------------------------------------------------
+
+  /**
+   * 1 手戻す（または進める）。戻った操作の名前を返す。
+   *
+   * サーバは操作の前の全データを控えているので、戻し方は 1 通りしかない。
+   * 戻したあとは全部取り直す（quiet にしない）。手元のどこが変わるか
+   * 分からない以上、部分的に描き直す判断ができない。
+   */
+  async stepHistory(back: boolean): Promise<string> {
+    const env = await this.request<{ label: string }>(
+      "POST",
+      back ? "/api/undo" : "/api/redo",
+    );
+    this.rev = env.rev;
+    await this.load();
+    return env.data?.label ?? "";
+  }
+
+  // -------------------------------------------------------------------------
   // 書き出し
   // -------------------------------------------------------------------------
 
@@ -429,7 +462,12 @@ export class Api {
       throw new ApiError(res.status, msg, usage);
     }
 
-    return (await res.json()) as Envelope<T>;
+    const env = (await res.json()) as Envelope<T>;
+    if (env.history) {
+      this.history = env.history;
+      this.onHistory?.(env.history);
+    }
+    return env;
   }
 }
 
