@@ -163,7 +163,12 @@ body.resizing{cursor:col-resize;user-select:none}
   min-width:16px;text-align:right;padding-top:2px}
 .ol-row.sel .ol-no{color:var(--cur)}
 .ol-pc{flex:none;width:7px;height:7px;border-radius:2px;background:var(--pc,var(--line));margin-top:6px}
-.ol-t{flex:1;min-width:0;font-size:12.5px;line-height:1.5}
+/* 題名。ここだけが伸び縮みする欄なので、狭くすると真っ先に潰れる。
+   min-width を 0 にしていたため、印の多いフローでは幅が 0 になり、
+   1 文字ずつ縦に折り返していた。読める下限を持たせる。
+   ペインの下限（PANE_LIMITS）でも足りるが、将来ラベルや担当の呼び名が
+   長くなったときに、また黙って潰れるのを防ぐための歯止め。 */
+.ol-t{flex:1;min-width:90px;font-size:12.5px;line-height:1.5}
 .ol-row.dec .ol-t::before{content:"\25C6";color:var(--dec);margin-right:5px;font-size:10px}
 /* 行の右側は 3 つのまとまりに分ける。左から 数量 → ラベル → 担当。
    これまでは生成順に混ぜていたので、同じ見た目のラベルが数量の左右に

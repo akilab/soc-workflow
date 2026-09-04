@@ -38,7 +38,35 @@ interface PaneWidths {
 }
 
 const WIDTH_KEY = "soc-flow-panes";
-const DEFAULT_WIDTHS: PaneWidths = { left: 290, right: 324 };
+
+/**
+ * ペインの幅の下限・上限。
+ *
+ * 下限は測って決めた。手順アウトラインの行は「番号・題名・数量・ラベル・担当」
+ * で、題名以外は幅が文言で決まるため縮まない。印を全部使うフロー
+ * （ランサムウェアの疑い）では、題名以外だけで 253px、行の隙間と左右の余白を
+ * 足して 312px を占める。
+ *
+ * 実測（そのフローでの題名の幅と行の高さ）:
+ *   400px … 90px / 68px（3 行に折り返す）
+ *   440px … 91〜102px / 50px（2 行に収まる）
+ *   460px … 111〜122px / 50px
+ * 440 を採る。ここで行の高さが落ち着き、印の少ないフローでは題名に
+ * 140〜170px 残る。
+ *
+ * 以前の下限は 190px、既定は 290px だった。どちらも足りておらず、印の多い
+ * フローでは題名の幅が 0 になって 1 文字ずつ縦に折り返していた。
+ * ラベルを固定幅の列にそろえたときに、必要な幅が増えたことを見落としていた。
+ *
+ * 想定は 24 インチ・FullHD。1920px なら 440 + 324 + 仕切り 14 を引いても
+ * キャンバスに 1107px 残り、横スクロールは出ない。
+ */
+const PANE_LIMITS = {
+  left: { min: 440, max: 620 },
+  right: { min: 300, max: 560 },
+};
+
+const DEFAULT_WIDTHS: PaneWidths = { left: 440, right: 324 };
 
 export interface EditScreenDeps {
   api: Api;
@@ -572,9 +600,12 @@ export class EditScreen {
 
         const move = (ev: MouseEvent) => {
           if (target === "left") {
-            this.widths.left = clamp(start.left + (ev.clientX - x0), 190, 480);
+            this.widths.left = clampPane("left", start.left + (ev.clientX - x0));
           } else {
-            this.widths.right = clamp(start.right - (ev.clientX - x0), 260, 560);
+            this.widths.right = clampPane(
+              "right",
+              start.right - (ev.clientX - x0),
+            );
           }
           this.applyWidths();
         };
@@ -616,8 +647,16 @@ export class EditScreen {
   }
 }
 
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
+/**
+ * ペインの幅を範囲に収める。
+ *
+ * 下限は 3 か所（ドラッグ中・保存済みの読み込み・既定）で使う。
+ * 別々に書くと、下限を上げたときに読み込み側だけ古いままになり、
+ * 「前に狭くしたときの幅」が残り続ける。1 か所にまとめる。
+ */
+function clampPane(side: keyof typeof PANE_LIMITS, v: number): number {
+  const { min, max } = PANE_LIMITS[side];
+  return Math.max(min, Math.min(max, v));
 }
 
 /**
@@ -631,9 +670,10 @@ function loadWidths(): PaneWidths {
     const raw = localStorage.getItem(WIDTH_KEY);
     if (raw) {
       const v = JSON.parse(raw) as Partial<PaneWidths>;
+      // 下限を上げたので、前に狭くしてあった幅はここで引き上げられる。
       return {
-        left: clamp(Number(v.left) || DEFAULT_WIDTHS.left, 190, 480),
-        right: clamp(Number(v.right) || DEFAULT_WIDTHS.right, 260, 560),
+        left: clampPane("left", Number(v.left) || DEFAULT_WIDTHS.left),
+        right: clampPane("right", Number(v.right) || DEFAULT_WIDTHS.right),
       };
     }
   } catch {
