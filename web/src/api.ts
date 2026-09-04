@@ -64,7 +64,7 @@ export interface WriteOptions {
   quiet?: boolean;
 }
 
-/** 事象を作る／直すときに送る中身。手順は含まない。 */
+/** フローを作る／直すときに送る中身。手順は含まない。 */
 export interface EventInput {
   title: string;
   sub: string;
@@ -121,7 +121,7 @@ export function stepInput(st: Step): StepInput {
 export interface StepPlacement {
   /** 挿入位置。省略すると末尾。 */
   index?: number;
-  /** 担当。省略するとタスクの既定値。 */
+  /** 担当。省略すると対応の既定値。 */
   lane?: string;
 }
 
@@ -180,7 +180,7 @@ export class Api {
   }
 
   // -------------------------------------------------------------------------
-  // 事象
+  // フロー
   // -------------------------------------------------------------------------
 
   createEvent(input: EventInput) {
@@ -196,7 +196,7 @@ export class Api {
   }
 
   /**
-   * この事象が使う担当と、その呼び名を決める。
+   * このフローが使う担当と、その呼び名を決める。
    *
    * 空を送れば「全体の担当をそのまま使う」に戻る。使っている担当を外そうと
    * すると、行き場を失う手順を添えて断られる。
@@ -211,7 +211,7 @@ export class Api {
     return this.write<EventFlow>("POST", `/api/events/${enc(key)}/duplicate`);
   }
 
-  /** この事象を元にした顧客別のフローを作る。 */
+  /** このフローを元にした顧客別のフローを作る。 */
   deriveEvent(key: string, title: string) {
     return this.write<EventFlow>("POST", `/api/events/${enc(key)}/derive`, {
       title,
@@ -232,9 +232,9 @@ export class Api {
   // -------------------------------------------------------------------------
 
   /**
-   * 手順を足す。中身はサーバがタスクから写す。
+   * 手順を足す。中身はサーバが対応から写す。
    *
-   * index を省くと末尾。lane を省くとタスクの既定の担当になる。
+   * index を省くと末尾。lane を省くと対応の既定の担当になる。
    * キャンバスへ落としたときは、落とした列がそのまま担当になる。
    */
   createStep(eventKey: string, task: string, at?: StepPlacement) {
@@ -303,7 +303,7 @@ export class Api {
     return this.write<null>("PUT", "/api/tasks/order", { keys } as OrderBody);
   }
 
-  /** どの事象のどの手順で使われているか。消す前に見せるためのもの。 */
+  /** どのフローのどの手順で使われているか。消す前に見せるためのもの。 */
   async taskUsage(key: string): Promise<Usage[]> {
     const env = await this.request<Usage[]>(
       "GET",

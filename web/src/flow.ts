@@ -52,7 +52,7 @@ export function countHandoffs(evt: EventFlow): number {
   return n;
 }
 
-/** 段階ごとの手順数。事象カードの帯に使う。 */
+/** フェーズごとの手順数。フローカードの帯に使う。 */
 export interface PhaseCount {
   p: Phase;
   n: number;
@@ -61,13 +61,13 @@ export interface PhaseCount {
 // ---------------------------------------------------------------------------
 
 /**
- * その事象で使う担当を解決して返す。
+ * そのフローで使う担当を解決して返す。
  *
- * 事象が指定していなければ全体の担当をそのまま返す。指定していれば、その並びで
- * 呼び名だけを差し替えて返す。呼ぶ側は全体と事象の違いを気にしなくてよい。
+ * フローが指定していなければ全体の担当をそのまま返す。指定していれば、その並びで
+ * 呼び名だけを差し替えて返す。呼ぶ側は全体とフローの違いを気にしなくてよい。
  *
  * 返すのは複製。全体の Lane をそのまま返して名前を書き換えると、
- * 1 つの事象の呼び名が全体に漏れる。
+ * 1 つのフローの呼び名が全体に漏れる。
  */
 export function eventLanes(db: DB, evt: EventFlow | undefined): Lane[] {
   if (!evt?.lanes?.length) return db.lanes.map((l) => ({ ...l }));
@@ -80,27 +80,27 @@ export function eventLanes(db: DB, evt: EventFlow | undefined): Lane[] {
     .filter((l): l is Lane => !!l);
 }
 
-/** キーからタスクを引く。 */
+/** キーから対応を引く。 */
 export function taskOf(db: DB, key: string): Task | undefined {
   return db.tasks.find((t) => t.key === key);
 }
 
-/** キーから事象を引く。 */
+/** キーからフローを引く。 */
 export function eventOf(db: DB, key: string): EventFlow | undefined {
   return db.events.find((e) => e.key === key);
 }
 
 /**
- * そのタスクを使っている事象。
+ * その対応を使っているフロー。
  *
- * タスクは事象をまたいで再利用される部品なので、「どこで使われているか」は
- * パレットでもタスク一覧でも要る。数え方が 2 か所でずれないように 1 つにする。
+ * 対応はフローをまたいで再利用される部品なので、「どこで使われているか」は
+ * パレットでも対応一覧でも要る。数え方が 2 か所でずれないように 1 つにする。
  */
 export function eventsUsingTask(db: DB, key: string): EventFlow[] {
   return db.events.filter((e) => e.steps.some((s) => s.task === key));
 }
 
-/** 段階ごとに、その事象が何手順を持っているか。段階の並び順で返す。 */
+/** フェーズごとに、そのフローが何手順を持っているか。フェーズの並び順で返す。 */
 export function phaseDist(db: DB, evt: EventFlow): PhaseCount[] {
   const m = new Map<string, number>();
   for (const s of evt.steps) {
@@ -273,7 +273,7 @@ export function validate(db: DB, evt: EventFlow): Validation {
   //    「ボールが落ちうる場所」になるので、回数が多いフローは
   //    図が読みにくいのではなく運用が危ない。
   //
-  //    列が段階だった頃は「前の段階への後戻り」を数えていた。あれは
+  //    列がフェーズだった頃は「前のフェーズへの後戻り」を数えていた。あれは
   //    線が混むことの指標で、軸を担当に変えた時点で意味を失った。
   const handoffs = countHandoffs(evt);
   if (handoffs > 8) {

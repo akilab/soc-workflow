@@ -31,7 +31,7 @@ func stepCount(t *testing.T, h http.Handler, key string) int {
 			return len(e.Steps)
 		}
 	}
-	t.Fatalf("事象が見つかりません: %s", key)
+	t.Fatalf("フローが見つかりません: %s", key)
 	return 0
 }
 
@@ -114,8 +114,8 @@ func TestNewChangeClearsRedo(t *testing.T) {
 	}
 
 	w = mustDo(t, h, "POST", "/api/phases", phaseBody{Name: "検証", Color: "#888"})
-	if got := histOf(t, w.Body.Bytes()); got.Redo != "" || got.Undo != "段階の追加" {
-		t.Fatalf("新しい変更のあと = %+v, want {Undo:段階の追加 Redo:}", got)
+	if got := histOf(t, w.Body.Bytes()); got.Redo != "" || got.Undo != "フェーズの追加" {
+		t.Fatalf("新しい変更のあと = %+v, want {Undo:フェーズの追加 Redo:}", got)
 	}
 }
 
@@ -209,10 +209,10 @@ func TestRejectedChangeNotRecorded(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
 
-	// 使用中の段階は消せない。
+	// 使用中のフェーズは消せない。
 	used := db.Tasks[0].PhaseKey
 	if w := do(t, h, "DELETE", "/api/phases/"+used, nil); w.Code != http.StatusConflict {
-		t.Fatalf("使用中の段階の削除が %d — %s", w.Code, w.Body.String())
+		t.Fatalf("使用中のフェーズの削除が %d — %s", w.Code, w.Body.String())
 	}
 	if w := do(t, h, "POST", "/api/undo", nil); w.Code != http.StatusConflict {
 		t.Fatalf("断られた変更が記録されている: undo が %d", w.Code)
@@ -223,7 +223,7 @@ func TestRejectedChangeNotRecorded(t *testing.T) {
 func TestHistoryCap(t *testing.T) {
 	var h history
 	for i := 0; i < histMax+10; i++ {
-		h.push("段階の変更", "", []byte(`{}`))
+		h.push("フェーズの変更", "", []byte(`{}`))
 	}
 	if len(h.undo) != histMax {
 		t.Fatalf("手数 = %d, want %d", len(h.undo), histMax)

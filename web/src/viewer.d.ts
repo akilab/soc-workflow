@@ -28,7 +28,7 @@ declare global {
   interface ViewerOptions {
     /** 進捗の保存先。渡さなければ保存しない（試走は下書きを汚さない）。 */
     storageKey?: string;
-    /** 最初に開く事象のキー。 */
+    /** 最初に開くフローのキー。 */
     event?: string;
     /** 画面の上に出す注意書き。 */
     note?: string;

@@ -1,15 +1,15 @@
 /**
- * 段階と担当の設定。
+ * フェーズと担当の設定。
  *
  * この 2 つは形がまったく同じ——キーと名前と色を持ち、並び順に意味があり、
  * 使われていれば消せない。違うのは「何に使われているか」を数える先だけなので、
  * 1 つの部品にして、そこだけ差し替える。
  *
- * どちらも全部の事象に影響する。段階の色を変えれば全事象のボックスの色が変わり、
+ * どちらも全部のフローに影響する。フェーズの色を変えれば全フローのボックスの色が変わり、
  * 担当を消せばその列が無くなる。だから消す前には使用箇所を見せて断る（サーバ側の
  * 責任だが、画面でも「何件で使われているか」を常に出しておく）。
  *
- * 画面ではなくモーダルにしている。段階も担当も 4〜6 個で、タスクのように
+ * 画面ではなくモーダルにしている。フェーズも担当も 4〜6 個で、対応のように
  * 一覧を絞り込んだり並べ替えたりする対象ではないため。
  */
 
@@ -19,7 +19,7 @@ import { $, esc } from "./dom";
 import type { DB, EventFlow, EventLane, Lane, Phase } from "./types";
 import { closeModal, confirmModal, openModal, showApiError, toast } from "./ui";
 
-/** 選べる色。段階と担当で同じ並びを使う。 */
+/** 選べる色。フェーズと担当で同じ並びを使う。 */
 const COLORS = [
   "var(--c1)",
   "var(--c2)",
@@ -33,7 +33,7 @@ const COLORS = [
   "var(--c10)",
 ];
 
-/** 段階と担当の違いを吸収する。 */
+/** フェーズと担当の違いを吸収する。 */
 interface Kind {
   /** モーダルの見出し。 */
   title: string;
@@ -55,19 +55,19 @@ interface Kind {
 }
 
 const PHASE: Kind = {
-  title: "段階設定",
+  title: "フェーズ設定",
   lead:
-    "<b>段階は「対応のどの段階か」です。</b>" +
+    "<b>フェーズは「対応のどのフェーズか」です。</b>" +
     "受信・確認から記録・報告まで、時間とともに進むものを並べてください。<br>" +
-    "段階は図の列ではありません。ボックスの色とラベルとして出ます" +
-    "（列は担当です）。並び順は、事象カードの帯と検証の後戻り判定に使われます。",
-  usedLabel: "タスク",
-  newName: "新しい段階",
+    "フェーズは図の列ではありません。ボックスの色とラベルとして出ます" +
+    "（列は担当です）。並び順は、フローカードの帯と検証の後戻り判定に使われます。",
+  usedLabel: "対応",
+  newName: "新しいフェーズ",
   items: (db) => db.phases,
   usedBy: (db, key) => db.tasks.filter((t) => t.phase === key).length,
   blockedNote:
-    "タスクが割り当てられている段階は削除できません。" +
-    "先にタスクを別の段階へ移してください。",
+    "対応が割り当てられているフェーズは削除できません。" +
+    "先に対応を別のフェーズへ移してください。",
   create: (api, input) => api.createPhase(input),
   update: (api, key, input) => api.updatePhase(key, input),
   remove: (api, key) => api.deletePhase(key),
@@ -93,7 +93,7 @@ const LANE: Kind = {
     ) +
     db.contactGroups.filter((g) => g.lane === key).length,
   blockedNote:
-    "タスク・手順・連絡先から使われている担当は削除できません。" +
+    "対応・手順・連絡先から使われている担当は削除できません。" +
     "先にそれらを別の担当へ移してください。",
   create: (api, input) => api.createLane(input),
   update: (api, key, input) => api.updateLane(key, input),
@@ -159,7 +159,7 @@ export class Settings {
         `<tbody>${rows}</tbody></table>` +
         `<div class="ph-preview">${preview}</div>` +
         `<p class="ins hint">${k.blockedNote}</p>`,
-      '<div class="fnote">変更はすべての事象に反映されます。</div>' +
+      '<div class="fnote">変更はすべてのフローに反映されます。</div>' +
         `<button class="ed-tool" data-x="add">＋ 追加</button>` +
         '<button class="ed-tool" data-x="close">閉じる</button>',
     );
@@ -198,7 +198,7 @@ export class Settings {
       b.addEventListener("click", () => void move(i, i + 1));
     }
     for (const el of body.querySelectorAll<HTMLInputElement>("[data-nm]")) {
-      // 打つたびではなく、欄を離れたときに確定させる。全事象に響く変更なので、
+      // 打つたびではなく、欄を離れたときに確定させる。全フローに響く変更なので、
       // 途中の状態を送り続ける意味がない。
       el.addEventListener("change", () => {
         const name = el.value.trim();
@@ -263,15 +263,15 @@ export class Settings {
 }
 
 // ---------------------------------------------------------------------------
-// 事象ごとの担当
+// フローごとの担当
 // ---------------------------------------------------------------------------
 
 /**
- * この事象で「どの列を使い、何と呼ぶか」を決める。
+ * このフローで「どの列を使い、何と呼ぶか」を決める。
  *
- * 全体の担当は役割で、事象ごとに具体的な相手が変わる。一般的なフローの「顧客」は、
+ * 全体の担当は役割で、フローごとに具体的な相手が変わる。一般的なフローの「顧客」は、
  * A 社向けのフローでは「高橋工務店」になる。持ち替えるのは呼び名だけなので、
- * タスクの既定の担当も、事象をまたいだ集計も壊れない。
+ * 対応の既定の担当も、フローをまたいだ集計も壊れない。
  */
 export class EventLaneSettings {
   private readonly api: Api;
@@ -325,19 +325,19 @@ export class EventLaneSettings {
       .join("");
 
     openModal(
-      "この事象の担当",
+      "このフローの担当",
       evt.title,
       '<p class="ins hint" style="margin:0 0 12px">' +
-        "<b>全体の担当は「役割」です。</b>ここではこの事象での呼び名を決められます。" +
+        "<b>全体の担当は「役割」です。</b>ここではこのフローでの呼び名を決められます。" +
         "一般的なフローの「顧客」を、A 社向けのフローでは「高橋工務店」にする、" +
         "といった使い方です。<br>" +
         "呼び名を空にすると全体の名前に戻ります。使っていない列は外せます" +
         "（手順が座っている列は外せません）。" +
         "担当そのものの追加は「担当設定」で行います。</p>" +
         '<table class="tbl"><thead><tr><th>#</th><th>並び</th><th>使う</th>' +
-        "<th>この事象での呼び名</th><th>手順</th></tr></thead>" +
+        "<th>このフローでの呼び名</th><th>手順</th></tr></thead>" +
         `<tbody>${html}</tbody></table>`,
-      '<div class="fnote">この事象だけに効きます。</div>' +
+      '<div class="fnote">このフローだけに効きます。</div>' +
         '<button class="ed-tool" data-x="reset">全体に合わせる</button>' +
         '<button class="ed-tool pri" data-x="save">保存する</button>' +
         '<button class="ed-tool" data-x="close">閉じる</button>',
@@ -400,7 +400,7 @@ export class EventLaneSettings {
         ?.value.trim();
       if (name !== undefined) r.name = name || undefined;
     });
-    // 並びを保ったまま描き直したいので、いったん事象に反映してから開く。
+    // 並びを保ったまま描き直したいので、いったんフローに反映してから開く。
     const used = rows.filter(
       (_, i) => body.querySelector<HTMLInputElement>(`[data-use="${i}"]`)?.checked,
     );
@@ -414,7 +414,7 @@ export class EventLaneSettings {
       this.onSaved();
       toast(lanes.length ? "担当を更新しました" : "全体の担当に戻しました");
     } catch (e) {
-      if (e instanceof ApiError) showApiError(e, "この事象の担当");
+      if (e instanceof ApiError) showApiError(e, "このフローの担当");
       else toast(String(e), true);
     }
   }

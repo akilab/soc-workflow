@@ -1,10 +1,10 @@
 package api
 
-// 事象と、その中の手順。
+// フローと、その中の手順。
 //
-// 手順は事象の中にしか存在しない。だから URL も事象の下にぶら下げる
+// 手順はフローの中にしか存在しない。だから URL もフローの下にぶら下げる
 // （/api/events/{key}/steps/{id}）。手順 ID だけで引ける平らな入り口にすると、
-// どの事象のものかを毎回探すことになり、取り違えたときに気づけない。
+// どのフローのものかを毎回探すことになり、取り違えたときに気づけない。
 
 import (
 	"fmt"
@@ -16,12 +16,12 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// 事象
+// フロー
 // ---------------------------------------------------------------------------
 
-// eventBody は事象そのものの属性。手順は含めない。
+// eventBody はフローそのものの属性。手順は含めない。
 //
-// 手順を含めると、事象名を直しただけの要求で手順が丸ごと置き換わる。
+// 手順を含めると、フロー名を直しただけの要求で手順が丸ごと置き換わる。
 // クライアントの持っている配列が古ければ、それがそのまま消失になる。
 type eventBody struct {
 	Title    string         `json:"title"`
@@ -31,7 +31,7 @@ type eventBody struct {
 
 func (b eventBody) check() error {
 	if strings.TrimSpace(b.Title) == "" {
-		return errf(http.StatusBadRequest, "事象の名前が空です")
+		return errf(http.StatusBadRequest, "フローの名前が空です")
 	}
 	if !b.Severity.Valid() {
 		return errf(http.StatusBadRequest, "重大度の値が不正です: %s", b.Severity)
@@ -70,7 +70,7 @@ func (s *Server) updateEvent(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(key)
 		if ev == nil {
-			return nil, notFound("事象", key)
+			return nil, notFound("フロー", key)
 		}
 		if err := in.check(); err != nil {
 			return nil, err
@@ -86,9 +86,9 @@ func (s *Server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(key)
 		if ev == nil {
-			return nil, notFound("事象", key)
+			return nil, notFound("フロー", key)
 		}
-		// これを元にした事象があるなら消せない。消すと派生側が
+		// これを元にしたフローがあるなら消せない。消すと派生側が
 		// 「何と比べればよいのか」を失い、違いを見せられなくなる。
 		if d := db.Derived(key); len(d) > 0 {
 			usage := make([]Usage, 0, len(d))
@@ -97,7 +97,7 @@ func (s *Server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 			}
 			return nil, &apiErr{
 				code:  http.StatusConflict,
-				msg:   fmt.Sprintf("「%s」を元にした事象が %d 件あります", ev.Title, len(d)),
+				msg:   fmt.Sprintf("「%s」を元にしたフローが %d 件あります", ev.Title, len(d)),
 				usage: usage,
 			}
 		}
@@ -121,16 +121,16 @@ func (s *Server) orderEvents(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// duplicateEvent は事象を丸ごと複製する。案 A と案 B を並べて比べるための操作。
+// duplicateEvent はフローを丸ごと複製する。案 A と案 B を並べて比べるための操作。
 func (s *Server) duplicateEvent(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		src := db.Event(key)
 		if src == nil {
-			return nil, notFound("事象", key)
+			return nil, notFound("フロー", key)
 		}
 
-		// 複製は元と対等な別のフロー。ただし元にした事象（BaseKey）は引き継ぐ
+		// 複製は元と対等な別のフロー。ただし元にしたフロー（BaseKey）は引き継ぐ
 		// ——「A 社向け」を複製したら「B 社向け」も同じ共通フローの派生になる。
 		// 手順の FromID は copyStep が値ごと写すので、そのまま残る。
 		dup := cloneEvent(db, src, src.Title+"（複製）")
@@ -140,7 +140,7 @@ func (s *Server) duplicateEvent(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// deriveEvent は、この事象を元にした事象を作る。
+// deriveEvent は、このフローを元にしたフローを作る。
 //
 // 複製と違うのは、元をどう見るか。複製は対等な別物、派生は「共通に対する
 // この顧客のやり方」で、共通との違いをあとから見られる。
@@ -155,12 +155,12 @@ func (s *Server) deriveEvent(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		src := db.Event(key)
 		if src == nil {
-			return nil, notFound("事象", key)
+			return nil, notFound("フロー", key)
 		}
 		// 派生の派生は作らせない。何と比べているのかが人にも辿れなくなる。
 		if src.BaseKey != "" {
 			return nil, errf(http.StatusConflict,
-				"「%s」自体が別の事象を元にしています。元の事象から作ってください", src.Title)
+				"「%s」自体が別のフローを元にしています。元のフローから作ってください", src.Title)
 		}
 
 		title := strings.TrimSpace(in.Title)
@@ -189,11 +189,11 @@ func (s *Server) reviewedEvent(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(key)
 		if ev == nil {
-			return nil, notFound("事象", key)
+			return nil, notFound("フロー", key)
 		}
 		base := db.Event(ev.BaseKey)
 		if base == nil {
-			return nil, errf(http.StatusConflict, "「%s」は他の事象を元にしていません", ev.Title)
+			return nil, errf(http.StatusConflict, "「%s」は他のフローを元にしていません", ev.Title)
 		}
 		ev.BaseSyncedAt = base.UpdatedAt
 		touch(ev)
@@ -201,7 +201,7 @@ func (s *Server) reviewedEvent(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// cloneEvent は事象を丸ごと写す。複製と派生で共通の部分。
+// cloneEvent はフローを丸ごと写す。複製と派生で共通の部分。
 func cloneEvent(db *model.DB, src *model.Event, title string) *model.Event {
 	ev := &model.Event{
 		Key:      uniqueKey("ev", func(k string) bool { return db.Event(k) != nil }),
@@ -210,7 +210,7 @@ func cloneEvent(db *model.DB, src *model.Event, title string) *model.Event {
 		Severity: src.Severity,
 		Steps:    make([]*model.Step, 0, len(src.Steps)),
 	}
-	// 事象ごとの担当（呼び名と使う列）も写す。写さないと、呼び名を決めた
+	// フローごとの担当（呼び名と使う列）も写す。写さないと、呼び名を決めた
 	// フローを複製したとたんに全体の呼び名へ戻ってしまう。
 	for _, l := range src.Lanes {
 		cp := *l
@@ -226,8 +226,8 @@ func cloneEvent(db *model.DB, src *model.Event, title string) *model.Event {
 
 // copyStep は手順を値ごと複製する。
 //
-// 判断のキーはそのまま持っていく。条件が指すのは同じ事象の中の判断なので
-// （Event.Decision は事象の内側しか探さない）、複製先でもそのまま解決する。
+// 判断のキーはそのまま持っていく。条件が指すのは同じフローの中の判断なので
+// （Event.Decision はフローの内側しか探さない）、複製先でもそのまま解決する。
 // 一方、手順 ID は振り直す。今は誰も参照していないが、ファイル全体で
 // 一意にしておけば、あとで「別の手順から参照する」機能を足しても壊れない。
 func copyStep(src *model.Step, id string) *model.Step {
@@ -253,15 +253,15 @@ func copyStep(src *model.Step, id string) *model.Step {
 // 手順
 // ---------------------------------------------------------------------------
 
-// stepCreateBody は手順の追加。参照するタスクと、置き場所だけを受け取る。
+// stepCreateBody は手順の追加。参照する対応と、置き場所だけを受け取る。
 //
-// 中身は渡さない。パレットからタスクを置くと、そのタスクの名前と既定の担当が
+// 中身は渡さない。パレットから対応を置くと、その対応の名前と既定の担当が
 // 入った手順ができ、細かいところはインスペクタで直す——という画面の流れに合わせる。
 type stepCreateBody struct {
 	TaskKey string `json:"task"`
 	// Index は挿入位置。省略すると末尾に付く。
 	Index *int `json:"index,omitempty"`
-	// LaneKey は担当。省略するとタスクの既定値を使う。
+	// LaneKey は担当。省略すると対応の既定値を使う。
 	//
 	// 図の列が担当になったので、どの列に落としたかがそのまま意味を持つ。
 	// 「このフローでは Tier1 がやる」を、置く動作だけで表せる。
@@ -277,16 +277,16 @@ func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
-			return nil, notFound("事象", evKey)
+			return nil, notFound("フロー", evKey)
 		}
 		task := db.Task(in.TaskKey)
 		if task == nil {
-			return nil, errf(http.StatusBadRequest, "知らないタスクです: %s", in.TaskKey)
+			return nil, errf(http.StatusBadRequest, "知らない対応です: %s", in.TaskKey)
 		}
 
 		lane := in.LaneKey
 		if lane == "" {
-			lane = task.LaneKey // 指定が無ければタスクの既定値
+			lane = task.LaneKey // 指定が無ければ対応の既定値
 		}
 		if db.Lane(lane) == nil {
 			return nil, errf(http.StatusBadRequest, "知らない担当です: %s", lane)
@@ -295,7 +295,7 @@ func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
 		st := &model.Step{
 			ID:         stepIDGen(db)(),
 			TaskKey:    task.Key,
-			Title:      task.Label, // この事象での言い方は、まずタスク名から始める
+			Title:      task.Label, // このフローでの言い方は、まず対応名から始める
 			LaneKey:    lane,
 			Contacts:   []string{},
 			Conditions: []model.Condition{},
@@ -326,7 +326,7 @@ func (s *Server) duplicateStep(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
-			return nil, notFound("事象", evKey)
+			return nil, notFound("フロー", evKey)
 		}
 		at := -1
 		for i, st := range ev.Steps {
@@ -350,7 +350,7 @@ func (s *Server) duplicateStep(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// uniqueDecisionKey は、その事象で使われていない判断のキーを作る。
+// uniqueDecisionKey は、そのフローで使われていない判断のキーを作る。
 func uniqueDecisionKey(ev *model.Event) string {
 	used := map[string]bool{}
 	for _, st := range ev.Steps {
@@ -388,7 +388,7 @@ func (s *Server) updateStep(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
-			return nil, notFound("事象", evKey)
+			return nil, notFound("フロー", evKey)
 		}
 		st := ev.Step(id)
 		if st == nil {
@@ -419,7 +419,7 @@ func checkStep(db *model.DB, ev *model.Event, cur *model.Step, in stepBody) erro
 		return errf(http.StatusBadRequest, "手順の名前が空です")
 	}
 	if db.Task(in.TaskKey) == nil {
-		return errf(http.StatusBadRequest, "知らないタスクです: %s", in.TaskKey)
+		return errf(http.StatusBadRequest, "知らない対応です: %s", in.TaskKey)
 	}
 	// 担当は図のどの列に座るかを決める。空だと行き場が無いので必須。
 	if db.Lane(in.LaneKey) == nil {
@@ -431,7 +431,7 @@ func checkStep(db *model.DB, ev *model.Event, cur *model.Step, in stepBody) erro
 		}
 	}
 
-	// 条件が指す判断と選択肢が、この事象の中に存在すること。
+	// 条件が指す判断と選択肢が、このフローの中に存在すること。
 	// 判断はこの手順自身が持ち替える途中なので、更新後の姿で照合する。
 	after := decisionsAfter(ev, cur, in.Decision)
 	for _, c := range in.Conditions {
@@ -484,7 +484,7 @@ func checkDecision(ev *model.Event, cur *model.Step, d *model.Decision) error {
 		seen[o.Value] = true
 	}
 
-	// 判断のキーは事象の中で一意。条件はキーだけで判断を引くため。
+	// 判断のキーはフローの中で一意。条件はキーだけで判断を引くため。
 	for _, other := range ev.Steps {
 		if other == cur || other.Decision == nil {
 			continue
@@ -502,7 +502,7 @@ func (s *Server) deleteStep(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
-			return nil, notFound("事象", evKey)
+			return nil, notFound("フロー", evKey)
 		}
 		st := ev.Step(id)
 		if st == nil {
@@ -530,7 +530,7 @@ func (s *Server) orderSteps(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(evKey)
 		if ev == nil {
-			return nil, notFound("事象", evKey)
+			return nil, notFound("フロー", evKey)
 		}
 		next, err := reorder(ev.Steps, in.Keys, func(st *model.Step) string { return st.ID })
 		if err != nil {
@@ -546,7 +546,7 @@ func (s *Server) orderSteps(w http.ResponseWriter, r *http.Request) {
 // 判断の参照を調べる道具
 // ---------------------------------------------------------------------------
 
-// decisionsAfter は、cur の判断を next に差し替えたあとの、事象内の判断一覧を返す。
+// decisionsAfter は、cur の判断を next に差し替えたあとの、フロー内の判断一覧を返す。
 func decisionsAfter(ev *model.Event, cur *model.Step, next *model.Decision) map[string]*model.Decision {
 	out := map[string]*model.Decision{}
 	for _, st := range ev.Steps {
@@ -624,8 +624,8 @@ func stepIDGen(db *model.DB) func() string {
 	}
 }
 
-// touch は事象の更新時刻を今にする。
-// 手順を直しても事象を直したことになるので、手順側の操作からも呼ぶ。
+// touch はフローの更新時刻を今にする。
+// 手順を直してもフローを直したことになるので、手順側の操作からも呼ぶ。
 func touch(ev *model.Event) { ev.UpdatedAt = time.Now() }
 
 // insert は at の位置に v を差し込む。

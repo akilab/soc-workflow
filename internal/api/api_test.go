@@ -93,7 +93,7 @@ func TestGetDBReturnsSeed(t *testing.T) {
 	db := readDB(t, h)
 
 	if len(db.Phases) == 0 || len(db.Tasks) == 0 || len(db.Events) == 0 {
-		t.Fatalf("種データが返っていません: 段階 %d / タスク %d / 事象 %d",
+		t.Fatalf("種データが返っていません: フェーズ %d / 対応 %d / フロー %d",
 			len(db.Phases), len(db.Tasks), len(db.Events))
 	}
 	if db.Version != model.Version {
@@ -153,7 +153,7 @@ func TestCreateTask(t *testing.T) {
 	before := len(db.Tasks)
 
 	w := mustDo(t, h, "POST", "/api/tasks", taskBody{
-		PhaseKey: phase, LaneKey: lane, Label: "検証用タスク",
+		PhaseKey: phase, LaneKey: lane, Label: "検証用対応",
 	})
 
 	var env struct {
@@ -161,15 +161,15 @@ func TestCreateTask(t *testing.T) {
 	}
 	json.Unmarshal(w.Body.Bytes(), &env)
 	if env.Data == nil || env.Data.Key == "" {
-		t.Fatalf("作られたタスクが返りません: %s", w.Body.String())
+		t.Fatalf("作られた対応が返りません: %s", w.Body.String())
 	}
 
 	db = readDB(t, h)
 	if len(db.Tasks) != before+1 {
-		t.Errorf("タスク数 %d, 期待 %d", len(db.Tasks), before+1)
+		t.Errorf("対応数 %d, 期待 %d", len(db.Tasks), before+1)
 	}
 	got := db.Task(env.Data.Key)
-	if got == nil || got.Label != "検証用タスク" || got.LaneKey != lane {
+	if got == nil || got.Label != "検証用対応" || got.LaneKey != lane {
 		t.Errorf("保存された内容が違います: %+v", got)
 	}
 }
@@ -178,7 +178,7 @@ func TestCreateTaskRejectsUnknownPhase(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
 	w := do(t, h, "POST", "/api/tasks",
-		taskBody{PhaseKey: "そんな段階は無い", LaneKey: db.Lanes[0].Key, Label: "x"})
+		taskBody{PhaseKey: "そんなフェーズは無い", LaneKey: db.Lanes[0].Key, Label: "x"})
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("状態コード %d, 期待 400 — %s", w.Code, w.Body.String())
 	}
@@ -199,12 +199,12 @@ func TestUnknownFieldIsRejected(t *testing.T) {
 	}
 }
 
-// 使われているタスクは消せず、どこで使われているかが返ること。
+// 使われている対応は消せず、どこで使われているかが返ること。
 func TestDeleteTaskInUseIsRefused(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
 
-	// 実際に手順から使われているタスクを 1 つ探す
+	// 実際に手順から使われている対応を 1 つ探す
 	var used string
 	for _, ev := range db.Events {
 		if len(ev.Steps) > 0 {
@@ -226,7 +226,7 @@ func TestDeleteTaskInUseIsRefused(t *testing.T) {
 	}
 	for _, u := range body.Usage {
 		if u.Event == "" || u.Label == "" {
-			t.Errorf("使用箇所に事象名か手順名がありません: %+v", u)
+			t.Errorf("使用箇所にフロー名か手順名がありません: %+v", u)
 		}
 	}
 
@@ -235,7 +235,7 @@ func TestDeleteTaskInUseIsRefused(t *testing.T) {
 	}
 }
 
-// 使われていないタスクは消せること。
+// 使われていない対応は消せること。
 func TestDeleteUnusedTask(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
@@ -254,7 +254,7 @@ func TestDeleteUnusedTask(t *testing.T) {
 	}
 }
 
-// タスクが 1 つでも属していれば、段階は消せないこと。
+// 対応が 1 つでも属していれば、フェーズは消せないこと。
 func TestDeletePhaseInUseIsRefused(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
@@ -282,7 +282,7 @@ func TestTaskUsageEndpoint(t *testing.T) {
 		t.Error("使用箇所が空です")
 	}
 
-	if w := do(t, h, "GET", "/api/tasks/そんなタスクは無い/usage", nil); w.Code != http.StatusNotFound {
+	if w := do(t, h, "GET", "/api/tasks/そんな対応は無い/usage", nil); w.Code != http.StatusNotFound {
 		t.Errorf("状態コード %d, 期待 404", w.Code)
 	}
 }
@@ -297,7 +297,7 @@ func TestOrderSteps(t *testing.T) {
 
 	ev := db.Events[0]
 	if len(ev.Steps) < 3 {
-		t.Skip("手順が 3 件未満の事象では確かめられません")
+		t.Skip("手順が 3 件未満のフローでは確かめられません")
 	}
 	keys := make([]string, len(ev.Steps))
 	for i, st := range ev.Steps {
@@ -324,7 +324,7 @@ func TestOrderStepsRejectsIncompleteList(t *testing.T) {
 	db := readDB(t, h)
 	ev := db.Events[0]
 	if len(ev.Steps) < 2 {
-		t.Skip("手順が 2 件未満の事象では確かめられません")
+		t.Skip("手順が 2 件未満のフローでは確かめられません")
 	}
 
 	short := []string{ev.Steps[0].ID} // わざと 1 件だけ送る
@@ -359,12 +359,12 @@ func TestOrderStepsRejectsDuplicateKey(t *testing.T) {
 // 手順
 // ---------------------------------------------------------------------------
 
-// 手順を足すと、タスクの名前と既定の担当が入ること。
+// 手順を足すと、対応の名前と既定の担当が入ること。
 func TestCreateStepInheritsTaskDefaults(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
 
-	// Tier1 以外の担当が既定になっているタスクを探す。
+	// Tier1 以外の担当が既定になっている対応を探す。
 	// 既定が引き継がれていることを、既定値と一致する偶然と区別するため。
 	var task *model.Task
 	for _, tk := range db.Tasks {
@@ -374,7 +374,7 @@ func TestCreateStepInheritsTaskDefaults(t *testing.T) {
 		}
 	}
 	if task == nil {
-		t.Skip("既定の担当を持つタスクが種データにありません")
+		t.Skip("既定の担当を持つ対応が種データにありません")
 	}
 	ev := db.Events[0]
 
@@ -542,7 +542,7 @@ func TestUpdateStepRejectsDanglingCondition(t *testing.T) {
 	}
 }
 
-// 判断のキーは事象の中で一意であること。重なると条件がどちらを指すか決まらない。
+// 判断のキーはフローの中で一意であること。重なると条件がどちらを指すか決まらない。
 func TestDuplicateDecisionKeyIsRejected(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
@@ -559,7 +559,7 @@ func TestDuplicateDecisionKeyIsRejected(t *testing.T) {
 		}
 	}
 	if other == nil {
-		t.Skip("判断を持たない手順が同じ事象にありません")
+		t.Skip("判断を持たない手順が同じフローにありません")
 	}
 
 	w := do(t, h, "PUT", "/api/events/"+ev.Key+"/steps/"+other.ID, stepBody{
@@ -578,7 +578,7 @@ func TestDuplicateDecisionKeyIsRejected(t *testing.T) {
 // 複製
 // ---------------------------------------------------------------------------
 
-// 複製した事象の中で、条件と判断がそのまま解決すること。
+// 複製したフローの中で、条件と判断がそのまま解決すること。
 // ここが崩れると、複製した途端に分岐が消えたフローができる。
 func TestDuplicateEventKeepsBranchesIntact(t *testing.T) {
 	_, h := newTestServer(t)
@@ -586,7 +586,7 @@ func TestDuplicateEventKeepsBranchesIntact(t *testing.T) {
 
 	src, _ := findReferencedDecision(db)
 	if src == nil {
-		t.Fatal("分岐を持つ事象がありません")
+		t.Fatal("分岐を持つフローがありません")
 	}
 
 	w := mustDo(t, h, "POST", "/api/events/"+src.Key+"/duplicate", nil)
@@ -637,7 +637,7 @@ func TestDuplicateIsDeepCopy(t *testing.T) {
 
 	src, _ := findReferencedDecision(db)
 	if src == nil {
-		t.Fatal("分岐を持つ事象がありません")
+		t.Fatal("分岐を持つフローがありません")
 	}
 	w := mustDo(t, h, "POST", "/api/events/"+src.Key+"/duplicate", nil)
 	var env struct {
@@ -655,7 +655,7 @@ func TestDuplicateIsDeepCopy(t *testing.T) {
 
 	after := readDB(t, h)
 	if got := after.Event(src.Key).Steps[0].Title; got != src.Steps[0].Title {
-		t.Errorf("元の事象まで変わりました: %q", got)
+		t.Errorf("元のフローまで変わりました: %q", got)
 	}
 }
 
@@ -776,7 +776,7 @@ func TestCreateAndOrderLanes(t *testing.T) {
 	}
 }
 
-// 使われている担当は消せず、タスク・手順・連絡先のどこで使われているかが返ること。
+// 使われている担当は消せず、対応・手順・連絡先のどこで使われているかが返ること。
 func TestDeleteLaneInUseIsRefused(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
@@ -800,7 +800,7 @@ func TestDeleteLaneInUseIsRefused(t *testing.T) {
 		t.Error("手順の使用箇所が返っていません")
 	}
 	if !kinds["task"] {
-		t.Error("タスクの使用箇所が返っていません")
+		t.Error("対応の使用箇所が返っていません")
 	}
 	if readDB(t, h).Lane(key) == nil {
 		t.Error("断ったのに消えています")
@@ -908,7 +908,7 @@ func TestDuplicateStep(t *testing.T) {
 		t.Error("ID が元と同じです")
 	}
 	if dup.LaneKey != src.LaneKey || dup.TaskKey != src.TaskKey {
-		t.Errorf("担当かタスクが引き継がれていません: %+v", dup)
+		t.Errorf("担当か対応が引き継がれていません: %+v", dup)
 	}
 	if dup.Title == src.Title {
 		t.Error("題名が元と同じままです。複製と分かるようにする")
@@ -958,7 +958,7 @@ func TestCreateStepWithLane(t *testing.T) {
 	db := readDB(t, h)
 	ev := db.Events[0]
 
-	// タスクの既定とは違う担当を選ぶ
+	// 対応の既定とは違う担当を選ぶ
 	task := db.Tasks[0]
 	var other string
 	for _, l := range db.Lanes {
@@ -979,7 +979,7 @@ func TestCreateStepWithLane(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &env)
 
 	if env.Data.LaneKey != other {
-		t.Errorf("担当 %q, 期待 %q（タスクの既定は %q）",
+		t.Errorf("担当 %q, 期待 %q（対応の既定は %q）",
 			env.Data.LaneKey, other, task.LaneKey)
 	}
 }
@@ -997,10 +997,10 @@ func TestCreateStepRejectsUnknownLane(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// タスクの種類
+// 対応の種類
 // ---------------------------------------------------------------------------
 
-// 終了（クローズ）のタスクを作れること。
+// 終了（クローズ）の対応を作れること。
 func TestCreateCloseTask(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
@@ -1034,7 +1034,7 @@ func TestCreateTaskRejectsUnknownKind(t *testing.T) {
 	}
 }
 
-// 種データに終了のタスクが入っていること。無いと、使い始めるのに
+// 種データに終了の対応が入っていること。無いと、使い始めるのに
 // まず自分で作らなければならない。
 func TestSeedHasCloseTask(t *testing.T) {
 	_, h := newTestServer(t)
@@ -1046,15 +1046,15 @@ func TestSeedHasCloseTask(t *testing.T) {
 			n++
 		}
 		if !task.Kind.Valid() {
-			t.Errorf("タスク %q の種類が不正です: %q", task.Label, task.Kind)
+			t.Errorf("対応 %q の種類が不正です: %q", task.Label, task.Kind)
 		}
 	}
 	if n == 0 {
-		t.Error("終了のタスクが種データにありません")
+		t.Error("終了の対応が種データにありません")
 	}
 }
 
-// 手順から終了かどうかを引けること。種類はタスクが持つので、間接参照になる。
+// 手順から終了かどうかを引けること。種類は対応が持つので、間接参照になる。
 func TestIsClose(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
@@ -1067,7 +1067,7 @@ func TestIsClose(t *testing.T) {
 		}
 	}
 	if closeTask == "" {
-		t.Fatal("終了のタスクがありません")
+		t.Fatal("終了の対応がありません")
 	}
 
 	ev := db.Events[0]
@@ -1089,7 +1089,7 @@ func TestIsClose(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// 事象ごとの担当
+// フローごとの担当
 // ---------------------------------------------------------------------------
 
 // 呼び名を差し替えられること。全体の担当は変わらないこと。
@@ -1110,16 +1110,16 @@ func TestEventLanesRename(t *testing.T) {
 	after := readDB(t, h)
 	got := after.EventLanes(after.Event(ev.Key))
 	if got[0].Name != "高橋工務店" {
-		t.Errorf("この事象での呼び名が %q, 期待 %q", got[0].Name, "高橋工務店")
+		t.Errorf("このフローでの呼び名が %q, 期待 %q", got[0].Name, "高橋工務店")
 	}
 	// 全体は変わらない
 	if after.Lanes[0].Name != db.Lanes[0].Name {
 		t.Errorf("全体の担当まで変わりました: %q", after.Lanes[0].Name)
 	}
-	// 他の事象にも漏れない
+	// 他のフローにも漏れない
 	other := after.EventLanes(after.Events[1])
 	if other[0].Name != db.Lanes[0].Name {
-		t.Errorf("他の事象へ漏れました: %q", other[0].Name)
+		t.Errorf("他のフローへ漏れました: %q", other[0].Name)
 	}
 }
 
@@ -1152,7 +1152,7 @@ func TestEventLanesDropsUnused(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
 
-	// 手順がまったく使っていない担当を持つ事象を探す
+	// 手順がまったく使っていない担当を持つフローを探す
 	var target *model.Event
 	var drop string
 	for _, ev := range db.Events {
@@ -1171,7 +1171,7 @@ func TestEventLanesDropsUnused(t *testing.T) {
 		}
 	}
 	if target == nil {
-		t.Skip("使われていない担当を持つ事象がありません")
+		t.Skip("使われていない担当を持つフローがありません")
 	}
 
 	var lanes []*model.EventLane

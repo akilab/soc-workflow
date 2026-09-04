@@ -9,25 +9,25 @@ import (
 
 // Usage は「それがどこで使われているか」1 件分。
 //
-// 削除を断るときに添える。タスクやフェーズや連絡先を消すと参照している側が壊れるので、
-// 何件あるかだけでなく、どの事象のどの手順かまで返す。
+// 削除を断るときに添える。対応やフェーズや連絡先を消すと参照している側が壊れるので、
+// 何件あるかだけでなく、どのフローのどの手順かまで返す。
 // 「黙って消さない」ためには、消せない理由を画面に出せる形で渡す必要がある。
 type Usage struct {
 	Kind       string `json:"kind"`                 // "task" | "step" | "contact" | "event"
-	Key        string `json:"key"`                  // タスク／連絡先のキー、または手順 ID
+	Key        string `json:"key"`                  // 対応／連絡先のキー、または手順 ID
 	Label      string `json:"label"`                // 人が読む名前
-	Event      string `json:"event,omitempty"`      // 手順の場合、属する事象のキー
-	EventTitle string `json:"eventTitle,omitempty"` // 同、事象の名前
+	Event      string `json:"event,omitempty"`      // 手順の場合、属するフローのキー
+	EventTitle string `json:"eventTitle,omitempty"` // 同、フローの名前
 }
 
-// tasksUsingPhase はその段階に属するタスクを返す。
+// tasksUsingPhase はそのフェーズに属する対応を返す。
 func tasksUsingPhase(db *model.DB, phaseKey string) []Usage {
 	return tasksMatching(db, func(t *model.Task) bool { return t.PhaseKey == phaseKey })
 }
 
 // usingLane はそのレーンを指しているものを全部返す。
 //
-// レーンはタスク・手順・連絡先の 3 か所から参照される。消すと図の列が
+// レーンは対応・手順・連絡先の 3 か所から参照される。消すと図の列が
 // 無くなり、そこに座っていた手順の行き場が無くなる。
 func usingLane(db *model.DB, laneKey string) []Usage {
 	out := tasksMatching(db, func(t *model.Task) bool { return t.LaneKey == laneKey })
@@ -52,7 +52,7 @@ func tasksMatching(db *model.DB, match func(*model.Task) bool) []Usage {
 	return out
 }
 
-// stepsUsingTask はそのタスクを使っている手順を返す。
+// stepsUsingTask はその対応を使っている手順を返す。
 func stepsUsingTask(db *model.DB, taskKey string) []Usage {
 	return collectSteps(db, func(s *model.Step) bool { return s.TaskKey == taskKey })
 }
@@ -69,7 +69,7 @@ func stepsUsingContact(db *model.DB, groupKey string) []Usage {
 	})
 }
 
-// collectSteps は条件に合う手順を、事象の情報を添えて集める。
+// collectSteps は条件に合う手順を、フローの情報を添えて集める。
 func collectSteps(db *model.DB, match func(*model.Step) bool) []Usage {
 	var out []Usage
 	for _, ev := range db.Events {

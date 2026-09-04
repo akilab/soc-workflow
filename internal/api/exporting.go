@@ -9,7 +9,7 @@ import (
 	"github.com/akilab/soc-workflow/internal/model"
 )
 
-// exportOne は事象 1 つ分の単一 HTML を返す。
+// exportOne はフロー 1 つ分の単一 HTML を返す。
 func (s *Server) exportOne(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
 
@@ -21,7 +21,7 @@ func (s *Server) exportOne(w http.ResponseWriter, r *http.Request) {
 	s.st.Read(func(db *model.DB) {
 		ev := db.Event(key)
 		if ev == nil {
-			err = notFound("事象", key)
+			err = notFound("フロー", key)
 			return
 		}
 		title = ev.Title + " — SOC 対応フロー"
@@ -34,7 +34,7 @@ func (s *Server) exportOne(w http.ResponseWriter, r *http.Request) {
 	sendHTML(w, r, out, title)
 }
 
-// exportAll は全事象を 1 つの HTML にまとめて返す。
+// exportAll は全フローを 1 つの HTML にまとめて返す。
 func (s *Server) exportAll(w http.ResponseWriter, r *http.Request) {
 	const title = "SOC 対応フロー"
 

@@ -22,7 +22,7 @@ export type StepDiff =
   | { kind: "removed"; base: Step };
 
 export interface FlowDiff {
-  /** 元にした事象。見つからなければ undefined。 */
+  /** 元にしたフロー。見つからなければ undefined。 */
   base?: EventFlow;
   rows: StepDiff[];
   added: number;
@@ -40,7 +40,7 @@ const FIELDS: { key: keyof Step; label: string }[] = [
   { key: "detail", label: "詳細" },
   { key: "sla", label: "SLA" },
   { key: "lane", label: "担当" },
-  { key: "task", label: "タスク" },
+  { key: "task", label: "対応" },
   { key: "escalate", label: "エスカレ" },
   { key: "contacts", label: "連絡先" },
   { key: "conditions", label: "表示条件" },
@@ -132,7 +132,7 @@ export function isOutdated(evt: EventFlow, base: EventFlow): boolean {
   return new Date(base.updatedAt) > new Date(evt.baseSyncedAt);
 }
 
-/** その事象を元にした事象。 */
+/** そのフローを元にしたフロー。 */
 export function derivedOf(db: DB, key: string): EventFlow[] {
   return db.events.filter((e) => e.base === key);
 }
@@ -163,7 +163,7 @@ export function changedDetail(db: DB, r: StepDiff): string {
         return s.sla || "なし";
       case "担当":
         return db.lanes.find((l) => l.key === s.lane)?.name ?? s.lane;
-      case "タスク":
+      case "対応":
         return taskOf(db, s.task)?.label ?? s.task;
       case "エスカレ":
         return s.escalate ? "要" : "不要";

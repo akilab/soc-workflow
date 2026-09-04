@@ -13,7 +13,7 @@
  * 構造が変わる操作——条件の追加、判断の解除、連絡先の変更、削除——は
  * その場で送り、全体を描き直す。こちらは入力の途中ではないので作り直してよい。
  *
- * 送る前に画面を離れる操作（別の手順を選ぶ、モードを切り替える、事象を閉じる）が
+ * 送る前に画面を離れる操作（別の手順を選ぶ、モードを切り替える、フローを閉じる）が
  * あるので、それらの前に flush() を呼ぶ。
  */
 
@@ -203,11 +203,11 @@ export class Inspector {
     this.renderStep(evt, box, st);
   }
 
-  // --- 手順を選んでいないとき: 事象そのもの --------------------------------
+  // --- 手順を選んでいないとき: フローそのもの --------------------------------
 
   private renderEvent(evt: EventFlow, box: HTMLElement): void {
     box.innerHTML =
-      `<label>事象名</label><input type="text" id="i_title" value="${esc(evt.title)}">` +
+      `<label>フロー名</label><input type="text" id="i_title" value="${esc(evt.title)}">` +
       `<label>補足</label><input type="text" id="i_sub" value="${esc(evt.sub)}">` +
       `<label>重大度</label><select id="i_sev">` +
       (["S1", "S2", "S3"] as Severity[])
@@ -218,8 +218,8 @@ export class Inspector {
         .join("") +
       "</select>" +
       '<p class="hint">キャンバスのボックス、または左のアウトラインの行を選ぶと、' +
-      "その手順の内容を編集できます。<br>手順を足すには「タスクパレット」タブへ。" +
-      "<br>複製と削除は事象一覧で行います。</p>";
+      "その手順の内容を編集できます。<br>手順を足すには「対応パレット」タブへ。" +
+      "<br>複製と削除はフロー一覧で行います。</p>";
 
     const saveEvent = () => {
       void this.d.api
@@ -228,7 +228,7 @@ export class Inspector {
           { title: evt.title, sub: evt.sub, severity: evt.severity },
           { quiet: true },
         )
-        .catch((e: unknown) => this.fail(e, "事象の保存"));
+        .catch((e: unknown) => this.fail(e, "フローの保存"));
     };
     let t: number | undefined;
     const queued = () => {
@@ -393,7 +393,7 @@ export class Inspector {
 
     box.innerHTML =
       `<div class="taskref" style="--pc:${phase?.color ?? "var(--line)"}">` +
-      `<b>${esc(task?.label ?? "（不明なタスク）")}</b>` +
+      `<b>${esc(task?.label ?? "（不明な対応）")}</b>` +
       `${esc(phase?.name ?? "")} / ${esc(task?.note ?? "")}</div>` +
       `<label>手順のタイトル</label><input type="text" id="s_title" value="${esc(st.title)}">` +
       `<label>詳細</label><textarea id="s_detail">${esc(st.detail)}</textarea>` +
@@ -833,7 +833,7 @@ export class Inspector {
 
 // ---------------------------------------------------------------------------
 
-/** その事象で使われていない判断のキーを作る。 */
+/** そのフローで使われていない判断のキーを作る。 */
 function uniqueDecisionKey(evt: EventFlow): string {
   const used = new Set(
     evt.steps.filter((s) => s.decision).map((s) => s.decision!.key),

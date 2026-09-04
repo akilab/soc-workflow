@@ -1,6 +1,6 @@
 package api
 
-// 事象に属さず、複数の事象から使われる部品——フェーズ・タスク・連絡先。
+// フローに属さず、複数のフローから使われる部品——フェーズ・対応・連絡先。
 //
 // この 3 つは形が似ている。作る・直す・並べ替える・消す（使用中なら断る）。
 // 消すときに何を調べるかだけが違う。
@@ -18,7 +18,7 @@ type orderBody struct {
 }
 
 // ---------------------------------------------------------------------------
-// フェーズ（対応の段階＝フロー図の列）
+// フェーズ（対応のフェーズ＝フロー図の列）
 // ---------------------------------------------------------------------------
 
 type phaseBody struct {
@@ -28,7 +28,7 @@ type phaseBody struct {
 
 func (b phaseBody) check() error {
 	if strings.TrimSpace(b.Name) == "" {
-		return errf(http.StatusBadRequest, "段階の名前が空です")
+		return errf(http.StatusBadRequest, "フェーズの名前が空です")
 	}
 	return nil
 }
@@ -61,7 +61,7 @@ func (s *Server) updatePhase(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		p := db.Phase(key)
 		if p == nil {
-			return nil, notFound("段階", key)
+			return nil, notFound("フェーズ", key)
 		}
 		if err := in.check(); err != nil {
 			return nil, err
@@ -76,9 +76,9 @@ func (s *Server) deletePhase(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		p := db.Phase(key)
 		if p == nil {
-			return nil, notFound("段階", key)
+			return nil, notFound("フェーズ", key)
 		}
-		if err := refuseIfUsed("段階", p.Name, tasksUsingPhase(db, key)); err != nil {
+		if err := refuseIfUsed("フェーズ", p.Name, tasksUsingPhase(db, key)); err != nil {
 			return nil, err
 		}
 		db.Phases = remove(db.Phases, func(x *model.Phase) bool { return x.Key == key })
@@ -102,7 +102,7 @@ func (s *Server) orderPhases(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// タスク（フロー図のボックスの元。事象をまたいで再利用される）
+// 対応（フロー図のボックスの元。フローをまたいで再利用される）
 // ---------------------------------------------------------------------------
 
 type taskBody struct {
@@ -115,17 +115,17 @@ type taskBody struct {
 
 func (b taskBody) check(db *model.DB) error {
 	if strings.TrimSpace(b.Label) == "" {
-		return errf(http.StatusBadRequest, "タスクの名前が空です")
+		return errf(http.StatusBadRequest, "対応の名前が空です")
 	}
 	if db.Phase(b.PhaseKey) == nil {
-		return errf(http.StatusBadRequest, "知らない段階です: %s", b.PhaseKey)
+		return errf(http.StatusBadRequest, "知らないフェーズです: %s", b.PhaseKey)
 	}
 	// 既定の担当。手順に投入するときの初期値になるので、実在する必要がある。
 	if db.Lane(b.LaneKey) == nil {
 		return errf(http.StatusBadRequest, "知らない担当です: %s", b.LaneKey)
 	}
 	if !b.Kind.Valid() {
-		return errf(http.StatusBadRequest, "タスクの種類が不正です: %s", b.Kind)
+		return errf(http.StatusBadRequest, "対応の種類が不正です: %s", b.Kind)
 	}
 	return nil
 }
@@ -158,14 +158,14 @@ func (s *Server) updateTask(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		t := db.Task(key)
 		if t == nil {
-			return nil, notFound("タスク", key)
+			return nil, notFound("対応", key)
 		}
 		if err := in.check(db); err != nil {
 			return nil, err
 		}
-		// 担当はタスクの既定値。すでに使われている手順には波及させない。
-		// 事象ごとに担当を変えているものを、部品側の変更で上書きしてしまうため。
-		// 段階（色）は波及する。あちらはタスクそのものの性質だから。
+		// 担当は対応の既定値。すでに使われている手順には波及させない。
+		// フローごとに担当を変えているものを、部品側の変更で上書きしてしまうため。
+		// フェーズ（色）は波及する。あちらは対応そのものの性質だから。
 		t.PhaseKey, t.LaneKey, t.Label, t.Note = in.PhaseKey, in.LaneKey, in.Label, in.Note
 		// 種類は流れの扱いを変える。使われている手順にも波及する（そのための種類）。
 		t.Kind = in.Kind
@@ -178,9 +178,9 @@ func (s *Server) deleteTask(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		t := db.Task(key)
 		if t == nil {
-			return nil, notFound("タスク", key)
+			return nil, notFound("対応", key)
 		}
-		if err := refuseIfUsed("タスク", t.Label, stepsUsingTask(db, key)); err != nil {
+		if err := refuseIfUsed("対応", t.Label, stepsUsingTask(db, key)); err != nil {
 			return nil, err
 		}
 		db.Tasks = remove(db.Tasks, func(x *model.Task) bool { return x.Key == key })
@@ -217,7 +217,7 @@ func (s *Server) taskUsage(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 	if !found {
-		writeErr(w, notFound("タスク", key))
+		writeErr(w, notFound("対応", key))
 		return
 	}
 	s.ok(w, s.currentRev(), usage)

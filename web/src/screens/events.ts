@@ -1,8 +1,8 @@
 /**
- * 事象ウィンドウ。ここが入口。
+ * フロー一覧。ここが入口。
  *
- * 登録済みの事象を並べ、開くか、作るか、複製するか、書き出すかを選ぶ。
- * タブにしないのは、事象を選んでから編集に入るという流れが一方向だから。
+ * 登録済みのフローを並べ、開くか、作るか、複製するか、書き出すかを選ぶ。
+ * タブにしないのは、フローを選んでから編集に入るという流れが一方向だから。
  */
 
 import { Api, ApiError } from "../api";
@@ -14,7 +14,7 @@ import { askModal, confirmModal, openModal, showApiError, toast } from "../ui";
 
 export interface EventsScreenDeps {
   api: Api;
-  /** 事象を開く。編集ビューへ移る。 */
+  /** フローを開く。編集ビューへ移る。 */
   onOpen: (key: string) => void;
 }
 
@@ -35,15 +35,15 @@ export class EventsScreen {
 
     grid.innerHTML =
       db.events.map((ev) => this.card(ev)).join("") +
-      '<button class="ew-new" data-a="new"><u>＋</u>新しい事象を作る</button>';
+      '<button class="ew-new" data-a="new"><u>＋</u>新しいフローを作る</button>';
 
     $("ewNote").innerHTML =
-      "<b>タスクは事象をまたいで再利用される部品です。</b>" +
-      "段階・タスク・連絡先を 1 か所で持ち、事象はそれらの組み合わせとして作ります。" +
+      "<b>対応はフローをまたいで再利用される部品です。</b>" +
+      "フェーズ・対応・連絡先を 1 か所で持ち、フローはそれらの組み合わせとして作ります。" +
       "データはこの端末の JSON ファイルにのみ保存され、外部には送信されません。";
   }
 
-  /** 事象 1 件のカード。 */
+  /** フロー 1 件のカード。 */
   private card(ev: EventFlow): string {
     const db = this.api.db;
     const v = validate(db, ev);
@@ -97,14 +97,14 @@ export class EventsScreen {
     if (ev.base) {
       const d = diffFrom(db, ev);
       if (!d) return "";
-      const name = d.base ? esc(d.base.title) : "（元の事象がありません）";
+      const name = d.base ? esc(d.base.title) : "（元のフローがありません）";
       return (
         '<p class="ew-rel">' +
-        `<span class="from" title="この事象は「${name}」を元にしています">` +
+        `<span class="from" title="このフローは「${name}」を元にしています">` +
         `↳ ${name}</span>` +
         `<span class="dif">${esc(diffSummary(d))}</span>` +
         (d.outdated
-          ? '<span class="old" title="元の事象がこのあと更新されています。' +
+          ? '<span class="old" title="元のフローがこのあと更新されています。' +
             '取り込むかどうかは、違いを見て決めてください">元が更新されています</span>'
           : "") +
         "</p>"
@@ -154,13 +154,13 @@ export class EventsScreen {
 
   private async create(): Promise<void> {
     const v = await askModal({
-      title: "新しい事象",
+      title: "新しいフロー",
       sub: "対応フローを 1 本作ります",
       okLabel: "作成",
       fields: [
         {
           k: "title",
-          label: "事象名",
+          label: "フロー名",
           required: true,
           placeholder: "ランサムウェアの疑い",
         },
@@ -193,12 +193,12 @@ export class EventsScreen {
       toast(`「${v.title}」を作りました`);
       if (created) this.onOpen(created.key);
     } catch (e) {
-      this.fail(e, "事象の作成");
+      this.fail(e, "フローの作成");
     }
   }
 
   /**
-   * この事象を元に、顧客別のフローを作る。
+   * このフローを元に、顧客別のフローを作る。
    *
    * 複製と分けてあるのは、元をどう見るかが違うから。複製は対等な別物、
    * 顧客別は「共通に対するこの顧客のやり方」で、あとから違いを見られる。
@@ -240,7 +240,7 @@ export class EventsScreen {
       const dup = await this.api.duplicateEvent(key);
       toast(dup ? `「${dup.title}」を作りました` : "複製しました");
     } catch (e) {
-      this.fail(e, "事象の複製");
+      this.fail(e, "フローの複製");
     }
   }
 
@@ -249,14 +249,14 @@ export class EventsScreen {
     if (!ev) return;
 
     const ok = await confirmModal({
-      title: "事象を削除",
+      title: "フローを削除",
       sub: ev.title,
       danger: true,
       okLabel: "削除する",
       message:
         `<p><b>${esc(ev.title)}</b> と、その ${ev.steps.length} 手順を削除します。</p>` +
-        "<p class=\"hint\">タスクや連絡先は部品なので消えません。" +
-        "この事象での組み合わせだけが失われます。取り消せません。</p>",
+        "<p class=\"hint\">対応や連絡先は部品なので消えません。" +
+        "このフローでの組み合わせだけが失われます。取り消せません。</p>",
     });
     if (!ok) return;
 
@@ -264,7 +264,7 @@ export class EventsScreen {
       await this.api.deleteEvent(key);
       toast(`「${ev.title}」を削除しました`);
     } catch (e) {
-      this.fail(e, "事象の削除");
+      this.fail(e, "フローの削除");
     }
   }
 
@@ -275,7 +275,7 @@ export class EventsScreen {
 
     openModal(
       "書き出し",
-      ev ? ev.title : `全 ${this.api.db.events.length} 事象`,
+      ev ? ev.title : `全 ${this.api.db.events.length} フロー`,
       '<p class="ins hint" style="margin:0 0 12px">下のプレビューは、実際に書き出される HTML を' +
         "そのまま表示しています。外部依存はありません。ファイルをコピーするだけで配れます。</p>" +
         `<iframe class="frame" src="${esc(url)}"></iframe>`,

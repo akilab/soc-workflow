@@ -1,11 +1,11 @@
 /**
- * タスクパレット。フロー図に置く部品を選ぶところ。
+ * 対応パレット。フロー図に置く部品を選ぶところ。
  *
- * タスクは事象をまたいで再利用される部品なので、「どれがよく使われているか」
- * 「この事象ではもう使っているか」が見えると選びやすい。使用回数を出し、
+ * 対応はフローをまたいで再利用される部品なので、「どれがよく使われているか」
+ * 「このフローではもう使っているか」が見えると選びやすい。使用回数を出し、
  * 既定では使用の多い順に並べる。
  *
- * インスペクタとはタブで分ける。「タスクを選んで置く」と「内容を書く」は
+ * インスペクタとはタブで分ける。「対応を選んで置く」と「内容を書く」は
  * 別の作業で、同時に見たいものが違う。
  */
 
@@ -21,7 +21,7 @@ type FilterMode = "all" | "here" | "unused";
 
 export interface PaletteDeps {
   api: Api;
-  /** いま開いている事象。 */
+  /** いま開いているフロー。 */
   event: () => EventFlow | undefined;
   /** 手順を足したあとに呼ばれる。 */
   onChanged: () => void;
@@ -33,7 +33,7 @@ export class Palette {
   private query = "";
   private sort: SortMode = "use";
   private filter: FilterMode = "all";
-  /** 畳んでいる段階。段階ごとにまとめて出すので、要らない段階は閉じられる。 */
+  /** 畳んでいるフェーズ。フェーズごとにまとめて出すので、要らないフェーズは閉じられる。 */
   private collapsed = new Set<string>();
 
   constructor(deps: PaletteDeps) {
@@ -49,12 +49,12 @@ export class Palette {
   // 数える
   // -------------------------------------------------------------------------
 
-  /** そのタスクを使っている事象の数。 */
+  /** その対応を使っているフローの数。 */
   private usedInEvents(key: string): number {
     return eventsUsingTask(this.db, key).length;
   }
 
-  /** いま開いている事象で、そのタスクを何回使っているか。 */
+  /** いま開いているフローで、その対応を何回使っているか。 */
   private usedHere(key: string): number {
     return (this.d.event()?.steps ?? []).filter((s) => s.task === key).length;
   }
@@ -97,7 +97,7 @@ export class Palette {
         this.db.tasks.filter((t) => t.phase === p.key && this.matches(t)),
       );
       hit += tasks.length;
-      // 絞り込み中に空の段階を出しても邪魔になるだけ
+      // 絞り込み中に空のフェーズを出しても邪魔になるだけ
       if (narrowed && !tasks.length) continue;
       box.appendChild(this.group(p, tasks, narrowed));
     }
@@ -114,20 +114,20 @@ export class Palette {
   }
 
   private emptyMessage(): string {
-    if (this.query.trim()) return `「${this.query}」に一致するタスクはありません。`;
-    if (this.filter === "here") return "この事象ではまだタスクを使っていません。";
-    if (this.filter === "unused") return "未使用のタスクはありません。";
-    return "タスクがありません。";
+    if (this.query.trim()) return `「${this.query}」に一致する対応はありません。`;
+    if (this.filter === "here") return "このフローではまだ対応を使っていません。";
+    if (this.filter === "unused") return "未使用の対応はありません。";
+    return "対応がありません。";
   }
 
-  /** 段階ごとのまとまり。 */
+  /** フェーズごとのまとまり。 */
   private group(p: Phase, tasks: Task[], narrowed: boolean): HTMLElement {
     const g = document.createElement("div");
     g.className = "pal-g";
     g.style.setProperty("--pc", p.color);
     g.innerHTML =
       `<h4><span>${esc(p.name)}<u>${tasks.length}</u></span>` +
-      `<button title="${esc(p.name)} に新しいタスクを作る">＋</button></h4>`;
+      `<button title="${esc(p.name)} に新しい対応を作る">＋</button></h4>`;
 
     g.querySelector("h4 span")?.addEventListener("click", () => {
       if (narrowed) return; // 絞り込み中は畳まない。畳むと結果が見えなくなる
@@ -145,14 +145,14 @@ export class Palette {
       if (!tasks.length) {
         const empty = document.createElement("p");
         empty.className = "pal-empty";
-        empty.textContent = "タスクなし";
+        empty.textContent = "対応なし";
         g.appendChild(empty);
       }
     }
     return g;
   }
 
-  /** タスク 1 枚。 */
+  /** 対応 1 枚。 */
   private card(t: Task, p: Phase): HTMLElement {
     const here = this.usedHere(t.key);
     const all = this.usedInEvents(t.key);
@@ -173,13 +173,13 @@ export class Palette {
       `${esc(t.label)}</b><span class="nt">${esc(t.note ?? "")}</span>` +
       '<span class="use">' +
       (here ? `<span class="u-in">使用中 ${here}</span>` : "") +
-      `<span class="u-all">${all}事象</span></span>` +
+      `<span class="u-all">${all}フロー</span></span>` +
       '<button class="add" title="末尾に追加">+</button>';
     el.title =
       t.label +
       (t.note ? `（${t.note}）` : "") +
       `\n既定の担当: ${lane?.name ?? "未設定"}` +
-      `\nこの事象で ${here} 回 / 全体で ${all} 事象が使用` +
+      `\nこのフローで ${here} 回 / 全体で ${all} フローが使用` +
       "\n\nキャンバスの列へドラッグすると、その担当で入ります。";
 
     el.addEventListener("dragstart", (e) => {
@@ -204,7 +204,7 @@ export class Palette {
   // 操作
   // -------------------------------------------------------------------------
 
-  /** 末尾に足す。担当はタスクの既定値。 */
+  /** 末尾に足す。担当は対応の既定値。 */
   async addStep(taskKey: string, at?: StepPlacement): Promise<void> {
     const evt = this.d.event();
     if (!evt) return;
@@ -224,20 +224,20 @@ export class Palette {
     }
 
     const v = await askModal({
-      title: "新しいタスク",
-      sub: "フロー図のボックスになる部品。事象をまたいで再利用されます",
+      title: "新しい対応",
+      sub: "フロー図のボックスになる部品。フローをまたいで再利用されます",
       okLabel: "作成",
       fields: [
         {
           k: "label",
-          label: "タスク名",
+          label: "対応名",
           required: true,
           placeholder: "例: 端末のネットワーク隔離",
         },
         { k: "note", label: "補足", placeholder: "例: EDR から実行" },
         {
           k: "phase",
-          label: "段階",
+          label: "フェーズ",
           type: "select",
           value: phaseKey,
           options: db.phases.map((p) => ({ v: p.key, l: p.name })),
@@ -276,10 +276,10 @@ export class Palette {
         label: v.label,
         note: v.note,
       });
-      this.collapsed.delete(v.phase); // 作った段階は開いておく
-      toast(`タスク「${v.label}」を作成しました`);
+      this.collapsed.delete(v.phase); // 作ったフェーズは開いておく
+      toast(`対応「${v.label}」を作成しました`);
     } catch (e) {
-      this.fail(e, "タスクの作成");
+      this.fail(e, "対応の作成");
     }
   }
 

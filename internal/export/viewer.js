@@ -71,9 +71,9 @@ function mountViewer(root, DATA, opt){
   ensureViaSprite();
   var uid = "v" + Math.floor(Math.random()*1e9).toString(36);
   var phaseByKey = {}, taskByKey = {}, groupByKey = {}, laneByKey = {}, laneIndex = {};
-  /* 事象ごとの担当を解決する。指定が無ければ全体をそのまま使う。
+  /* フローごとの担当を解決する。指定が無ければ全体をそのまま使う。
      呼び名だけを差し替えた複製を返す。全体のものを書き換えると、
-     1 つの事象の呼び名が他の事象へ漏れる。 */
+     1 つのフローの呼び名が他のフローへ漏れる。 */
   function lanesOf(ev){
     var all = DATA.lanes || [];
     if(!ev || !ev.lanes || !ev.lanes.length){ return all.slice(); }
@@ -88,7 +88,7 @@ function mountViewer(root, DATA, opt){
     });
     return out;
   }
-  /* いま描いている事象の担当。select() のたびに入れ替える。 */
+  /* いま描いているフローの担当。select() のたびに入れ替える。 */
   var lanes = [];
   function useLanes(ev){
     lanes = lanesOf(ev);
@@ -114,7 +114,7 @@ function mountViewer(root, DATA, opt){
   root.innerHTML =
     '<div class="v-top">'
     + '<h1>SOC <b>対応フロー</b></h1>'
-    + '<div class="v-now" data-e="now">左の一覧から、発生した事象を選択してください。</div>'
+    + '<div class="v-now" data-e="now">左の一覧から、対応するフローを選んでください。</div>'
     + '<button class="v-btn v-th" data-th type="button"></button>'
     + '<div class="v-meters">'
     +   '<div class="v-meter"><div class="k">経過時間</div><div class="val" data-e="elapsed">--:--</div></div>'
@@ -122,7 +122,7 @@ function mountViewer(root, DATA, opt){
     +     '<div class="v-bar"><i data-e="progbar"></i></div></div>'
     + '</div></div>'
     + '<div class="v-main' + (solo ? ' solo' : '') + '">'
-    +   '<aside class="v-card v-evs"><h3>発生した事象</h3><div data-e="evlist"></div>'
+    +   '<aside class="v-card v-evs"><h3>対応フロー</h3><div data-e="evlist"></div>'
     +     '<div class="v-legend">'
     +       '<span><i style="color:var(--cur)">&#9654;</i>現在</span>'
     +       '<span><i style="color:var(--ok)">&#10003;</i>完了</span>'
@@ -131,10 +131,10 @@ function mountViewer(root, DATA, opt){
     +     '<svg class="v-wires" data-e="wires"></svg></div></div>'
     + '</div>'
     + '<div class="v-steps"><header>'
-    +   '<h2 data-e="stitle">対応手順<small>事象を選択してください</small></h2>'
+    +   '<h2 data-e="stitle">対応手順<small>フローを選択してください</small></h2>'
     +   '<div class="v-acts"><button class="v-btn p" data-e="copy">作業ログをコピー</button>'
     +     '<button class="v-btn" data-e="reset">リセット</button></div></header>'
-    +   '<div data-e="slist"><p class="v-empty">事象を選択してください。</p></div>'
+    +   '<div data-e="slist"><p class="v-empty">フローを選択してください。</p></div>'
     +   '<p class="v-note">' + (opt.note || "内容はダミーです。進捗はこのブラウザにのみ保存され、外部には送信されません。") + '</p>'
     + '</div>';
 
@@ -165,12 +165,12 @@ function mountViewer(root, DATA, opt){
     }
     return unknown ? null : true;
   }
-  /* 終了（クローズ）のタスクを使っている手順か。 */
+  /* 終了（クローズ）の対応を使っている手順か。 */
   function isClose(st){
     var tk = taskByKey[st.task];
     return !!tk && tk.kind === "close";
   }
-  /* 待ちのタスクを使っている手順か。 */
+  /* 待ちの対応を使っている手順か。 */
   function isWait(st){
     var tk = taskByKey[st.task];
     return !!tk && tk.kind === "wait";
@@ -200,7 +200,7 @@ function mountViewer(root, DATA, opt){
   }
   function findEvent(k){ for(var i=0;i<events.length;i++) if(events[i].key===k) return events[i]; return null; }
 
-  /* ---- 事象リスト ---- */
+  /* ---- フローリスト ---- */
   var evlist = $("evlist");
   events.forEach(function(ev){
     var b = document.createElement("button");
@@ -213,7 +213,7 @@ function mountViewer(root, DATA, opt){
 
   /* ---- キャンバス ----
      列は担当（レーン）、行は手順の順番。手順 1 つにつきボックス 1 つ。
-     段階は列ではなく、ボックスの左のバーとラベルで表す。 */
+     フェーズは列ではなく、ボックスの左のバーとラベルで表す。 */
   function buildGrid(ev){
     useLanes(ev);
     grid.innerHTML = "";
@@ -253,20 +253,20 @@ function mountViewer(root, DATA, opt){
       el.style.setProperty("--lc", ln ? ln.color : "var(--line)");
       el.style.gridColumn = (li + 1);
       el.style.gridRow = (i + 2);
-      /* 分類（段階・担当）はタイトルの上。列が担当を表してはいるが、
+      /* 分類（フェーズ・担当）はタイトルの上。列が担当を表してはいるが、
          縦に長いフローでは列見出しがページと一緒にスクロールして見えなくなる。 */
       el.innerHTML = '<span class="mk"></span>'
         + '<span class="cls">'
         + (ph ? '<i class="ph">' + esc(ph.name) + '</i>' : '')
         + (ln ? '<i class="who">' + esc(ln.name) + '</i>' : '')
         + '</span>'
-        /* 手順の題名を出す。タスク名ではない。
-           タスクは事象をまたぐ部品で、名前も一般的なもの（「ログの収集」）。
-           手順はこの事象での言い方を持つ（「侵入経路を特定する」）。
+        /* 手順の題名を出す。対応名ではない。
+           対応はフローをまたぐ部品で、名前も一般的なもの（「ログの収集」）。
+           手順はこのフローでの言い方を持つ（「侵入経路を特定する」）。
            ここが tk.label だったので、種データ 62 手順のうち 59 で、
            編集画面と書き出し HTML が違う言葉を出していた。
            同じページの下の手順一覧は st.title を出しているので、そことも
-           食い違っていた。元のタスク名は手順一覧の分類行に出る。 */
+           食い違っていた。元の対応名は手順一覧の分類行に出る。 */
         + '<span class="n">' + esc(st.title) + '</span>'
         /* 補足が無いときは行そのものを出さない。空の span でも margin が残る。
            エディタ側（canvas.ts）と同じ条件にしてある。 */

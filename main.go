@@ -105,7 +105,7 @@ func summarize(st store.Store) {
 		for _, g := range db.ContactGroups {
 			members += len(g.Members)
 		}
-		fmt.Printf("  中身:   段階 %d / タスク %d / 連絡先 %d グループ・%d 名 / 事象 %d・手順 %d\n",
+		fmt.Printf("  中身:   フェーズ %d / 対応 %d / 連絡先 %d グループ・%d 名 / フロー %d・手順 %d\n",
 			len(db.Phases), len(db.Tasks), len(db.ContactGroups), members,
 			len(db.Events), steps)
 	})

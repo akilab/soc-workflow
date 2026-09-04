@@ -7,13 +7,13 @@
    editorCss — エディタ画面だけで使う。書き出しHTMLには含まれない。
 
    画面は 2 つ。
-     事象ウィンドウ（body.screen-events） … 事象の一覧と作成
+     フロー一覧（body.screen-events） … フローの一覧と作成
      編集ビュー    （body.screen-edit / .screen-run）
 
    編集ビューの配置:
      左   … 手順アウトライン（順序と分岐の木）
      中央 … フローキャンバス
-     右   … インスペクタ ⇄ タスクパレット（タブで切り替え）
+     右   … インスペクタ ⇄ 対応パレット（タブで切り替え）
    ================================================================== */
 #scEvents,#scEdit,#scTasks,#scContacts{display:none}
 body.screen-events   #scEvents{display:block}
@@ -44,12 +44,12 @@ body.resizing{cursor:col-resize;user-select:none}
 
 .brand{margin:0;font-size:16px;font-weight:700;white-space:nowrap;letter-spacing:.01em}
 .brand b{color:var(--cur)}
-/* 画面の名前（連絡先・タスク一覧など）。製品名と違って強調しない。 */
+/* 画面の名前（連絡先・対応一覧など）。製品名と違って強調しない。 */
 .sc-name{margin:0;font-size:16px;font-weight:700;white-space:nowrap;letter-spacing:.01em}
 .brand em{font-style:normal;font-size:10px;letter-spacing:.16em;color:var(--faint);
   border:1px solid var(--line);border-radius:4px;padding:2px 6px;margin-left:9px;vertical-align:2px}
 
-/* ================= 事象ウィンドウ ================= */
+/* ================= フロー一覧 ================= */
 .ew-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:11px}
 .ew-body{max-width:1360px;margin:0 auto;padding:26px 30px 40px}
@@ -67,7 +67,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .ew-card:hover .ew-hd b{color:var(--cur)}
 .ew-sub{margin:0 0 13px;font-size:12.5px;color:var(--dim);line-height:1.6;min-height:2.1em}
 
-/* フェーズ分布 — どの段階に手順が集まっている事象かが一目で分かる */
+/* フェーズ分布 — どのフェーズに手順が集まっているフローかが一目で分かる */
 .ew-bar{display:flex;gap:2px;height:7px;border-radius:4px;overflow:hidden;margin-bottom:7px;background:var(--panel3)}
 .ew-bar i{display:block;height:100%}
 .ew-dist{display:flex;flex-wrap:wrap;gap:9px;font-size:10.5px;color:var(--faint);margin-bottom:12px;
@@ -278,7 +278,7 @@ body.dragging .clane:not(.drop){opacity:.35}
   background:var(--panel2);border:1px solid var(--nodeline);border-left:4px solid var(--pc);
   border-radius:0;padding:9px 11px 9px 12px;cursor:pointer;
   transition:border-color .16s,background .16s,box-shadow .16s,transform .16s}
-/* 分類の行。段階（色）と担当（列）を、手順そのものの性質より上に置く。
+/* 分類の行。フェーズ（色）と担当（列）を、手順そのものの性質より上に置く。
    列が担当を表してはいるが、縦に長いフローでは列見出しが視界から外れる。
    ボックス自身にも書いておけば、どこを見ていても分かる。 */
 .cnode .cls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
@@ -297,7 +297,7 @@ body.dragging .clane:not(.drop){opacity:.35}
   font-weight:700;color:var(--dim);display:flex;align-items:center;justify-content:center}
 .cnode.sel .num{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
 .cnode b{display:block;font-size:13px;font-weight:600;line-height:1.5;word-break:break-word}
-/* タスクの補足。書き出し HTML の .v-node .t と同じ値にする（viewer.css）。
+/* 対応の補足。書き出し HTML の .v-node .t と同じ値にする（viewer.css）。
    同じ図なので、片方だけ大きさや色が違うと別物に見える。 */
 .cnode .t{display:block;font-size:11px;color:var(--faint);line-height:1.4;margin-top:2px}
 /* フラグはタイトルの下に置く。絶対配置だと長い SLA が文字に重なる。 */
@@ -347,7 +347,7 @@ body.dragging .clane:not(.drop){opacity:.35}
 #paneRight.tab-pal .ins{display:none}
 .palwrap{overflow:auto;flex:1;padding:10px 12px 16px;min-height:0}
 
-/* ---------- タスクパレット（右サイドバー・縦） ---------- */
+/* ---------- 対応パレット（右サイドバー・縦） ---------- */
 .pal-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
   border-radius:8px;padding:7px 11px;font-size:13px;font-family:var(--sans);margin-bottom:7px}
 /* 並び順と絞り込み — 44 件を超えると定義順では定番が埋もれる */
@@ -493,7 +493,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   font-size:12.5px;color:var(--decFg);background:color-mix(in srgb, var(--dec) 7%, transparent);line-height:1.7}
 
 
-/* ================= タスク管理画面 ================= */
+/* ================= 対応管理画面 ================= */
 .tk-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:11px}
 .tk-search{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
@@ -537,7 +537,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.warn{border-color:var(--s2);color:var(--s2)}
 
-/* タスク管理画面のツールバー */
+/* 対応管理画面のツールバー */
 .tk-bar{display:flex;gap:8px;align-items:center;margin:0 0 16px}
 .tk-bar select{background:var(--panel2);border:1px solid var(--line);color:var(--dim);
   border-radius:7px;padding:6px 10px;font-size:12.5px;font-family:var(--sans)}
@@ -613,7 +613,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .ctp em{font-style:normal;font-size:10.5px;color:var(--kc);border:1px solid var(--kc);
   border-radius:4px;padding:0 6px;flex:none}
 
-/* ---------- 一覧の行（タスク／連絡先） ---------- */
+/* ---------- 一覧の行（対応／連絡先） ---------- */
 .rw{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) 130px minmax(0,1.1fr) 128px;
   gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);
   border-left:3px solid var(--pc,var(--line));border-radius:9px;padding:12px 14px;margin-bottom:8px;
@@ -682,7 +682,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   padding:7px;font-size:12px;cursor:pointer;font-family:var(--sans)}
 .cg-add:hover{border-color:var(--ok);color:var(--ok)}
 
-/* パレットで「終了」のタスクを見分ける印。
+/* パレットで「終了」の対応を見分ける印。
    使用回数のバッジは右上に絶対配置されているので、そこへ重ねない。
    名前の頭にインラインで置けば、何を修飾しているかも明確になる。 */
 .pal-t .k-fin{display:inline-block;font-style:normal;vertical-align:1px;

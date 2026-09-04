@@ -17,7 +17,7 @@ func decodeEvent(t *testing.T, body []byte) *model.Event {
 		t.Fatal(err)
 	}
 	if env.Data == nil {
-		t.Fatalf("事象が返っていません: %s", body)
+		t.Fatalf("フローが返っていません: %s", body)
 	}
 	return env.Data
 }
@@ -29,7 +29,7 @@ func eventByKey(t *testing.T, h http.Handler, key string) *model.Event {
 			return e
 		}
 	}
-	t.Fatalf("事象が見つかりません: %s", key)
+	t.Fatalf("フローが見つかりません: %s", key)
 	return nil
 }
 
@@ -89,7 +89,7 @@ func TestDeriveFromDerivedRefused(t *testing.T) {
 	}
 }
 
-// 元にされている事象は消せない。消すと派生が比べる先を失う。
+// 元にされているフローは消せない。消すと派生が比べる先を失う。
 func TestDeleteBaseRefused(t *testing.T) {
 	_, h := newTestServer(t)
 	src := readDB(t, h).Events[0]
@@ -134,7 +134,7 @@ func TestReviewedCatchesUp(t *testing.T) {
 	}
 }
 
-// 元にしていない事象では「確認」できない。
+// 元にしていないフローでは「確認」できない。
 func TestReviewedWithoutBase(t *testing.T) {
 	_, h := newTestServer(t)
 	src := readDB(t, h).Events[0]
@@ -143,7 +143,7 @@ func TestReviewedWithoutBase(t *testing.T) {
 	}
 }
 
-// 複製は元にした事象も出どころも引き継ぐ。
+// 複製は元にしたフローも出どころも引き継ぐ。
 // 「A 社向け」を複製して「B 社向け」を作る使い方ができる。
 func TestDuplicateKeepsBase(t *testing.T) {
 	_, h := newTestServer(t)
@@ -162,14 +162,14 @@ func TestDuplicateKeepsBase(t *testing.T) {
 	}
 }
 
-// 呼び名を決めた事象を写すと、呼び名も付いてくる。
+// 呼び名を決めたフローを写すと、呼び名も付いてくる。
 // これが抜けていると、複製したとたんに全体の呼び名へ戻る。
 func TestCloneKeepsEventLanes(t *testing.T) {
 	_, h := newTestServer(t)
 	db := readDB(t, h)
 	src := db.Events[0]
 
-	// その事象が実際に使っている担当だけを、名前を変えて渡す。
+	// そのフローが実際に使っている担当だけを、名前を変えて渡す。
 	used := map[string]bool{}
 	for _, st := range src.Steps {
 		used[st.LaneKey] = true

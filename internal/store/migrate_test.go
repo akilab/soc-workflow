@@ -50,10 +50,10 @@ func TestOpenMigratesV1(t *testing.T) {
 			}
 		}
 
-		// すべての手順とタスクに、実在する担当が入っていること
+		// すべての手順と対応に、実在する担当が入っていること
 		for _, tk := range db.Tasks {
 			if db.Lane(tk.LaneKey) == nil {
-				t.Errorf("タスク %q の担当が解決しません: %q", tk.Label, tk.LaneKey)
+				t.Errorf("対応 %q の担当が解決しません: %q", tk.Label, tk.LaneKey)
 			}
 		}
 		for _, ev := range db.Events {

@@ -1,10 +1,10 @@
 package api
 
-// 事象ごとの担当。どの列を使い、この事象では何と呼ぶか。
+// フローごとの担当。どの列を使い、このフローでは何と呼ぶか。
 //
-// 全体の担当は「役割」で、事象ごとに具体的な相手が変わる。一般的なフローの
+// 全体の担当は「役割」で、フローごとに具体的な相手が変わる。一般的なフローの
 // 「顧客」は、A 社向けのフローでは「高橋工務店」になる。持ち替えるのは呼び名だけで、
-// 手順もタスクも全体のキーを指したままなので、事象をまたいだ集計は壊れない。
+// 手順も対応も全体のキーを指したままなので、フローをまたいだ集計は壊れない。
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 	"github.com/akilab/soc-workflow/internal/model"
 )
 
-// eventLanesBody は事象が使う担当の並び。
+// eventLanesBody はフローが使う担当の並び。
 //
 // 空の配列を送れば「全体の担当をそのまま使う」に戻る。
 type eventLanesBody struct {
@@ -31,7 +31,7 @@ func (s *Server) setEventLanes(w http.ResponseWriter, r *http.Request) {
 	s.mutate(w, r, func(db *model.DB) (any, error) {
 		ev := db.Event(key)
 		if ev == nil {
-			return nil, notFound("事象", key)
+			return nil, notFound("フロー", key)
 		}
 		// 前後の空白を落とす。空になれば「全体の名前を使う」に戻る。
 		for _, el := range in.Lanes {
@@ -48,7 +48,7 @@ func (s *Server) setEventLanes(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// checkEventLanes は、その並びでこの事象が成り立つかを見る。
+// checkEventLanes は、その並びでこのフローが成り立つかを見る。
 func checkEventLanes(db *model.DB, ev *model.Event, lanes []*model.EventLane) error {
 	// 空なら「全体をそのまま使う」。確かめることがない。
 	if len(lanes) == 0 {

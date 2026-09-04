@@ -73,8 +73,8 @@ func TestExportEmbedsData(t *testing.T) {
 		t.Errorf("手順の内容が入っていません: %q", ev.Steps[0].Title)
 	}
 
-	// 事象を 1 つに絞っても、参照される部品は全部入っていること。
-	// 欠けていると、開いた側で段階も担当も引けなくなる。
+	// フローを 1 つに絞っても、参照される部品は全部入っていること。
+	// 欠けていると、開いた側でフェーズも担当も引けなくなる。
 	// 一度 lanes を入れ忘れ、列がまったく描かれない書き出しを作った。
 	var payload struct {
 		Lanes         []*model.Lane         `json:"lanes"`
@@ -90,10 +90,10 @@ func TestExportEmbedsData(t *testing.T) {
 		t.Errorf("担当が %d 件、期待 %d 件", len(payload.Lanes), len(db.Lanes))
 	}
 	if len(payload.Phases) != len(db.Phases) {
-		t.Errorf("段階が %d 件、期待 %d 件", len(payload.Phases), len(db.Phases))
+		t.Errorf("フェーズが %d 件、期待 %d 件", len(payload.Phases), len(db.Phases))
 	}
 	if len(payload.Tasks) != len(db.Tasks) {
-		t.Errorf("タスクが %d 件、期待 %d 件", len(payload.Tasks), len(db.Tasks))
+		t.Errorf("対応が %d 件、期待 %d 件", len(payload.Tasks), len(db.Tasks))
 	}
 	if len(payload.ContactGroups) != len(db.ContactGroups) {
 		t.Errorf("連絡先が %d 件、期待 %d 件", len(payload.ContactGroups), len(db.ContactGroups))
@@ -111,12 +111,12 @@ func TestExportEmbedsData(t *testing.T) {
 	}
 }
 
-// 絞り込んだ事象だけが入っていること。他の事象を巻き込むと、
-// 「この事象だけ渡す」つもりが全部渡すことになる。
+// 絞り込んだフローだけが入っていること。他のフローを巻き込むと、
+// 「このフローだけ渡す」つもりが全部渡すことになる。
 func TestExportSingleEventExcludesOthers(t *testing.T) {
 	db := seedDB(t)
 	if len(db.Events) < 2 {
-		t.Skip("事象が 2 件以上必要です")
+		t.Skip("フローが 2 件以上必要です")
 	}
 
 	out, err := HTML(db, []*model.Event{db.Events[0]}, "検証")
@@ -136,10 +136,10 @@ func TestExportSingleEventExcludesOthers(t *testing.T) {
 		t.Fatalf("埋め込んだデータが JSON として読めません: %v", err)
 	}
 	if len(payloadOf.Events) != 1 {
-		t.Fatalf("事象が %d 件入っています。期待 1 件", len(payloadOf.Events))
+		t.Fatalf("フローが %d 件入っています。期待 1 件", len(payloadOf.Events))
 	}
 	if payloadOf.Events[0].Key != db.Events[0].Key {
-		t.Errorf("入っている事象が違います: %s", payloadOf.Events[0].Key)
+		t.Errorf("入っているフローが違います: %s", payloadOf.Events[0].Key)
 	}
 }
 

@@ -27,7 +27,7 @@ func TestOpenCreatesFromSeed(t *testing.T) {
 		}
 	})
 	if tasks == 0 || events == 0 {
-		t.Errorf("種データが読めていません: タスク %d / 事象 %d", tasks, events)
+		t.Errorf("種データが読めていません: 対応 %d / フロー %d", tasks, events)
 	}
 	if _, err := os.Stat(path); err != nil {
 		t.Errorf("ファイルが作られていません: %v", err)
@@ -44,7 +44,7 @@ func TestWriteAndReopen(t *testing.T) {
 	}
 	err = st.Write(func(db *model.DB) error {
 		db.Events = append(db.Events, &model.Event{
-			Key: "new", Title: "新しい事象", Severity: model.S2,
+			Key: "new", Title: "新しいフロー", Severity: model.S2,
 		})
 		return nil
 	})
@@ -64,7 +64,7 @@ func TestWriteAndReopen(t *testing.T) {
 	var found bool
 	st2.Read(func(db *model.DB) { found = db.Event("new") != nil })
 	if !found {
-		t.Error("保存した事象が読み戻せません")
+		t.Error("保存したフローが読み戻せません")
 	}
 }
 
@@ -85,7 +85,7 @@ func TestWriteRollbackOnError(t *testing.T) {
 	var after int
 	st.Read(func(db *model.DB) { after = len(db.Events) })
 	if before != after {
-		t.Errorf("事象数が変わっています: %d → %d", before, after)
+		t.Errorf("フロー数が変わっています: %d → %d", before, after)
 	}
 }
 
@@ -182,10 +182,10 @@ func TestSeedIsConsistent(t *testing.T) {
 	}
 	for _, task := range db.Tasks {
 		if db.Phase(task.PhaseKey) == nil {
-			t.Errorf("タスク %q が知らない段階 %q を指しています", task.Key, task.PhaseKey)
+			t.Errorf("対応 %q が知らないフェーズ %q を指しています", task.Key, task.PhaseKey)
 		}
 		if db.Lane(task.LaneKey) == nil {
-			t.Errorf("タスク %q が知らない担当 %q を指しています", task.Key, task.LaneKey)
+			t.Errorf("対応 %q が知らない担当 %q を指しています", task.Key, task.LaneKey)
 		}
 	}
 	for _, g := range db.ContactGroups {
@@ -201,7 +201,7 @@ func TestSeedIsConsistent(t *testing.T) {
 					ev.Key, st.Title, st.LaneKey)
 			}
 			if db.Task(st.TaskKey) == nil {
-				t.Errorf("%s / 手順 %q が知らないタスク %q を指しています",
+				t.Errorf("%s / 手順 %q が知らない対応 %q を指しています",
 					ev.Key, st.Title, st.TaskKey)
 			}
 			for _, key := range st.Contacts {

@@ -2,7 +2,7 @@
  * 編集ビュー。左に手順アウトライン、中央にフローキャンバス、右にインスペクタ／パレット。
  *
  * 同じフローを 2 つの軸で同時に見せている。アウトラインは「どの順で、どの条件のときに」、
- * キャンバスは「どの段階のどこにあるか」。設計しているときはこの 2 つを行き来する。
+ * キャンバスは「どのフェーズのどこにあるか」。設計しているときはこの 2 つを行き来する。
  *
  * 試走モードは、書き出し HTML と同じ viewer をそのまま起動する。
  * 「試走で見えているものが、そのまま配布物になる」を仕組みで保証している。
@@ -42,7 +42,7 @@ const DEFAULT_WIDTHS: PaneWidths = { left: 290, right: 324 };
 
 export interface EditScreenDeps {
   api: Api;
-  /** 事象一覧へ戻る。 */
+  /** フロー一覧へ戻る。 */
   onBack: () => void;
 }
 
@@ -81,12 +81,12 @@ export class EditScreen {
     this.bind();
   }
 
-  /** いま開いている事象。消えていれば undefined。 */
+  /** いま開いているフロー。消えていれば undefined。 */
   private get evt(): EventFlow | undefined {
     return eventOf(this.api.db, this.eventKey);
   }
 
-  /** 事象を開く。 */
+  /** フローを開く。 */
   open(key: string): void {
     this.eventKey = key;
     this.sel.clear();
@@ -121,7 +121,7 @@ export class EditScreen {
     const evt = this.evt;
     if (!evt) {
       // 別のタブで消されたなど。黙って空を出さずに戻す。
-      toast("この事象は無くなりました", true);
+      toast("このフローは無くなりました", true);
       this.onBack();
       return undefined;
     }
@@ -167,7 +167,7 @@ export class EditScreen {
     b.classList.toggle("warn", d.outdated);
     b.innerHTML = `共通との違い<u>${esc(diffSummary(d))}</u>` + (d.outdated ? " !" : "");
     b.title = d.outdated
-      ? "元の事象がこのあと更新されています"
+      ? "元のフローがこのあと更新されています"
       : `「${d.base?.title ?? ""}」との違いを見る`;
   }
 
@@ -289,7 +289,7 @@ export class EditScreen {
       openModal(
         "共通との違い",
         evt.title,
-        '<p class="cfm">元にした事象が見つかりません。' +
+        '<p class="cfm">元にしたフローが見つかりません。' +
           "データファイルを直接編集した場合に起きます。</p>",
       );
       return;
@@ -306,15 +306,15 @@ export class EditScreen {
     const rows = d.rows
       .map((r) => {
         const st = r.kind === "removed" ? r.base : r.step;
-        // 番号はこの事象での実施順。削除された手順にはこの事象での位置が無い。
+        // 番号はこのフローでの実施順。削除された手順にはこのフローでの位置が無い。
         const n = r.kind === "removed" ? "—" : String(++no);
         const why =
           r.kind === "changed"
             ? changedDetail(db, r)
             : r.kind === "added"
-              ? "この事象のために足された手順です"
+              ? "このフローのために足された手順です"
               : r.kind === "removed"
-                ? "共通にはありますが、この事象では実施しません"
+                ? "共通にはありますが、このフローでは実施しません"
                 : "";
         return (
           `<tr class="d-${r.kind}"><td class="num">${n}</td>` +
@@ -332,7 +332,7 @@ export class EditScreen {
       (d.reordered ? "手順の前後関係も変えてあります。" : "") +
       "</p>" +
       (d.outdated
-        ? '<p class="cfm"><em>元の事象が、このあと更新されています。</em>' +
+        ? '<p class="cfm"><em>元のフローが、このあと更新されています。</em>' +
           "取り込むかどうかは、上の違いを見て決めてください。" +
           "見たうえで今のままでよければ、下の「確認した」を押すと印が消えます。</p>"
         : "");
@@ -469,7 +469,7 @@ export class EditScreen {
    * パレットからキャンバスへ落とせるようにする。
    *
    * 落とした列がそのまま担当になり、落とした高さが挿入位置になる。
-   * 列が段階だった頃は、どこに落としても結果が同じだった（段階はタスクが
+   * 列がフェーズだった頃は、どこに落としても結果が同じだった（フェーズは対応が
    * 決めるので）。軸を担当に変えたことで、置く動作そのものが意味を持つ。
    */
   private bindDrop(): void {
@@ -515,7 +515,7 @@ export class EditScreen {
   /**
    * 落とした場所へ手順を動かす。担当と順番が同時に決まる。
    *
-   * 送るのは 2 つに分かれる。担当は手順の中身なので更新、順番は事象の中の
+   * 送るのは 2 つに分かれる。担当は手順の中身なので更新、順番はフローの中の
    * 並びなので並べ替え。どちらか片方しか変わっていなければ、その片方だけ送る。
    */
   private async moveStep(id: string, spot: DropSpot): Promise<void> {
@@ -559,7 +559,7 @@ export class EditScreen {
    * ペインの幅を掴んで動かせるようにする。
    *
    * 手順名は長さがまちまちで、分岐が深いと横にも伸びる。
-   * どこを広げたいかは作業の段階で変わるので、固定にしない。
+   * どこを広げたいかは作業のフェーズで変わるので、固定にしない。
    */
   private bindSplitters(): void {
     for (const sp of document.querySelectorAll<HTMLElement>(".split")) {
@@ -594,7 +594,7 @@ export class EditScreen {
   /**
    * 右サイドバーのタブを切り替える。
    *
-   * 「タスクを選んで置く」と「内容を書く」は別の作業なので、画面を分ける。
+   * 「対応を選んで置く」と「内容を書く」は別の作業なので、画面を分ける。
    */
   private setTab(tab: string): void {
     const pane = $("paneRight");

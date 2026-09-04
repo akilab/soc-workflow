@@ -1,22 +1,22 @@
 // Package model は、SOC Workflow が扱うデータの形を定義する。
 //
 // このアプリのデータは丸ごと 1 つの JSON ファイルに入る。全体で数十 KB、
-// 事象が 100 件に増えても 1 MB に届かないので、起動時に全部読み、
+// フローが 100 件に増えても 1 MB に届かないので、起動時に全部読み、
 // メモリ上で扱い、変更のたびに書き戻す。詳しい判断の理由は docs/SPEC.md に書いてある。
 //
 // 順序は「配列の並び」で表す。手順の実施順も、連絡先の連絡順も、
-// レーンの並びも段階の並びも同じ。リレーショナルに持つと sort_order の
+// レーンの並びもフェーズの並びも同じ。リレーショナルに持つと sort_order の
 // 張り替えが要るが、配列なら入れ替えるだけで済む。
 //
 // # 手順を分類する 2 つの軸
 //
-// 手順には「誰がやるか（Lane）」と「対応のどの段階か（Phase）」の 2 つがある。
+// 手順には「誰がやるか（Lane）」と「対応のどのフェーズか（Phase）」の 2 つがある。
 // このうち Lane を図の列にし、Phase は色とラベルで表す。
 //
-// 逆にしていた時期がある。段階を列にすると、受信の直後に報告へ飛ぶような
-// フローで線が端から端まで伸び、そこからまた戻ってくる。段階は時間とともに
+// 逆にしていた時期がある。フェーズを列にすると、受信の直後に報告へ飛ぶような
+// フローで線が端から端まで伸び、そこからまた戻ってくる。フェーズは時間とともに
 // 一方向に進む——という前提が、実際の対応では成り立たないためだった。
-// 実データで測ると、段階を軸にした線は最大 4 列ぶん動くのに対し、
+// 実データで測ると、フェーズを軸にした線は最大 4 列ぶん動くのに対し、
 // 担当を軸にすると全 54 本が「隣の列まで」に収まる。受け渡しは Tier1 と Tier2、
 // Tier2 と CSIRT のように、隣り合う責任範囲の間でしか起きないからである。
 package model
@@ -25,27 +25,27 @@ import "time"
 
 // Version はデータの形の版。形を変えたら上げて、読み込み時に移行する。
 //
-//	1: 最初の形。手順の担当は Tier（t1/t2/t3 の固定値）で、図の列は段階だった。
-//	2: 担当を Lane（設定可能）にし、図の列を担当に変えた。段階は色とラベルになった。
+//	1: 最初の形。手順の担当は Tier（t1/t2/t3 の固定値）で、図の列はフェーズだった。
+//	2: 担当を Lane（設定可能）にし、図の列を担当に変えた。フェーズは色とラベルになった。
 const Version = 2
 
 // DB はファイルに保存される全体。これがそのまま JSON になる。
 type DB struct {
 	Version int `json:"version"`
 
-	// 部品 — 事象に属さず、複数の事象から参照される
+	// 部品 — フローに属さず、複数のフローから参照される
 	Lanes         []*Lane         `json:"lanes"`         // フロー図の列。並び順が左からの順
-	Phases        []*Phase        `json:"phases"`        // 対応の段階。色とラベルで表す
+	Phases        []*Phase        `json:"phases"`        // 対応のフェーズ。色とラベルで表す
 	Tasks         []*Task         `json:"tasks"`         // フロー図のボックスの元
 	ContactGroups []*ContactGroup `json:"contactGroups"` // 連絡先のカテゴリ
 
-	// 事象 — 対応フロー 1 本にあたる
+	// フロー — 対応フロー 1 本にあたる
 	Events []*Event `json:"events"`
 }
 
 // Lane は担当。誰がその手順をやるか。フロー図では 1 つの列になる。
 //
-// 固定の 3 段階ではなく、設定できる並びにしてある。顧客・管理職・外部機関・
+// 固定の 3 フェーズではなく、設定できる並びにしてある。顧客・管理職・外部機関・
 // ベンダーなど、フローに出てくる相手は組織によって違い、呼び方も違うため。
 // 連絡先グループと同じ考え方。
 type Lane struct {
@@ -54,9 +54,9 @@ type Lane struct {
 	Color string `json:"color"`
 }
 
-// Phase は対応の段階。受信・確認、情報収集、封じ込め、復旧、記録・報告など。
+// Phase は対応のフェーズ。受信・確認、情報収集、封じ込め、復旧、記録・報告など。
 //
-// 図の列ではなく、ボックスの色とラベルで表す。段階は列にすると破綻するが
+// 図の列ではなく、ボックスの色とラベルで表す。フェーズは列にすると破綻するが
 // （package のコメント参照）、分類としては要る。「いま情報収集ばかりしていて
 // 封じ込めが薄い」といった偏りは、設計する側が見たい情報である。
 type Phase struct {
@@ -65,7 +65,7 @@ type Phase struct {
 	Color string `json:"color"`
 }
 
-// Task はフロー図のボックスになる部品。事象をまたいで再利用される。
+// Task はフロー図のボックスになる部品。フローをまたいで再利用される。
 type Task struct {
 	Key      string   `json:"key"`
 	PhaseKey string   `json:"phase"`
@@ -75,11 +75,11 @@ type Task struct {
 	Note     string   `json:"note"`
 }
 
-// TaskKind はタスクの種類。作業そのものではなく、フローの中での役割を表す。
+// TaskKind は対応の種類。作業そのものではなく、フローの中での役割を表す。
 //
 // 空（通常）以外は、単に「そういう作業」ではなく流れの扱いが変わる。
 // 種類を増やすときは、増やす意味があるか——つまり流れの扱いが変わるか——を
-// 確かめてから足す。見た目だけの区別なら、段階や担当で足りる。
+// 確かめてから足す。見た目だけの区別なら、フェーズや担当で足りる。
 type TaskKind string
 
 const (
@@ -88,7 +88,7 @@ const (
 
 	// KindClose は終了。ここで対応が終わる。
 	//
-	// 普通のタスクとして「クローズ」を作ることもできるが、それでは分岐した
+	// 普通の対応として「クローズ」を作ることもできるが、それでは分岐した
 	// 経路を終わらせられない。誤検知なら 3 手順で閉じ、真検知なら本格対応へ——
 	// という形を書くには、後続すべてに「誤検知ではないとき」という条件を
 	// 付けて回るしかなくなる。終了を種類として持てば、そこで切れる。
@@ -102,7 +102,7 @@ const (
 	KindWait TaskKind = "wait"
 )
 
-// Valid はタスクの種類として使える値かを返す。
+// Valid は対応の種類として使える値かを返す。
 func (k TaskKind) Valid() bool {
 	switch k {
 	case KindNormal, KindClose, KindWait:
@@ -187,25 +187,25 @@ const (
 	ViaMail   Via = "mail"
 )
 
-// Event は事象。対応フロー 1 本にあたる。
+// Event はフロー。対応フロー 1 本にあたる。
 type Event struct {
 	Key      string   `json:"key"`
 	Title    string   `json:"title"`
 	Sub      string   `json:"sub"`
 	Severity Severity `json:"severity"`
 
-	// Lanes はこの事象が使う担当と、その並び。空なら全体の担当をそのまま使う。
+	// Lanes はこのフローが使う担当と、その並び。空なら全体の担当をそのまま使う。
 	//
-	// 全体の担当は「役割」で、事象ごとに具体的な相手が変わる。一般的なフローの
+	// 全体の担当は「役割」で、フローごとに具体的な相手が変わる。一般的なフローの
 	// 「顧客」は、A 社向けのフローでは「高橋工務店」になる。役割を持ち替えるのは
-	// 呼び名だけで、タスクの既定の担当も事象をまたいだ集計も全体のキーを指したまま
+	// 呼び名だけで、対応の既定の担当もフローをまたいだ集計も全体のキーを指したまま
 	// なので壊れない。
 	//
-	// 使う列を選べるようにもしてある。ある事象では CSIRT が出てこない、という
+	// 使う列を選べるようにもしてある。あるフローでは CSIRT が出てこない、という
 	// ことは普通にあり、空の列が並ぶと図が横に伸びるだけになる。
 	Lanes []*EventLane `json:"lanes,omitempty"`
 
-	// BaseKey は、この事象の元にした事象。空なら独立したフロー。
+	// BaseKey は、このフローの元にしたフロー。空なら独立したフロー。
 	//
 	// 顧客ごとに手順そのものが変わる（やることが増減し、SLA も報告先も違う）ため、
 	// 共通フローを元に顧客別を作る形にしてある。
@@ -215,7 +215,7 @@ type Event struct {
 	// 代わりに、元が新しくなったことを知らせて、取り込むかは人が決める。
 	BaseKey string `json:"base,omitempty"`
 
-	// BaseSyncedAt は、元の事象のどの時点まで見たか。
+	// BaseSyncedAt は、元のフローのどの時点まで見たか。
 	// 元の UpdatedAt がこれより新しければ「元が更新されている」と出す。
 	BaseSyncedAt time.Time `json:"baseSyncedAt,omitempty"`
 
@@ -223,7 +223,7 @@ type Event struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-// Derived は、この事象を元にして作られた事象。
+// Derived は、このフローを元にして作られたフロー。
 func (d *DB) Derived(key string) []*Event {
 	var out []*Event
 	for _, e := range d.Events {
@@ -234,10 +234,10 @@ func (d *DB) Derived(key string) []*Event {
 	return out
 }
 
-// EventLane はこの事象での担当の使い方。
+// EventLane はこのフローでの担当の使い方。
 type EventLane struct {
 	Key  string `json:"key"`            // 全体の Lane を指す
-	Name string `json:"name,omitempty"` // この事象での呼び名。空なら全体の名前
+	Name string `json:"name,omitempty"` // このフローでの呼び名。空なら全体の名前
 }
 
 // Severity は重大度。
@@ -249,10 +249,10 @@ const (
 	S3 Severity = "S3"
 )
 
-// Step はある事象における 1 つの作業指示。
+// Step はあるフローにおける 1 つの作業指示。
 //
-// フロー図のボックスは、タスクではなく手順に 1 対 1 で対応する。
-// 1 つの事象で同じタスクを 2 回使うことがあるため（隔離を復旧の前後で行う、など）。
+// フロー図のボックスは、対応ではなく手順と 1 対 1 で結びつく。
+// 1 つのフローで同じ対応を 2 回使うことがあるため（隔離を復旧の前後で行う、など）。
 //
 // 図では、配列の位置がそのまま行になり、LaneKey が列になる。
 // 行が実施順そのものなので、手順の流れを表す線は必ず下へ進み、決して戻らない。
@@ -260,9 +260,9 @@ const (
 // 共有することがなく、交差は起こり得ない。
 type Step struct {
 	ID      string `json:"id"`
-	TaskKey string `json:"task"`   // 参照するタスク。段階（色）が決まる
+	TaskKey string `json:"task"`   // 参照する対応。フェーズ（色）が決まる
 	LaneKey string `json:"lane"`   // 担当。図のどの列に座るかが決まる
-	Title   string `json:"title"`  // この事象での言い方
+	Title   string `json:"title"`  // このフローでの言い方
 	Detail  string `json:"detail"` // 手順の詳細。<code> で強調できる
 	SLA     string `json:"sla"`    // "15分" "即時" など。任意
 
@@ -277,9 +277,9 @@ type Step struct {
 	// 対応者に選択肢を尋ね、答えが以降の手順の Conditions を解決する。
 	Decision *Decision `json:"decision,omitempty"`
 
-	// FromID は、元にした事象のどの手順から来たか（Event.BaseKey を参照する側）。
+	// FromID は、元にしたフローのどの手順から来たか（Event.BaseKey を参照する側）。
 	//
-	// 手順 ID は事象をまたいで一意なので、複製すると振り直される。
+	// 手順 ID はフローをまたいで一意なので、複製すると振り直される。
 	// それだけでは「共通のこの手順が、顧客別ではこう変わっている」という
 	// 対応が取れなくなるため、出どころを覚えておく。
 	// 空なら、その顧客のために足された手順。
@@ -307,8 +307,8 @@ type Option struct {
 
 // ---------------------------------------------------------------------------
 // 参照を引くための小さなヘルパー。
-// 件数が小さい（レーン 4・段階 5・タスク 44・連絡先 14 程度）ので、
-// 索引を持たずに線形に探す。100 事象に増えても走査は 1ms に満たない。
+// 件数が小さい（レーン 4・フェーズ 5・対応 44・連絡先 14 程度）ので、
+// 索引を持たずに線形に探す。100 フローに増えても走査は 1ms に満たない。
 // ---------------------------------------------------------------------------
 
 // Lane はキーからレーンを返す。見つからなければ nil。
@@ -321,7 +321,7 @@ func (d *DB) Lane(key string) *Lane {
 	return nil
 }
 
-// Phase はキーから段階を返す。見つからなければ nil。
+// Phase はキーからフェーズを返す。見つからなければ nil。
 func (d *DB) Phase(key string) *Phase {
 	for _, p := range d.Phases {
 		if p.Key == key {
@@ -331,7 +331,7 @@ func (d *DB) Phase(key string) *Phase {
 	return nil
 }
 
-// Task はキーからタスクを返す。見つからなければ nil。
+// Task はキーから対応を返す。見つからなければ nil。
 func (d *DB) Task(key string) *Task {
 	for _, t := range d.Tasks {
 		if t.Key == key {
@@ -351,7 +351,7 @@ func (d *DB) ContactGroup(key string) *ContactGroup {
 	return nil
 }
 
-// Event はキーから事象を返す。見つからなければ nil。
+// Event はキーからフローを返す。見つからなければ nil。
 func (d *DB) Event(key string) *Event {
 	for _, e := range d.Events {
 		if e.Key == key {
@@ -371,7 +371,7 @@ func (e *Event) Step(id string) *Step {
 	return nil
 }
 
-// Decision は、この事象の中でそのキーを持つ判断を返す。見つからなければ nil。
+// Decision は、このフローの中でそのキーを持つ判断を返す。見つからなければ nil。
 func (e *Event) Decision(key string) *Decision {
 	for _, s := range e.Steps {
 		if s.Decision != nil && s.Decision.Key == key {
@@ -382,20 +382,20 @@ func (e *Event) Decision(key string) *Decision {
 }
 
 // IsClose は、その手順が対応を終わらせるものかを返す。
-// 種類はタスクが持つので、手順からはタスクを引いて判断する。
+// 種類は対応が持つので、手順からは対応を引いて判断する。
 func (d *DB) IsClose(st *Step) bool {
 	t := d.Task(st.TaskKey)
 	return t != nil && t.Kind == KindClose
 }
 
-// EventLanes は、その事象で使う担当を解決して返す。
+// EventLanes は、そのフローで使う担当を解決して返す。
 //
-// 事象が指定していなければ全体の担当をそのまま返す。指定していれば、
-// その並びで、呼び名だけを差し替えて返す。呼び出し側は全体と事象の違いを
+// フローが指定していなければ全体の担当をそのまま返す。指定していれば、
+// その並びで、呼び名だけを差し替えて返す。呼び出し側は全体とフローの違いを
 // 気にせず、返ってきた並びをそのまま列にすればよい。
 //
 // 返すのは複製。全体の Lane をそのまま返して名前を書き換えると、
-// 1 つの事象の呼び名が全体に漏れる。
+// 1 つのフローの呼び名が全体に漏れる。
 func (d *DB) EventLanes(ev *Event) []Lane {
 	if ev == nil || len(ev.Lanes) == 0 {
 		out := make([]Lane, 0, len(d.Lanes))
