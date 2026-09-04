@@ -5,10 +5,13 @@
  * 「管理職に連絡」は 1 番から順に掛けて、繋がらなければ次へ——という運用が
  * 現にあるので、名簿ではなく順序付きの並びとして扱う。
  *
- * この画面でしか直せないものが 1 つある。グループの「担当」で、
- * 連絡の矢印がどの列へ向かうかを決める。移行してきたデータは 14 グループ中
- * 9 つがこれを持っていないため、手順で参照していても矢印が出ない。
+ * この画面でしか直せないものが 1 つある。グループの「担当」で、この連絡先を
+ * フロー図のどの列に置くかを決める。移行してきたデータは 14 グループ中 9 つが
+ * これを持っていないため、手順で参照していても図に線が出ない。
  * だから未設定を数えて上に出し、絞り込みでも選べるようにしてある。
+ *
+ * 画面に出す言葉は「担当なし」に揃えてある。実装では矢印を引く／引かないの話だが、
+ * 利用者から見ると担当の列が決まっているかどうかの話なので、そちらの言い方にする。
  */
 
 import { Api, ApiError, type ContactInput } from "../api";
@@ -74,7 +77,7 @@ export class ContactsScreen {
     const keep = sel.value || this.laneF;
     sel.innerHTML =
       '<option value="all">すべての担当</option>' +
-      '<option value="none">矢印なし</option>' +
+      '<option value="none">担当なし</option>' +
       this.api.db.lanes
         .map((l) => `<option value="${esc(l.key)}">${esc(l.name)}</option>`)
         .join("");
@@ -107,8 +110,8 @@ export class ContactsScreen {
     $("ctStat").innerHTML =
       `使用中 ${used} / 未使用 ${groups.length - used}` +
       (noLane
-        ? ` ・ <b class="warn" title="この ${noLane} グループは、手順で参照しても矢印が出ません">` +
-          `矢印なし ${noLane}</b>`
+        ? ` ・ <b class="warn" title="この ${noLane} グループは、どの列に置くかが決まっていないため、` +
+          `フロー図に線が出ません">担当なし ${noLane}</b>`
         : "");
 
     for (const id of ["ctKindF", "ctViaF", "ctLaneF"]) {
@@ -180,14 +183,14 @@ export class ContactsScreen {
     card.className = "cg";
     card.style.setProperty("--kc", kd.c);
 
-    // 矢印の行き先。ここが空だと、手順で参照しても線が引かれない。
-    // 黙って何も出さないと原因に辿り着けないので、未設定もはっきり書く。
+    // フロー図でこの連絡先を置く列。空だと、手順で参照しても線が引かれない。
+    // 黙って線が出ないのが一番たちが悪いので、未設定もはっきり書く。
     const laneTag = lane
       ? `<span class="cg-lane" style="--tc:${lane.color}" ` +
-        `title="この連絡先へ向かう矢印は「${esc(lane.name)}」の列へ引かれます">` +
+        `title="この連絡先を使う手順から、「${esc(lane.name)}」の列へ線が引かれます">` +
         `→ ${esc(lane.name)}</span>`
-      : '<span class="cg-lane none" ' +
-        'title="担当が決まっていないため、参照しても矢印が引かれません">矢印なし</span>';
+      : '<span class="cg-lane none" title="どの列に置くかが決まっていないため、' +
+        'フロー図には線が出ません（手順の連絡先一覧には出ます）">担当なし</span>';
 
     card.innerHTML =
       `<div class="cg-h"><b>${esc(g.name)}</b>` +
@@ -319,7 +322,7 @@ export class ContactsScreen {
 
   private laneOptions(): { v: string; l: string }[] {
     return [
-      { v: "", l: "（矢印を引かない）" },
+      { v: "", l: "（担当なし・図に線を出さない）" },
       ...this.api.db.lanes.map((l) => ({ v: l.key, l: l.name })),
     ];
   }
@@ -345,11 +348,11 @@ export class ContactsScreen {
         },
         {
           k: "lane",
-          label: "担当（矢印の行き先）",
+          label: "担当",
           type: "select",
           options: this.laneOptions(),
           value: "",
-          hint: "手順からこの連絡先を参照したとき、矢印がどの列へ向かうかです。",
+          hint: "この連絡先をフロー図のどの列に置くかです。決めておくと、この連絡先を使う手順からその列へ線が引かれます。",
         },
         { k: "note", label: "補足", placeholder: "任意" },
       ],
@@ -396,13 +399,13 @@ export class ContactsScreen {
         },
         {
           k: "lane",
-          label: "担当（矢印の行き先）",
+          label: "担当",
           type: "select",
           options: this.laneOptions(),
           value: g.lane,
           hint: g.lane
-            ? undefined
-            : "いまは矢印が引かれません。行き先を決めると、参照している手順から線が出ます。",
+            ? "この連絡先をフロー図のどの列に置くかです。"
+            : "いまは図に線が出ません。列を決めると、この連絡先を使う手順から線が引かれます。",
         },
         { k: "note", label: "補足", value: g.note },
       ],

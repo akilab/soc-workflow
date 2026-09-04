@@ -109,7 +109,9 @@
 <div id="scContacts">
   <div class="tk-top">
     <button class="ed-back" id="ctBack">← 事象一覧</button>
-    <h1 class="brand">連絡<b>先</b></h1>
+    <!-- .brand は製品名（SOC Workflow）専用。後半を色で強調する書式なので、
+         熟語を途中で割ることになる画面名には使わない。 -->
+    <h1 class="sc-name">連絡先</h1>
     <div class="ed-spacer"></div>
     <input class="tk-search" id="ctSearch" type="text"
            placeholder="名前・電話・アカウントで検索…">
@@ -133,7 +135,7 @@
         <option value="elgana">Elgana</option>
         <option value="mail">メール</option>
       </select>
-      <select id="ctLaneF" title="担当（矢印の行き先）"></select>
+      <select id="ctLaneF" title="担当"></select>
       <span class="sp"></span>
       <em id="ctStat"></em>
     </div>
@@ -144,9 +146,11 @@
       1 人が電話・Teams・Elgana・メールを複数持てます（入力した手段だけが表示されます）。
       番号が変わったらここを直せば、参照しているすべての手順に反映されます。
       使われているグループは削除できません。<br>
-      <b>「担当」は、連絡の矢印がどの列へ向かうかです。</b>
-      これが空のグループは、手順から参照しても矢印が引かれません。
-      絞り込みの「矢印なし」で探せます。
+      <b>「担当」は、この連絡先をフロー図のどの列に置くかです。</b>
+      決めておくと、その連絡先を使う手順から列へ線が引かれ、「ここで誰に連絡するか」が
+      図の上で分かります。決まっていないグループは「担当なし」と表示され、図には線が出ません
+      （手順の連絡先一覧と書き出した HTML には、これまでどおり名前と宛先が出ます）。
+      絞り込みの「担当なし」でまとめて探せます。
     </p>
   </div>
 </div>
