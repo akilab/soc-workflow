@@ -105,6 +105,47 @@
 
 </div>
 
+<!-- タスク一覧 -->
+<div id="scTasks">
+  <div class="tk-top">
+    <button class="ed-back" id="tkBack">← 事象一覧</button>
+    <h1 class="sc-name">タスク一覧</h1>
+    <div class="ed-spacer"></div>
+    <input class="tk-search" id="tkSearch" type="text" placeholder="タスクを検索…">
+    <button class="ed-tool" data-th type="button"></button>
+    <button class="ed-tool" id="tkPhases">段階設定</button>
+    <button class="ed-tool pri" id="tkNew">＋ 新しいタスク</button>
+  </div>
+  <div class="ew-body">
+    <h2 class="ew-h">タスク <span id="tkCount"></span></h2>
+    <div class="tk-bar">
+      <select id="tkSort" title="並び順">
+        <option value="use">使用の多い順</option>
+        <option value="def">定義順</option>
+        <option value="name">名前順</option>
+      </select>
+      <select id="tkFilter" title="絞り込み">
+        <option value="all">すべて</option>
+        <option value="used">どこかで使用中</option>
+        <option value="unused">未使用</option>
+      </select>
+      <span class="sp"></span>
+      <em id="tkStat"></em>
+    </div>
+    <div id="tkList"></div>
+    <p class="ed-note">
+      <b>タスクは事象をまたいで再利用される部品です。</b>
+      フロー図に置くと「手順」になり、手順はそこから先、この事象での言い方
+      （題名・詳細・SLA・担当）を自分で持ちます。ここでタスク名を直しても、
+      すでに置いてある手順の題名は変わりません。手順の題名は編集ビューで直します。<br>
+      <b>段階</b>を変えると、そのタスクを使っているすべての手順の色とラベルが変わります
+      （フロー図の列は担当です）。<b>種類</b>も同じく、すべての手順に効きます。
+      <b>既定の担当</b>は手順を置くときの初期値なので、すでに置いてある手順は動きません。
+      どこかの事象で使われているタスクは削除できません。
+    </p>
+  </div>
+</div>
+
 <!-- 連絡先 -->
 <div id="scContacts">
   <div class="tk-top">

@@ -260,7 +260,14 @@ function mountViewer(root, DATA, opt){
         + (ph ? '<i class="ph">' + esc(ph.name) + '</i>' : '')
         + (ln ? '<i class="who">' + esc(ln.name) + '</i>' : '')
         + '</span>'
-        + '<span class="n">' + esc(tk ? tk.label : st.title) + '</span>'
+        /* 手順の題名を出す。タスク名ではない。
+           タスクは事象をまたぐ部品で、名前も一般的なもの（「ログの収集」）。
+           手順はこの事象での言い方を持つ（「侵入経路を特定する」）。
+           ここが tk.label だったので、種データ 62 手順のうち 59 で、
+           編集画面と書き出し HTML が違う言葉を出していた。
+           同じページの下の手順一覧は st.title を出しているので、そことも
+           食い違っていた。元のタスク名は手順一覧の分類行に出る。 */
+        + '<span class="n">' + esc(st.title) + '</span>'
         + '<span class="t">' + esc(tk && tk.note ? tk.note : "") + '</span>'
         + (st.decision ? '<span class="dec">&#9670;</span>' : '')
         + (isClose(st) ? '<span class="fin">終了</span>' : '')

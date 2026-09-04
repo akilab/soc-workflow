@@ -13,16 +13,18 @@ import { $ } from "./dom";
 import { ContactsScreen } from "./screens/contacts";
 import { EditScreen } from "./screens/edit";
 import { EventsScreen } from "./screens/events";
+import { TasksScreen } from "./screens/tasks";
 import { Settings } from "./settings";
 import { closeModal } from "./ui";
 
-type Screen = "events" | "edit" | "contacts";
+type Screen = "events" | "edit" | "contacts" | "tasks";
 
 class App {
   private readonly api = new Api();
   private readonly events: EventsScreen;
   private readonly edit: EditScreen;
   private readonly contacts: ContactsScreen;
+  private readonly tasks: TasksScreen;
   private readonly settings: Settings;
 
   /** いま出ている画面。データが入れ替わったとき、どちらを描き直すかを決める。 */
@@ -42,6 +44,11 @@ class App {
       onBack: () => this.show("events"),
     });
     this.settings = new Settings(this.api);
+    this.tasks = new TasksScreen({
+      api: this.api,
+      onBack: () => this.show("events"),
+      onPhases: () => this.settings.openPhases(),
+    });
 
     // データが入れ替わったら描き直す。書き込みのたびに api が呼ぶ。
     this.api.onChange = () => this.render();
@@ -64,6 +71,7 @@ class App {
   private render(): void {
     if (this.screen === "edit") this.edit.render();
     else if (this.screen === "contacts") this.contacts.render();
+    else if (this.screen === "tasks") this.tasks.render();
     else this.events.render();
   }
 
@@ -82,6 +90,7 @@ class App {
     $("ewPhases").addEventListener("click", () => this.settings.openPhases());
     $("ewLanes").addEventListener("click", () => this.settings.openLanes());
     $("ewContacts").addEventListener("click", () => this.show("contacts"));
+    $("ewTasks").addEventListener("click", () => this.show("tasks"));
     $("mClose").addEventListener("click", closeModal);
     $("mask").addEventListener("click", (e) => {
       if (e.target === $("mask")) closeModal(); // 外側を押したら閉じる

@@ -90,6 +90,16 @@ export function eventOf(db: DB, key: string): EventFlow | undefined {
   return db.events.find((e) => e.key === key);
 }
 
+/**
+ * そのタスクを使っている事象。
+ *
+ * タスクは事象をまたいで再利用される部品なので、「どこで使われているか」は
+ * パレットでもタスク一覧でも要る。数え方が 2 か所でずれないように 1 つにする。
+ */
+export function eventsUsingTask(db: DB, key: string): EventFlow[] {
+  return db.events.filter((e) => e.steps.some((s) => s.task === key));
+}
+
 /** 段階ごとに、その事象が何手順を持っているか。段階の並び順で返す。 */
 export function phaseDist(db: DB, evt: EventFlow): PhaseCount[] {
   const m = new Map<string, number>();

@@ -12,6 +12,7 @@
 import { Api, ApiError } from "./api";
 import type { StepPlacement } from "./api";
 import { $, $as, esc } from "./dom";
+import { eventsUsingTask } from "./flow";
 import type { DB, EventFlow, Phase, Task, TaskKind } from "./types";
 import { askModal, showApiError, toast } from "./ui";
 
@@ -50,8 +51,7 @@ export class Palette {
 
   /** そのタスクを使っている事象の数。 */
   private usedInEvents(key: string): number {
-    return this.db.events.filter((e) => e.steps.some((s) => s.task === key))
-      .length;
+    return eventsUsingTask(this.db, key).length;
   }
 
   /** いま開いている事象で、そのタスクを何回使っているか。 */
