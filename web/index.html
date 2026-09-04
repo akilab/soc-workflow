@@ -105,6 +105,52 @@
 
 </div>
 
+<!-- 連絡先 -->
+<div id="scContacts">
+  <div class="tk-top">
+    <button class="ed-back" id="ctBack">← 事象一覧</button>
+    <h1 class="brand">連絡<b>先</b></h1>
+    <div class="ed-spacer"></div>
+    <input class="tk-search" id="ctSearch" type="text"
+           placeholder="名前・電話・アカウントで検索…">
+    <button class="ed-tool" data-th type="button"></button>
+    <button class="ed-tool pri" id="ctNew">＋ 新しいグループ</button>
+  </div>
+  <div class="ew-body">
+    <h2 class="ew-h">連絡先 <span id="ctCount"></span></h2>
+    <div class="tk-bar">
+      <select id="ctKindF" title="区分">
+        <option value="all">すべての区分</option>
+        <option value="esc">エスカレーション先</option>
+        <option value="internal">社内</option>
+        <option value="customer">お客様</option>
+        <option value="external">外部機関・ベンダー</option>
+      </select>
+      <select id="ctViaF" title="連絡手段">
+        <option value="all">すべての手段</option>
+        <option value="phone">電話</option>
+        <option value="teams">Teams</option>
+        <option value="elgana">Elgana</option>
+        <option value="mail">メール</option>
+      </select>
+      <select id="ctLaneF" title="担当（矢印の行き先）"></select>
+      <span class="sp"></span>
+      <em id="ctStat"></em>
+    </div>
+    <div id="ctList"></div>
+    <p class="ed-note">
+      <b>連絡先はグループごとに、連絡順のメンバーを持ちます。</b>
+      「管理職に連絡」は 1 番から順に掛けて、繋がらなければ次へ——という運用をそのまま表します。
+      1 人が電話・Teams・Elgana・メールを複数持てます（入力した手段だけが表示されます）。
+      番号が変わったらここを直せば、参照しているすべての手順に反映されます。
+      使われているグループは削除できません。<br>
+      <b>「担当」は、連絡の矢印がどの列へ向かうかです。</b>
+      これが空のグループは、手順から参照しても矢印が引かれません。
+      絞り込みの「矢印なし」で探せます。
+    </p>
+  </div>
+</div>
+
 <!-- 通知・モーダル -->
 <div class="toast" id="toast"></div>
 <div class="mask" id="mask">
