@@ -11,6 +11,7 @@
 import { Api, ApiError, stepInput } from "../api";
 import {
   applyZoom,
+  clearDropGeometry,
   dropSpotAt,
   renderCanvas,
   scrollToSelected,
@@ -611,6 +612,10 @@ export class EditScreen {
     const spotFrom = (e: DragEvent) =>
       dropSpotAt(eventLanes(this.api.db, this.evt), e.clientX, e.clientY);
 
+    // 落とし先の判定に使う寸法は、キャンバスに入ってきたときに測り直す。
+    // dragover のたびに測ると、指を動かすあいだずっと配置の計算が走る。
+    canvas.addEventListener("dragenter", () => clearDropGeometry());
+
     canvas.addEventListener("dragover", (e) => {
       if (!this.evt) return;
       e.preventDefault();
@@ -627,11 +632,13 @@ export class EditScreen {
       // 中の要素をまたぐたびに発火するので、本当に外へ出たときだけ消す。
       if (canvas.contains(e.relatedTarget as Node | null)) return;
       showDropSpot(eventLanes(this.api.db, this.evt), null);
+      clearDropGeometry();
     });
     canvas.addEventListener("drop", (e) => {
       e.preventDefault();
       const spot = spotFrom(e);
       showDropSpot(eventLanes(this.api.db, this.evt), null);
+      clearDropGeometry();
       document.body.classList.remove("dragging");
 
       const data = e.dataTransfer?.getData("text/plain") ?? "";

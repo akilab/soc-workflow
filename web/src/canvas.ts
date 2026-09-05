@@ -139,6 +139,7 @@ export function renderCanvas(deps: CanvasDeps): void {
 
   grid.innerHTML = "";
   chips = [];
+  clearDropGeometry(); // 置き直したので、測り置きは捨てる
   applyZoom();
   const lanes = eventLanes(db, evt);
   grid.style.gridTemplateColumns = `repeat(${Math.max(lanes.length, 1)}, minmax(160px, 1fr))`;
@@ -468,23 +469,73 @@ export interface DropSpot {
  *
  * レーンの帯は db.lanes の順に並べているので、何番目かがそのまま担当を指す。
  */
+/**
+ * ドラッグ中に何度も要る寸法を、1 回だけ測って持っておく。
+ *
+ * dragover は指を動かしているあいだ毎フレーム上がってくる。そのたびに
+ * 列 4 つとボックス 17 個を測り直していたので、1 回 3ms かかっていた
+ * （実測）。フレームの 2 割を測り直しに使っていたことになり、
+ * 「少しブレる」という手触りになっていた。
+ *
+ * ドラッグ中に図の配置は変わらない。変わるのはキャンバスの送り位置だけ
+ * （端まで運ぶと自動で送られる）なので、送り位置が変わったときだけ測り直す。
+ * 図を描き直したときは renderCanvas が捨てる。
+ */
+interface DropGeom {
+  box: DOMRect;
+  /** 図の縮尺。ここでも測り置きにする（下記のとおり、読むと計算が走るため）。 */
+  z: number;
+  lanes: { left: number; right: number; width: number }[];
+  nodes: { top: number; mid: number; bottom: number }[];
+}
+
+let geom: DropGeom | null = null;
+
+/** 測り直しが要ることを伝える。図を描き直したときと、送ったときに呼ぶ。 */
+export function clearDropGeometry(): void {
+  geom = null;
+  lastSpot = " ";
+}
+
+function dropGeom(grid: HTMLElement): DropGeom {
+  if (geom) return geom;
+
+  // 送られたら測り直す。毎回 scrollTop を読んで比べる形にしていたら、
+  // 直前に書いた内容のせいで**読むたびに配置の計算が走り**、かえって
+  // 重くなっていた（落とし先が動くとき 1 回 6.3ms）。読まずに、
+  // 送られたことを知らせてもらう。
+  grid.parentElement?.addEventListener("scroll", clearDropGeometry, {
+    once: true,
+    passive: true,
+  });
+
+  geom = {
+    box: grid.getBoundingClientRect(),
+    z: gridScale(grid),
+    lanes: [...grid.querySelectorAll<HTMLElement>(".clane")].map((el) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, right: r.right, width: r.width };
+    }),
+    nodes: [...grid.querySelectorAll<HTMLElement>(".cnode")].map((el) => {
+      const r = el.getBoundingClientRect();
+      return { top: r.top, mid: r.top + r.height / 2, bottom: r.bottom };
+    }),
+  };
+  return geom;
+}
+
 export function dropSpotAt(lanes: Lane[], x: number, y: number): DropSpot | null {
   const grid = document.getElementById("cgrid");
   if (!grid) return null;
+  const g = dropGeom(grid);
 
-  const cols = [...grid.querySelectorAll<HTMLElement>(".clane")];
-  const li = cols.findIndex((el) => {
-    const r = el.getBoundingClientRect();
-    return x >= r.left && x < r.right;
-  });
+  const li = g.lanes.findIndex((l) => x >= l.left && x < l.right);
   if (li < 0 || !lanes[li]) return null;
 
   // 手順の順に並んだボックスの、上下どちら側に落ちたかで挿入位置を決める。
-  const boxes = [...grid.querySelectorAll<HTMLElement>(".cnode")];
-  let index = boxes.length;
-  for (let i = 0; i < boxes.length; i++) {
-    const r = boxes[i].getBoundingClientRect();
-    if (y < r.top + r.height / 2) {
+  let index = g.nodes.length;
+  for (let i = 0; i < g.nodes.length; i++) {
+    if (y < g.nodes[i].mid) {
       index = i;
       break;
     }
@@ -505,8 +556,20 @@ export function setDragLabel(text: string): void {
   dragLabel = text;
 }
 
-/** 落とし先を画面に示す。列を光らせ、入る位置に線を引く。 */
+/** 直前に示した落とし先。同じところなら画面を触らない。 */
+let lastSpot = " ";
+
+/**
+ * 落とし先を画面に示す。列を光らせ、入る位置に線を引く。
+ *
+ * 落とし先が変わっていないあいだは何もしない。指を少し動かしただけで
+ * 同じ場所に同じものを書き直すと、そのぶん描き直しが起きる。
+ */
 export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
+  const key = spot ? `${spot.lane}:${spot.index}` : "";
+  if (key === lastSpot) return;
+  lastSpot = key;
+
   const grid = document.getElementById("cgrid");
   if (!grid) return;
 
@@ -523,27 +586,26 @@ export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
   if (!line) {
     line = document.createElement("div");
     line.className = "cdrop";
+    // 名前は運んでいるあいだ変わらないので、線を作るときに 1 度だけ入れる。
+    line.innerHTML = dragLabel ? `<b>${esc(dragLabel)}</b>` : "";
     grid.appendChild(line);
   }
-  line.innerHTML = dragLabel ? `<b>${esc(dragLabel)}</b>` : "";
 
-  const box = grid.getBoundingClientRect();
+  const g = dropGeom(grid);
   // 線は図の中に置くので、測った見かけの値を縮尺で割り戻す（paintWires と同じ）。
-  const z = gridScale(grid);
-  const gx = (v: number) => v / z;
-  const boxes = [...grid.querySelectorAll<HTMLElement>(".cnode")];
-  const target = boxes[spot.index];
-  const prev = boxes[spot.index - 1];
+  const gx = (v: number) => v / g.z;
+  const target = g.nodes[spot.index];
+  const prev = g.nodes[spot.index - 1];
   // 入る位置の上の境目。末尾なら最後のボックスの下。
   const y = target
-    ? gx(target.getBoundingClientRect().top - box.top) - 9
+    ? gx(target.top - g.box.top) - 9
     : prev
-      ? gx(prev.getBoundingClientRect().bottom - box.top) + 9
+      ? gx(prev.bottom - g.box.top) + 9
       : 44;
 
   const li = lanes.findIndex((l) => l.key === spot.lane);
-  const lr = cols[li]?.getBoundingClientRect();
+  const lr = g.lanes[li];
   line.style.top = `${y}px`;
-  line.style.left = lr ? `${gx(lr.left - box.left) + 10}px` : "10px";
+  line.style.left = lr ? `${gx(lr.left - g.box.left) + 10}px` : "10px";
   line.style.width = lr ? `${gx(lr.width) - 20}px` : "100%";
 }
