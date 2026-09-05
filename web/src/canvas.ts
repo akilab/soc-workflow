@@ -48,6 +48,90 @@ export interface CanvasDeps {
 
 let chips: Chip[] = [];
 
+// ---------------------------------------------------------------------------
+// 拡大縮小
+// ---------------------------------------------------------------------------
+
+/**
+ * 図の縮尺。
+ *
+ * 手順が 17 も並ぶと全体が一度に見えない。読むためではなく、
+ * **形を見るため**の縮小が要る（どこで担当が移り、どこで分かれるか）。
+ *
+ * CSS の zoom で掛ける。transform:scale だと列見出しの position:sticky が
+ * 縮尺ぶんずれ、送るほどずれが増えて最後は見出しが画面から出ていく
+ * （実測: 110% で 400px 送って 40px）。zoom は組み直しを伴うので、
+ * 見出しはそのまま効く。縮めると列が広くなり題名の折り返しが減るが、
+ * 全体を見るための縮小なので、これはむしろ都合がよい。
+ *
+ * 組み直しが起きるということは、縮尺を変えたら線を引き直す必要がある。
+ * 呼んだ側が描き直す（screens/edit.ts の bindZoom）。
+ *
+ * 縮尺は端末ごとの好みなので localStorage に置く（ペインの幅と同じ扱い）。
+ */
+const ZOOM_KEY = "soc-flow-zoom";
+const ZOOM_STEPS = [50, 60, 70, 80, 90, 100, 110, 125, 150, 175, 200];
+let zoom = loadZoom();
+
+function loadZoom(): number {
+  try {
+    const n = Number(localStorage.getItem(ZOOM_KEY));
+    return ZOOM_STEPS.includes(n) ? n : 100;
+  } catch {
+    return 100;
+  }
+}
+
+/** いまの縮尺（％）。 */
+export function zoomPercent(): number {
+  return zoom;
+}
+
+/** 縮尺を決める。段階に無い値は、いちばん近い段階へ寄せる。 */
+export function setZoom(percent: number): void {
+  zoom = ZOOM_STEPS.reduce((a, b) =>
+    Math.abs(b - percent) < Math.abs(a - percent) ? b : a,
+  );
+  try {
+    localStorage.setItem(ZOOM_KEY, String(zoom));
+  } catch {
+    /* 保存できなくても表示は変えられる */
+  }
+  applyZoom();
+}
+
+/** 1 段階ずらす。dir は +1 で拡大、-1 で縮小。 */
+export function stepZoom(dir: 1 | -1): void {
+  const i = ZOOM_STEPS.indexOf(zoom);
+  const next = ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, i + dir))];
+  if (next !== zoom) setZoom(next);
+}
+
+/** いまの縮尺を図に反映する。描き直しのたびに呼ぶ。 */
+export function applyZoom(): void {
+  const grid = document.getElementById("cgrid");
+  if (grid) grid.style.setProperty("--z", String(zoom / 100));
+  const label = document.getElementById("zNow");
+  if (label) label.textContent = `${zoom}%`;
+  const out = document.getElementById("zOut") as HTMLButtonElement | null;
+  const inn = document.getElementById("zIn") as HTMLButtonElement | null;
+  if (out) out.disabled = zoom === ZOOM_STEPS[0];
+  if (inn) inn.disabled = zoom === ZOOM_STEPS[ZOOM_STEPS.length - 1];
+}
+
+/**
+ * 図が実際に何倍で出ているか。
+ *
+ * 線も落とし先の線も、図の中の座標で引く。measure したものは画面の見かけの
+ * 大きさなので、縮尺で割って図の中の値に戻す。縮尺を引数で持ち回らずに
+ * ここで測るのは、CSS 側だけで縮尺を変えても座標が狂わないようにするため。
+ */
+function gridScale(grid: HTMLElement): number {
+  const w = grid.offsetWidth;
+  if (!w) return 1;
+  return grid.getBoundingClientRect().width / w || 1;
+}
+
 export function renderCanvas(deps: CanvasDeps): void {
   const { db, evt } = deps;
   const grid = $("cgrid");
@@ -55,6 +139,7 @@ export function renderCanvas(deps: CanvasDeps): void {
 
   grid.innerHTML = "";
   chips = [];
+  applyZoom();
   const lanes = eventLanes(db, evt);
   grid.style.gridTemplateColumns = `repeat(${Math.max(lanes.length, 1)}, minmax(160px, 1fr))`;
 
@@ -279,6 +364,11 @@ function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
   const grid = $("cgrid");
   const wires = $("cwires");
   const box = grid.getBoundingClientRect();
+  // 拡大縮小しているときは、測った値が見かけの大きさになる。図の中の座標で
+  // 引きたいので割り戻す。viewBox は組んだままの大きさ（clientWidth）なので、
+  // これで縮尺を変えても線は引き直さなくてよい。
+  const z = gridScale(grid);
+  const gx = (v: number) => v / z;
 
   wires.setAttribute("viewBox", `0 0 ${grid.clientWidth} ${grid.clientHeight}`);
 
@@ -293,10 +383,10 @@ function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
     const ra = seq[k].el.getBoundingClientRect();
     const rb = seq[k + 1].el.getBoundingClientRect();
     // 規則: 下から出て、上から入る
-    const ax = ra.left - box.left + ra.width / 2;
-    const ay = ra.bottom - box.top;
-    const bx = rb.left - box.left + rb.width / 2;
-    const by = rb.top - box.top - HEAD;
+    const ax = gx(ra.left - box.left + ra.width / 2);
+    const ay = gx(ra.bottom - box.top);
+    const bx = gx(rb.left - box.left + rb.width / 2);
+    const by = gx(rb.top - box.top) - HEAD;
 
     let d: string;
     if (Math.abs(ax - bx) < 2) {
@@ -319,10 +409,10 @@ function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
     if (!src) continue;
     const ra = src.el.getBoundingClientRect();
     const rc = c.el.getBoundingClientRect();
-    const y = ra.top - box.top + ra.height / 2;
+    const y = gx(ra.top - box.top + ra.height / 2);
     const right = rc.left > ra.left;
-    const x1 = (right ? ra.right : ra.left) - box.left;
-    const x2 = (right ? rc.left - 3 : rc.right + 3) - box.left;
+    const x1 = gx((right ? ra.right : ra.left) - box.left);
+    const x2 = gx((right ? rc.left : rc.right) - box.left) + (right ? -3 : 3);
     const dir = right ? 1 : -1;
     out +=
       `<path class="ca" d="M ${x1} ${y} L ${x2} ${y}" style="stroke:${c.color}"/>` +
@@ -420,19 +510,22 @@ export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
   }
 
   const box = grid.getBoundingClientRect();
+  // 線は図の中に置くので、測った見かけの値を縮尺で割り戻す（paintWires と同じ）。
+  const z = gridScale(grid);
+  const gx = (v: number) => v / z;
   const boxes = [...grid.querySelectorAll<HTMLElement>(".cnode")];
   const target = boxes[spot.index];
   const prev = boxes[spot.index - 1];
   // 入る位置の上の境目。末尾なら最後のボックスの下。
   const y = target
-    ? target.getBoundingClientRect().top - box.top - 9
+    ? gx(target.getBoundingClientRect().top - box.top) - 9
     : prev
-      ? prev.getBoundingClientRect().bottom - box.top + 9
+      ? gx(prev.getBoundingClientRect().bottom - box.top) + 9
       : 44;
 
   const li = lanes.findIndex((l) => l.key === spot.lane);
   const lr = cols[li]?.getBoundingClientRect();
   line.style.top = `${y}px`;
-  line.style.left = lr ? `${lr.left - box.left + 10}px` : "10px";
-  line.style.width = lr ? `${lr.width - 20}px` : "100%";
+  line.style.left = lr ? `${gx(lr.left - box.left) + 10}px` : "10px";
+  line.style.width = lr ? `${gx(lr.width) - 20}px` : "100%";
 }

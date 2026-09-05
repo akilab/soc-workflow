@@ -119,7 +119,15 @@
     <div class="split" data-target="left"></div>
 
     <div class="pane">
-      <h3>フローキャンバス <span id="canvHint">右の対応パレットからドラッグして投入</span></h3>
+      <h3>フローキャンバス <span id="canvHint">右の対応パレットからドラッグして投入</span>
+        <span class="zoom" id="canvZoom">
+          <button type="button" id="zOut" title="縮小（Ctrl＋ホイールでも変えられます）">
+            <svg class="ic"><use href="#ic-zoom-out"/></svg></button>
+          <button type="button" id="zNow" title="等倍に戻す">100%</button>
+          <button type="button" id="zIn" title="拡大（Ctrl＋ホイールでも変えられます）">
+            <svg class="ic"><use href="#ic-zoom-in"/></svg></button>
+        </span>
+      </h3>
       <div class="canvas" id="canvas">
         <div class="cgrid" id="cgrid"><svg class="cwires" id="cwires"></svg></div>
       </div>

@@ -10,10 +10,13 @@
 
 import { Api, ApiError, stepInput } from "../api";
 import {
+  applyZoom,
   dropSpotAt,
   renderCanvas,
   scrollToSelected,
+  setZoom,
   showDropSpot,
+  stepZoom,
 } from "../canvas";
 import { optColor, optLabel } from "../branch";
 import { changedDetail, diffFrom, diffSummary } from "../derive";
@@ -540,11 +543,40 @@ export class EditScreen {
 
     this.bindDrop();
     this.bindSplitters();
+    this.bindZoom();
 
     // 窓の大きさが変わると座標が変わる。線を引き直す。
     window.addEventListener("resize", () => {
       if (this.mode === "edit" && this.evt) this.render();
     });
+  }
+
+  /**
+   * 図の拡大縮小。
+   *
+   * 線は図の中の座標で引いてあるので、縮尺を変えても引き直さなくてよい。
+   * Ctrl＋ホイールも受ける（図を見ながら手を離さずに変えられる）。
+   * Ctrl を押していないホイールは、そのまま縦の送りに任せる。
+   */
+  private bindZoom(): void {
+    // 縮尺を変えると組み直しが起きるので、線は引き直す。
+    const change = (f: () => void) => {
+      f();
+      if (this.mode === "edit" && this.evt) this.render();
+    };
+    $("zOut").addEventListener("click", () => change(() => stepZoom(-1)));
+    $("zIn").addEventListener("click", () => change(() => stepZoom(1)));
+    $("zNow").addEventListener("click", () => change(() => setZoom(100)));
+    $("canvas").addEventListener(
+      "wheel",
+      (e) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault(); // ブラウザ自身の拡大に持っていかれないようにする
+        change(() => stepZoom(e.deltaY < 0 ? 1 : -1));
+      },
+      { passive: false },
+    );
+    applyZoom();
   }
 
   /**

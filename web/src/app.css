@@ -268,6 +268,16 @@ body.resizing{cursor:col-resize;user-select:none}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pane .scroll{overflow:auto;flex:1;padding:10px 12px 16px;min-height:0}
 
+/* 図の縮尺。見出しの右端に、小さくまとめて置く。
+   図を見ている最中に使うものなので、操作の帯（上段）ではなく図の枠に付ける。 */
+.zoom{display:flex;align-items:center;gap:1px;flex:none;overflow:visible}
+.zoom button{background:none;border:none;color:var(--dim);cursor:pointer;
+  font-family:var(--sans);font-size:var(--t2);padding:3px 6px;border-radius:var(--r2);
+  display:flex;align-items:center;justify-content:center;min-width:26px}
+.zoom button:hover:not(:disabled){background:var(--panel2);color:var(--fg)}
+.zoom button:disabled{color:var(--line-2);cursor:default}
+.zoom #zNow{min-width:44px;font-variant-numeric:tabular-nums}
+
 /* ---------- 手順アウトライン（左） ---------- */
 .ol-row{display:flex;gap:7px;align-items:flex-start;padding:6px 8px;border-radius:var(--r2);cursor:grab;
   position:relative;transition:background .14s,box-shadow .14s;border-left:3px solid transparent;
@@ -355,8 +365,16 @@ body.resizing{cursor:col-resize;user-select:none}
 /* 列＝担当（レーン）、行＝手順の順番。
    行が実施順そのものなので、線は必ず下へ進み、決して戻らない。
    線 i は行 i と行 i+1 のあいだの帯しか通らないため、交差は起こり得ない。 */
+/* 縮尺は zoom で掛ける。transform:scale でも見た目は同じにできるが、
+   transform だと組み直しが起きないぶん、列見出しの position:sticky が
+   縮尺ぶんずれる（実測: 110% で 400px 送ると見出しが 40px 下がり、
+   ずれは送るほど増えて、最後は画面から出ていった）。
+   zoom は組み直しを伴うので、見出しはそのまま効く。
+   組み直しの副産物として、縮めると列が広くなり、題名の折り返しが減る。
+   全体を見るための縮小なので、これはむしろ都合がよい。 */
 .cgrid{position:relative;display:grid;column-gap:0;row-gap:34px;
-  padding:0 4px 20px;align-content:start;min-height:100%}
+  padding:0 4px 20px;align-content:start;min-height:100%;
+  zoom:var(--z,1)}
 /* レーンの帯。全行にまたがって背景と区切り線を出す */
 /* 列の区切り。薄くてよいが、列の境目が見えないと担当の切り替わりが読めない。 */
 .clane{position:relative;z-index:0;
