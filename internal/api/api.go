@@ -72,6 +72,11 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("PUT /api/contacts/{key}", s.updateContactGroup)
 	mux.HandleFunc("DELETE /api/contacts/{key}", s.deleteContactGroup)
 
+	mux.HandleFunc("POST /api/slas", s.createSLA)
+	mux.HandleFunc("PUT /api/slas/order", s.orderSLAs)
+	mux.HandleFunc("PUT /api/slas/{key}", s.updateSLA)
+	mux.HandleFunc("DELETE /api/slas/{key}", s.deleteSLA)
+
 	mux.HandleFunc("POST /api/links", s.createLink)
 	mux.HandleFunc("PUT /api/links/order", s.orderLinks)
 	mux.HandleFunc("PUT /api/links/{key}", s.updateLink)
@@ -85,6 +90,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/events/{key}/derive", s.deriveEvent)
 	mux.HandleFunc("POST /api/events/{key}/reviewed", s.reviewedEvent)
 	mux.HandleFunc("PUT /api/events/{key}/lanes", s.setEventLanes)
+	mux.HandleFunc("PUT /api/events/{key}/slas", s.setEventSLAs)
 
 	mux.HandleFunc("POST /api/events/{key}/steps", s.createStep)
 	mux.HandleFunc("PUT /api/events/{key}/steps/order", s.orderSteps)

@@ -13,7 +13,7 @@
  * だから中身は declare global で囲う。
  */
 
-import type { ContactGroup, EventFlow, Lane, Phase, Task } from "./types";
+import type { ContactGroup, EventFlow, Lane, Phase, SLA, Task } from "./types";
 
 declare global {
   /** mountViewer に渡すデータ。書き出し HTML の DATA と同じ形。 */
@@ -22,6 +22,8 @@ declare global {
     phases: Phase[];
     tasks: Task[];
     contactGroups: ContactGroup[];
+    /** 約束した時間。到達点の印を読むために要る。 */
+    slas: SLA[];
     events: EventFlow[];
   }
 

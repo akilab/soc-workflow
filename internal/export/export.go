@@ -44,7 +44,10 @@ type payload struct {
 	Phases        []*model.Phase        `json:"phases"`
 	Tasks         []*model.Task         `json:"tasks"`
 	ContactGroups []*model.ContactGroup `json:"contactGroups"`
-	Events        []*model.Event        `json:"events"`
+	// SLAs は約束した時間。対応者にとっては「どの工程までを、どのくらいで
+	// やらなければならないか」なので、配る HTML にこそ要る。
+	SLAs   []*model.SLA   `json:"slas"`
+	Events []*model.Event `json:"events"`
 }
 
 // HTML は events を収めた単一 HTML を返す。
@@ -57,6 +60,7 @@ func HTML(db *model.DB, events []*model.Event, title string) ([]byte, error) {
 		Phases:        db.Phases,
 		Tasks:         db.Tasks,
 		ContactGroups: db.ContactGroups,
+		SLAs:          db.SLAs,
 		Events:        events,
 	})
 	if err != nil {

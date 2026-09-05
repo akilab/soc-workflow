@@ -5,7 +5,16 @@
  * ここが変わると「検証 OK」の意味が変わるので、直すときは意図を持って直す。
  */
 
-import type { Condition, DB, EventFlow, Lane, Phase, Step, Task } from "./types";
+import type {
+  Condition,
+  DB,
+  EventFlow,
+  Lane,
+  Phase,
+  SLA,
+  Step,
+  Task,
+} from "./types";
 
 /** 判断への回答。キーは Decision.key、値は Option.value。 */
 export type Answers = Record<string, string>;
@@ -15,16 +24,6 @@ export interface FlowPath {
   answers: Answers;
   /** その経路で実施する手順の数。 */
   count: number;
-  /** 自分たちが動く時間の合計（分）。待ちは含まない。 */
-  minutes: number;
-  /**
-   * 待っている時間の合計（分）。
-   *
-   * 作業時間と分けて数える。顧客の返答を待つ 1 営業日を作業時間に足すと、
-   * 「この経路は 9 時間かかる」という数字が実態を表さなくなる。
-   * どちらも経過時間ではあるので、両方出して読む側に判断させる。
-   */
-  waitMinutes: number;
 }
 
 /** 検証で見つかった問題。 */
@@ -151,7 +150,7 @@ export function visible(st: Step, ans: Answers): boolean {
  * 上限 64 本。判断が 6 つ重なると 64 本になり、それ以上は一覧にしても読めない。
  * 数え切れないほど分岐しているなら、フローの側を分けるべきという合図でもある。
  */
-export function enumeratePaths(db: DB, evt: EventFlow): FlowPath[] {
+export function enumeratePaths(evt: EventFlow): FlowPath[] {
   const results: Answers[] = [];
 
   function walk(from: number, ans: Answers): void {
@@ -170,19 +169,31 @@ export function enumeratePaths(db: DB, evt: EventFlow): FlowPath[] {
   }
   walk(0, {});
 
-  return results.map((ans) => {
-    const steps = evt.steps.filter((st) => visible(st, ans));
-    const isWait = (s: Step) => taskOf(db, s.task)?.kind === "wait";
-    return {
-      answers: ans,
-      count: steps.length,
-      minutes: steps
-        .filter((s) => !isWait(s))
-        .reduce((a, s) => a + parseSla(s.sla), 0),
-      waitMinutes: steps.filter(isWait).reduce((a, s) => a + parseSla(s.sla), 0),
-    };
-  });
+  // 手順の目標時間は足さない。足した数は「この経路の重さ」でしかなく、
+  // 1 営業日の手順が 2 つあるだけで 16 時間を超えて、初動の 15 分が
+  // その中に埋もれる。約束した時間は SLA として別に持つ。
+  return results.map((ans) => ({
+    answers: ans,
+    count: evt.steps.filter((st) => visible(st, ans)).length,
+  }));
 }
+
+/**
+ * このフローでの、その SLA の約束の時間。
+ *
+ * フロー側に上書きがあればそれ、無ければ全体の標準。顧客別のフローで
+ * 「標準は 2 時間だが、この顧客とは 1 時間」を表すための仕組み。
+ *
+ * この値は**表示するだけ**で、手順の目標時間と突き合わせて判定はしない。
+ * 一度は積み上げて超過を出す作りにしたが、実務では「初動 2 時間」程度しか
+ * 約束が無く、厳密な計算をしながらフローを作ることはない、という指摘を受けた。
+ * 計算が要らないどころか、**計算があると邪魔**になる。
+ */
+export function slaTarget(evt: EventFlow, sla: SLA): number {
+  const o = (evt.slas ?? []).find((x) => x.key === sla.key);
+  return o && o.minutes > 0 ? o.minutes : sla.minutes;
+}
+
 
 /**
  * フローを検証する。
@@ -210,7 +221,7 @@ export function validate(db: DB, evt: EventFlow): Validation {
     if (st.decision) seen.add(st.decision.key);
   });
 
-  const paths = enumeratePaths(db, evt);
+  const paths = enumeratePaths(evt);
 
   // 2. どの経路でも表示されない手順が無いか。
   evt.steps.forEach((st, i) => {

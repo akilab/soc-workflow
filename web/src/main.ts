@@ -16,6 +16,7 @@ import { EventsScreen } from "./screens/events";
 import { Launcher } from "./links";
 import { TasksScreen } from "./screens/tasks";
 import { Settings } from "./settings";
+import { SLASettings } from "./sla";
 import { closeModal, showApiError, surfaceOpen, toast } from "./ui";
 
 type Screen = "events" | "edit" | "contacts" | "tasks";
@@ -27,6 +28,7 @@ class App {
   private readonly contacts: ContactsScreen;
   private readonly tasks: TasksScreen;
   private readonly settings: Settings;
+  private readonly slas: SLASettings;
   private readonly launcher: Launcher;
 
   /** いま出ている画面。データが入れ替わったとき、どちらを描き直すかを決める。 */
@@ -45,6 +47,7 @@ class App {
     // 戻るのではなく行き先を選べばよい。
     this.contacts = new ContactsScreen({ api: this.api });
     this.settings = new Settings(this.api);
+    this.slas = new SLASettings(this.api);
     this.launcher = new Launcher(this.api);
     this.tasks = new TasksScreen({
       api: this.api,
@@ -141,6 +144,7 @@ class App {
     }
     $("ewPhases").addEventListener("click", () => this.settings.openPhases());
     $("ewLanes").addEventListener("click", () => this.settings.openLanes());
+    $("ewSLAs").addEventListener("click", () => this.slas.open());
     $("mClose").addEventListener("click", closeModal);
     $("mask").addEventListener("click", (e) => {
       if (e.target === $("mask")) closeModal(); // 外側を押したら閉じる

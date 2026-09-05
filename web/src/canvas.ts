@@ -22,6 +22,7 @@ import { condSentence, optColor, optLabel } from "./branch";
 import { $, dimSource, endCarry, esc, startCarry, undimSource } from "./dom";
 import { groupVias, stepContacts, viaMark } from "./contacts";
 import { eventLanes, taskOf } from "./flow";
+import { milestoneTag } from "./sla";
 import type { DB, EventFlow, Lane, Step } from "./types";
 
 /** 測るために覚えておく、手順とその要素の対応。手順の順に並ぶ。 */
@@ -290,6 +291,8 @@ function nodeHTML(
   }
 
   if (st.sla) flags += `<span class="f-sla">${esc(st.sla)}</span>`;
+  // 約束の到達点。判定はしない——「ここまでが約束の範囲」と示すだけ。
+  flags += milestoneTag(db, evt, st);
   const kind = taskOf(db, st.task)?.kind;
   if (kind === "close") {
     flags += '<span class="f-fin" title="この経路はここで終わります">終了</span>';

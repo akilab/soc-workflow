@@ -493,3 +493,144 @@ func findLink(db *model.DB, key string) *model.AppLink {
 	}
 	return nil
 }
+
+// ---------------------------------------------------------------------------
+// SLA（約束した時間）
+// ---------------------------------------------------------------------------
+
+type slaBody struct {
+	Name    string `json:"name"`
+	Minutes int    `json:"minutes"`
+	Note    string `json:"note"`
+}
+
+func (b slaBody) check() error {
+	if strings.TrimSpace(b.Name) == "" {
+		return errf(http.StatusBadRequest, "SLA の名前が空です")
+	}
+	// 0 分の約束は意味を持たない。上限は 30 日ぶん（法令報告のような長いものも
+	// 入るが、桁を間違えたまま気づかないほうが困る）。
+	if b.Minutes <= 0 || b.Minutes > 30*24*60 {
+		return errf(http.StatusBadRequest, "目標時間は 1 分から 30 日のあいだで入れてください")
+	}
+	return nil
+}
+
+func (s *Server) createSLA(w http.ResponseWriter, r *http.Request) {
+	var in slaBody
+	if !decode(w, r, &in) {
+		return
+	}
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		if err := in.check(); err != nil {
+			return nil, err
+		}
+		x := &model.SLA{
+			Key:     uniqueKey("sla", func(k string) bool { return db.SLA(k) != nil }),
+			Name:    strings.TrimSpace(in.Name),
+			Minutes: in.Minutes,
+			Note:    in.Note,
+		}
+		db.SLAs = append(db.SLAs, x)
+		return x, nil
+	})
+}
+
+func (s *Server) updateSLA(w http.ResponseWriter, r *http.Request) {
+	var in slaBody
+	if !decode(w, r, &in) {
+		return
+	}
+	key := r.PathValue("key")
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		x := db.SLA(key)
+		if x == nil {
+			return nil, notFound("SLA", key)
+		}
+		if err := in.check(); err != nil {
+			return nil, err
+		}
+		x.Name, x.Minutes, x.Note = strings.TrimSpace(in.Name), in.Minutes, in.Note
+		return x, nil
+	})
+}
+
+// deleteSLA は、到達点の印を付けている手順があれば断る。
+//
+// 黙って消すと、印だけが宙に浮いた手順が残る。フロー図の上では何も起きて
+// いないように見えるので、どのフローで使っているかを添えて返す。
+func (s *Server) deleteSLA(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("key")
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		x := db.SLA(key)
+		if x == nil {
+			return nil, notFound("SLA", key)
+		}
+		if err := refuseIfUsed("SLA", x.Name, stepsUsingSLA(db, key)); err != nil {
+			return nil, err
+		}
+		db.SLAs = remove(db.SLAs, func(y *model.SLA) bool { return y.Key == key })
+		// フロー側の上書きも一緒に片づける。指す先が無い上書きは意味がない。
+		for _, ev := range db.Events {
+			ev.SLAs = remove(ev.SLAs, func(o *model.EventSLA) bool { return o.Key == key })
+		}
+		return nil, nil
+	})
+}
+
+func (s *Server) orderSLAs(w http.ResponseWriter, r *http.Request) {
+	var in orderBody
+	if !decode(w, r, &in) {
+		return
+	}
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		next, err := reorder(db.SLAs, in.Keys, func(x *model.SLA) string { return x.Key })
+		if err != nil {
+			return nil, err
+		}
+		db.SLAs = next
+		return nil, nil
+	})
+}
+
+// eventSLAsBody はフローごとの上書き。並び全体を受け取って差し替える。
+type eventSLAsBody struct {
+	SLAs []*model.EventSLA `json:"slas"`
+}
+
+// setEventSLAs は、このフローだけの目標時間を決める。
+//
+// 顧客別のフローで「標準は 2 時間だが、この顧客とは 1 時間で合意している」を
+// 表すためのもの。標準に戻すときは、その SLA を一覧から外す。
+func (s *Server) setEventSLAs(w http.ResponseWriter, r *http.Request) {
+	var in eventSLAsBody
+	if !decode(w, r, &in) {
+		return
+	}
+	key := r.PathValue("key")
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		ev := db.Event(key)
+		if ev == nil {
+			return nil, notFound("フロー", key)
+		}
+		seen := map[string]bool{}
+		out := []*model.EventSLA{}
+		for _, o := range in.SLAs {
+			if db.SLA(o.Key) == nil {
+				return nil, errf(http.StatusBadRequest, "知らない SLA です: %s", o.Key)
+			}
+			if seen[o.Key] {
+				return nil, errf(http.StatusBadRequest, "同じ SLA が 2 つあります: %s", o.Key)
+			}
+			if o.Minutes <= 0 || o.Minutes > 30*24*60 {
+				return nil, errf(http.StatusBadRequest,
+					"目標時間は 1 分から 30 日のあいだで入れてください")
+			}
+			seen[o.Key] = true
+			out = append(out, &model.EventSLA{Key: o.Key, Minutes: o.Minutes})
+		}
+		ev.SLAs = out
+		touch(ev)
+		return ev, nil
+	})
+}

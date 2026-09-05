@@ -113,6 +113,29 @@ function mountViewer(root, DATA, opt){
   DATA.phases.forEach(function(p){ phaseByKey[p.key] = p; });
   DATA.tasks.forEach(function(t){ taskByKey[t.key] = t; });
   (DATA.contactGroups || []).forEach(function(g){ groupByKey[g.key] = g; });
+  var slaByKey = {};
+  (DATA.slas || []).forEach(function(x){ slaByKey[x.key] = x; });
+
+  /* 約束した時間を読める形にする。分で持っているものを「2 時間」に直す。
+     エディタ側（flow.ts の fmtMin）と同じ規則。 */
+  function fmtMin(m){
+    if(m < 60) return m + " 分";
+    var h = Math.floor(m / 60), r = Math.round(m % 60);
+    return h + " 時間" + (r ? " " + r + " 分" : "");
+  }
+
+  /* この手順が到達点になっている約束。フローごとの上書きがあればそちらを使う。
+     判定はしない——「ここまでを、この時間で」と示すだけ。 */
+  function milestoneOf(ev, st){
+    if(!st.milestone) return null;
+    var x = slaByKey[st.milestone];
+    if(!x) return null;
+    var mins = x.minutes;
+    (ev.slas || []).forEach(function(o){
+      if(o.key === x.key && o.minutes > 0) mins = o.minutes;
+    });
+    return { name: x.name, mins: mins };
+  }
 
   /* メンバーが持っている連絡手段のうち、入力されているものだけを並べる。
      1 人が電話と Teams の両方を持つのは普通なので、手段は欄で持つ。 */
@@ -288,7 +311,12 @@ function mountViewer(root, DATA, opt){
         + (tk && tk.note ? '<span class="t">' + esc(tk.note) + '</span>' : '')
         + (st.decision ? '<span class="dec">&#9670;</span>' : '')
         + (isClose(st) ? '<span class="fin">終了</span>' : '')
-        + (isWait(st) ? '<span class="wt">待ち</span>' : '');
+        + (isWait(st) ? '<span class="wt">待ち</span>' : '')
+        + (function(){
+            var m = milestoneOf(ev, st);
+            return m ? '<span class="v-ms">&#9873; ' + esc(m.name)
+                     + ' ' + esc(fmtMin(m.mins)) + '以内</span>' : '';
+          })();
       el.addEventListener("click", function(){
         var rows = $("slist").querySelectorAll(".v-s");
         if(rows[i]) rows[i].scrollIntoView({behavior:"smooth", block:"center"});
@@ -469,7 +497,13 @@ function mountViewer(root, DATA, opt){
       if(ln)
         tags += '<span class="tag tier" style="--tc:' + ln.color + '">担当 '
               + esc(ln.name) + '</span>';
-      if(st.sla) tags += '<span class="tag sla">SLA ' + esc(st.sla) + '</span>';
+      if(st.sla) tags += '<span class="tag sla">目標 ' + esc(st.sla) + '</span>';
+      /* 約束の到達点。「ここまでを、この時間で」。対応者がいちばん知りたいこと
+         なので、ほかの札より強く出す。 */
+      var ms = milestoneOf(ev, st);
+      if(ms)
+        tags += '<span class="tag ms" title="ここまでが約束の範囲です">&#9873; '
+              + esc(ms.name) + ' ' + esc(fmtMin(ms.mins)) + '以内</span>';
       if(st.escalate) tags += '<span class="tag esc">エスカレ判断</span>';
       if(cts.some(function(g){ return g.kind === "customer"; }))
         tags += '<span class="tag cust">お客様連絡</span>';
@@ -599,7 +633,9 @@ function mountViewer(root, DATA, opt){
       n++;
       var head = "  " + (done[i] ? "[x]" : "[ ]") + " " + n + ". " + st.title;
       if(laneByKey[st.lane]) head += "［" + laneByKey[st.lane].name + "］";
-      if(st.sla) head += "（SLA " + st.sla + "）";
+      if(st.sla) head += "（目標 " + st.sla + "）";
+      var msl = milestoneOf(ev, st);
+      if(msl) head += " ⚑ " + msl.name + " " + fmtMin(msl.mins) + "以内";
       lines.push(head);
       (st.contacts || []).forEach(function(k){
         var g = groupByKey[k]; if(!g) return;

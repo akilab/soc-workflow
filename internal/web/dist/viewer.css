@@ -404,3 +404,13 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .ic{width:16px;height:16px;flex:none;fill:currentColor;vertical-align:-3px}
 .ic.lg{width:20px;height:20px}
 .ic.sm{width:12px;height:12px;vertical-align:-2px}
+
+/* 約束の到達点。「ここまでを、この時間で」。
+   対応者がいちばん知りたいことなので、ほかの札より強く出す。 */
+.tag.ms{background:var(--cur);color:var(--onCur);border-color:var(--cur);
+  font-weight:700}
+/* フロー図のボックスにも同じ印を出す。図だけ見ている人にも届くように。 */
+.v-node .v-ms{display:block;margin-top:5px;padding:2px 6px;border-radius:var(--r2);
+  font-size:var(--t2);font-weight:600;line-height:1.4;
+  color:var(--cur);background:color-mix(in srgb, var(--cur) 16%, transparent);
+  border:1px solid color-mix(in srgb, var(--cur) 40%, transparent)}

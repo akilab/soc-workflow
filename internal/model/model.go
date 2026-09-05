@@ -38,6 +38,7 @@ type DB struct {
 	Phases        []*Phase        `json:"phases"`        // 対応のフェーズ。色とラベルで表す
 	Tasks         []*Task         `json:"tasks"`         // フロー図のボックスの元
 	ContactGroups []*ContactGroup `json:"contactGroups"` // 連絡先のカテゴリ
+	SLAs          []*SLA          `json:"slas"`          // 約束した時間。SOC の標準
 
 	// フロー — 対応フロー 1 本にあたる
 	Events []*Event `json:"events"`
@@ -49,6 +50,35 @@ type DB struct {
 	// 人ではなくチームで決まっているため。端末を変えても、担当者が代わっても
 	// 同じものが並んでいてほしい。
 	Links []*AppLink `json:"links"`
+}
+
+// SLA は「検知から○○まで○分以内」という約束。
+//
+// 手順ひとつずつの目標時間とは別のものとして持つ。手順の目標を全部足した数は
+// 「この経路の重さ」でしかなく、約束した時間ではない。実際、1 営業日の手順が
+// 2 つあるだけで合計は 16 時間を超え、初動の 15 分が見えなくなっていた。
+//
+// 測る範囲は「フローの始まりから、印を付けた手順まで」。手順側に
+// Step.Milestone で印を付ける。始まりを揃えるのは、SLA が普通
+// 「検知から○○まで」と起点を共有して語られるため。区間に切ると、
+// 「初動 2 時間」と「一次報告 30 分」のように**範囲が重なるもの**を持てない。
+//
+// SOC がサービスとして掲げる標準をここに置き、顧客ごとに違う約束は
+// フロー側（Event.SLAs）で上書きする。担当（Lane / EventLane）と同じ形。
+type SLA struct {
+	Key     string `json:"key"`
+	Name    string `json:"name"`
+	Minutes int    `json:"minutes"` // 目標。分で持つ
+	Note    string `json:"note"`
+}
+
+// EventSLA は、このフローでの約束の上書き。
+//
+// 顧客別のフローで「標準は 2 時間だが、この顧客とは 1 時間で合意している」を
+// 表す。ここに無い SLA は標準のまま。
+type EventSLA struct {
+	Key     string `json:"key"`     // 全体の SLA を指す
+	Minutes int    `json:"minutes"` // このフローでの目標
 }
 
 // AppLink はランチャーの 1 マス。外部の画面をひとつ指す。
@@ -226,6 +256,10 @@ type Event struct {
 	// ことは普通にあり、空の列が並ぶと図が横に伸びるだけになる。
 	Lanes []*EventLane `json:"lanes,omitempty"`
 
+	// SLAs はこのフローだけの約束の時間。空なら全体の標準をそのまま使う。
+	// 顧客別のフローで個別に合意した時間を持つためにある。
+	SLAs []*EventSLA `json:"slas,omitempty"`
+
 	// BaseKey は、このフローの元にしたフロー。空なら独立したフロー。
 	//
 	// 顧客ごとに手順そのものが変わる（やることが増減し、SLA も報告先も違う）ため、
@@ -285,7 +319,11 @@ type Step struct {
 	LaneKey string `json:"lane"`   // 担当。図のどの列に座るかが決まる
 	Title   string `json:"title"`  // このフローでの言い方
 	Detail  string `json:"detail"` // 手順の詳細。<code> で強調できる
-	SLA     string `json:"sla"`    // "15分" "即時" など。任意
+	SLA     string `json:"sla"`    // 目標時間。"15分" "即時" など。任意
+
+	// Milestone は、この手順が「どの SLA の到達点か」。空なら到達点ではない。
+	// ここに印が付いた手順までの目標時間を足したものが、その SLA の実績になる。
+	Milestone string `json:"milestone,omitempty"`
 
 	Escalate bool     `json:"escalate"`
 	Contacts []string `json:"contacts"` // 参照する ContactGroup のキー
@@ -353,6 +391,16 @@ func (d *DB) Phase(key string) *Phase {
 }
 
 // Task はキーから対応を返す。見つからなければ nil。
+// SLA はキーから約束を引く。無ければ nil。
+func (d *DB) SLA(key string) *SLA {
+	for _, x := range d.SLAs {
+		if x.Key == key {
+			return x
+		}
+	}
+	return nil
+}
+
 func (d *DB) Task(key string) *Task {
 	for _, t := range d.Tasks {
 		if t.Key == key {
