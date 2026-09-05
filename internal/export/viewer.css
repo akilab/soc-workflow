@@ -1,0 +1,406 @@
+/* 色と寸法。Microsoft Defender ポータル（Fluent 2）に寄せてある。
+   社内の対応者が毎日見ている画面と同じ作法にすることで、
+   「知らない道具」ではなく「いつもの画面」として読めるようにする。
+
+   紺（#0a0c11 系）ではなく **無彩色の黒** で積む。Defender の地には青みが無く、
+   そこに色を足すと途端に別物に見える。色を持つのはフェーズ・重大度・
+   アクセントだけにして、地と枠は灰で通す。 */
+:root{
+  --bg:#0f0f0f; --panel:#1b1b1b; --panel2:#242424; --panel3:#2e2e2e;
+  --line:#2f2f2f; --line-soft:#252525;
+  --line-2:#3d3d3d;         /* 少し強い罫線。ボタンの枠や表の見出しに使う */
+  /* ボックスの枠。地との対比を 3.0 以上にする（非テキストの目安）。 */
+  --nodeline:#484848;
+  --fg:#ffffff; --dim:#c7c7c7; --faint:#9a9a9a;
+
+  /* アクセント。Fluent の communication blue（暗い地の上での値）。
+     選択・現在地・主ボタンはすべてこれ。以前は黄だったが、
+     Microsoft の画面で黄は「注意」の色なので、選択に使うと意味がずれる。 */
+  --cur:#479ef5;  --cur-bg:rgba(71,158,245,.16);
+  --ok:#54b054;   --ok-bg:rgba(84,176,84,.14);
+  --skip:#6e6e6e;
+  /* 重大度。Defender と同じ割り当て（高=赤 / 中=橙 / 低=黄）。 */
+  --s1:#d13438;   --s2:#ff8c00;   --s3:#fce100;
+  --dec:#a97bff;
+
+  /* フェーズ（カテゴリ）の色 — 列・ボックス・パレット・レーンで一貫して使う。
+     地が無彩色になったぶん、彩度を少し落として浮かないようにしてある。 */
+  --c1:#e3618a; --c2:#4a9be0; --c3:#9a76d8; --c4:#e0a03c; --c5:#3fc09a; --c6:#4fb9cf;
+  --c7:#e08050; --c8:#7fc95f; --c9:#cf6ec0; --c10:#7681e0;
+
+  /* 明るさ切り替えのために、直に書いていた色もトークンにする */
+  --hover:#4a4a4a;          /* ホバー時の枠線 */
+  --wire:#616161;           /* フロー図の接続線。薄めずにこの色そのままで引く */
+  --onCur:#ffffff;          /* --cur の上に載せる文字 */
+  --onOk:#ffffff;           /* --ok の上に載せる文字 */
+  --topbg:rgba(10,10,10,.96);
+  --maskbg:rgba(0,0,0,.6);
+  --shadow:rgba(0,0,0,.5);
+  --decFg:#bfa0ff;          /* 判断色の文字（地の明暗で変える） */
+  --custFg:#f08cae;         /* 顧客連絡の文字 */
+  /* 印の文字色。地が濃いところでは、面の色（--s1 など）をそのまま文字に
+     使うと沈む。Fluent の Badge と同じく、面より 1 段明るい色を字にあてる。 */
+  --s1Fg:#f1707b;           /* 重大・エスカレの文字 */
+  --okFg:#7fd07f;           /* 完了・終了の文字 */
+  --sbar:#4a4a4a;           /* スクロールバーのつまみ */
+  --sbarOn:#6a6a6a;         /* 同、触れているとき */
+  --griddot:#1e1e1e;        /* キャンバスの点。Defender のグラフと同じ地 */
+
+  /* 文字の段階。
+     以前は 9〜26px を 0.5px 刻みで 18 種類使っていた。段階ではなく漂流で、
+     同じ役目の文字が場所によって 0.5px ずれていた。8 段階に畳む。
+       t1 印・ラベル（大文字送りの見出し、mono のバッジ）
+       t2 メタ・凡例・注記
+       t3 補足・説明文
+       t4 本文（手順の題名、入力欄、表の中身）
+       t5 読ませる本文（書き出し HTML の地の文）
+       t6 小見出し（カードの題名、ペインの見出し）
+       t7 画面の名前
+       t8 数字の表示（テストのメーター） */
+  /* Fluent のランプ（10/12/14/16/20/28）に寄せた。t2 と t4 を 1px ずつ
+     動かしただけで、段階の数は 8 のまま。 */
+  --t1:10px; --t2:12px; --t3:12px; --t4:14px;
+  --t5:14px; --t6:16px; --t7:20px; --t8:28px;
+
+  /* 角の丸み。Fluent は 4px が基本で、大きく丸めない。
+     手順のボックス（.cnode / .v-node）だけは 0 のまま——角のある四角は
+     Defender に寄せた意図的な選択なので、この段階には入れない。
+       r1 印・バッジ  r2 ボタン・入力・小さな枠  r3 カード・パネル  r-pill 丸 */
+  --r1:2px; --r2:4px; --r3:6px; --r-pill:999px;
+
+  --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+  /* 欧文は Segoe UI、和文は Yu Gothic UI。Defender の日本語画面と同じ組み合わせ。
+     Segoe UI に和文は無いので、日本語だけが次の Yu Gothic UI へ落ちる。 */
+  --sans:"Segoe UI","Yu Gothic UI","Meiryo UI","Hiragino Sans","Noto Sans JP",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(--t6);line-height:1.7;
+  -webkit-font-smoothing:antialiased}
+
+.v-top{position:sticky;top:0;z-index:20;background:var(--topbg);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;
+  justify-content:space-between;gap:26px;flex-wrap:wrap}
+.v-top h1{margin:0;font-size:var(--t7);font-weight:700;white-space:nowrap}
+.v-top h1 b{color:var(--cur)}
+.v-now{flex:1;min-width:240px;font-size:var(--t5);color:var(--dim)}
+.v-now b{color:var(--fg)}
+.v-meters{display:flex;gap:26px;align-items:center}
+.v-meter .k{font-size:var(--t3);color:var(--faint);font-weight:400}
+.v-meter .val{font-variant-numeric:tabular-nums;font-size:var(--t8);line-height:1.25;font-weight:600}
+.v-bar{height:7px;background:var(--line);border-radius:var(--r1);overflow:hidden;margin-top:6px;width:170px}
+.v-bar i{display:block;height:100%;background:var(--ok);width:0%;transition:width .3s}
+
+.v-main{display:grid;grid-template-columns:310px minmax(0,1fr);gap:18px;padding:18px 28px 0;align-items:start}
+.v-main.solo{grid-template-columns:minmax(0,1fr)}
+.v-main.solo .v-evs{display:none}
+@media(max-width:1150px){.v-main{grid-template-columns:1fr}}
+
+.v-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);padding:14px 15px}
+.v-card>h3{margin:0 0 11px;font-size:var(--t4);color:var(--fg);font-weight:600}
+
+.v-ev{width:100%;text-align:left;background:var(--panel2);color:inherit;border:1px solid var(--line);
+  border-radius:var(--r2);padding:11px 12px;margin-bottom:8px;cursor:pointer;font-family:var(--sans);
+  display:flex;gap:10px;align-items:flex-start;transition:border-color .16s,background .16s}
+.v-ev:hover{border-color:var(--hover);background:var(--panel3)}
+.v-ev.on{border-color:var(--cur);background:var(--cur-bg)}
+.v-ev.on b{color:var(--cur)}
+.v-ev b{display:block;font-size:var(--t5);font-weight:700;line-height:1.5}
+.v-ev span.sub{display:block;font-size:var(--t3);color:var(--dim);line-height:1.55;margin-top:2px}
+.sev{flex:none;font-variant-numeric:tabular-nums;font-size:var(--t2);font-weight:600;padding:2px 7px;
+  border-radius:var(--r1);margin-top:2px;letter-spacing:.03em}
+.sev.S1{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
+.sev.S2{background:color-mix(in srgb, var(--s2) 16%, transparent);color:var(--s2);border:1px solid var(--s2)}
+.sev.S3{background:color-mix(in srgb, var(--s3) 16%, transparent);color:var(--s3);border:1px solid var(--s3)}
+
+.v-stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);
+  padding:16px 18px 22px;overflow-x:auto}
+/* 列＝担当（レーン）、行＝手順の順番。
+   行が実施順そのものなので、手順の流れを表す線は必ず下へ進み、決して戻らない。
+   線 i は行 i と行 i+1 のあいだの帯しか通らないため、2 本の線が同じ帯を
+   共有することがなく、交差は起こり得ない。
+   フェーズは列ではなく、ボックスの左のバーとラベルで表す。 */
+.v-grid{position:relative;display:grid;min-width:640px;padding:0 4px 26px;
+  column-gap:0;row-gap:34px;align-content:start}
+/* レーンの帯。全行にまたがって背景と区切り線を出す */
+/* 列の区切り。薄くてよいが、列の境目が見えないと担当の切り替わりが読めない。 */
+.v-lane{position:relative;z-index:0;
+  border-left:1px solid var(--line);background:color-mix(in srgb, var(--lc) 3.5%, transparent)}
+.v-lane.last{border-right:1px solid var(--line)}
+/* 字はどの列でも読めるよう本文の色にして、担当の色は下の 2px 罫に持たせる
+   （エディタ側 app.css の .clane-h と同じ考え方）。 */
+.v-lane-h{grid-row:1;position:sticky;top:0;z-index:3;text-align:center;
+  font-size:var(--t2);font-weight:600;white-space:nowrap;
+  color:var(--fg);padding:5px 4px 6px;background:var(--panel);
+  border-bottom:2px solid var(--lc)}
+
+/* フェーズの色は左のバーとラベルで示し、状態は枠線・地色・記号で示す。
+   （色だけに頼らないという設計判断を守りつつ、カテゴリ色を消さない） */
+/* 角は丸めない。SOC のメンバーが Microsoft Defender の画面に慣れているため、
+   そちらの角のある作りに寄せている。エディタ側（app.css の .cnode）と揃える。 */
+.v-node{position:relative;z-index:2;margin:0 14px 0 10px;
+  background:var(--panel2);border:1px solid var(--nodeline);border-left:4px solid var(--pc,var(--line));
+  border-radius:0;padding:8px 11px 9px 12px;cursor:pointer;
+  box-shadow:0 1px 3px var(--shadow);
+  transition:opacity .18s,border-color .18s,background .18s,box-shadow .18s}
+/* 分類の行。フェーズ（色）と担当（列）をタイトルの上に置く。
+   列が担当を表してはいるが、縦に長いフローでは列見出しが
+   ページと一緒にスクロールして見えなくなる。 */
+.v-node .cls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:2px}
+.v-node .cls .ph{font-style:normal;font-size:var(--t2);font-weight:600;
+  color:var(--pc,var(--faint))}
+.v-node .cls .who{font-style:normal;font-family:var(--sans);font-size:var(--t2);
+  font-weight:600;height:18px;line-height:16px;padding:0 6px;
+  display:inline-flex;align-items:center;border-radius:var(--r2);
+  color:var(--lc);border:1px solid color-mix(in srgb, var(--lc) 40%, transparent);
+  background:color-mix(in srgb, var(--lc) 16%, transparent)}
+.v-node .n{font-size:var(--t4);display:block;line-height:1.45;font-weight:600}
+.v-node .t{font-size:var(--t2);color:var(--faint);display:block;line-height:1.4;margin-top:2px}
+.v-node .mk{position:absolute;top:7px;right:9px;font-size:var(--t3);font-weight:700}
+
+/* 連絡の相手。矢印の行き先に置く札。
+   手順のボックスは角のある四角にしたので、こちらは丸くしておく。
+   形が違えば「手順ではない」ことが一目で分かる。 */
+.v-ct{position:relative;z-index:2;align-self:center;justify-self:center;
+  max-width:92%;font-size:var(--t3);font-weight:600;line-height:1.4;text-align:center;
+  color:var(--lc);background:var(--panel2);
+  border:1px dashed color-mix(in srgb, var(--lc) 55%, transparent);
+  border-radius:var(--r-pill);padding:6px 14px}
+.v-node:hover{background:var(--panel3);box-shadow:0 3px 8px var(--shadow)}
+.v-node.done{border-color:var(--ok);background:var(--ok-bg)}
+.v-node.done .mk{color:var(--ok)}
+.v-node.cur{border-color:var(--cur);background:var(--cur-bg);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--cur) 18%, transparent), 0 1px 3px var(--shadow)}
+.v-node.cur .mk{color:var(--cur)}
+.v-node.skip{opacity:.32;border-style:dashed;background:transparent;box-shadow:none}
+.v-node.skip .mk{color:var(--skip)}
+.v-node .dec{position:absolute;bottom:7px;right:9px;font-size:var(--t2);color:var(--dec)}
+
+.v-wires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
+.v-wires path.ca{fill:none;stroke:var(--cac);stroke-width:1.4;stroke-dasharray:2 3;opacity:.85}
+.v-wires polygon.ca{fill:var(--cac)}
+.v-wires path.w{fill:none;stroke:var(--cur);stroke-width:2;opacity:.85;stroke-linecap:round}
+.v-wires path.w.done{stroke:var(--ok)}
+.v-wires path.w.pend{stroke:var(--wire);stroke-dasharray:5 4;stroke-linecap:round}
+.v-wires circle{fill:var(--bg);stroke:var(--cur);stroke-width:1.6}
+.v-wires circle.done{stroke:var(--ok)} .v-wires circle.pend{stroke:var(--faint)}
+.v-wires text{fill:var(--cur);font-family:var(--sans);font-size:var(--t2);font-weight:600;
+  text-anchor:middle;dominant-baseline:central}
+.v-wires text.done{fill:var(--ok)} .v-wires text.pend{fill:var(--faint)}
+
+.v-steps{margin:18px 28px 60px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r3);padding:18px 22px 22px}
+.v-steps>header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.v-steps h2{margin:0;font-size:var(--t7)}
+.v-steps h2 small{display:block;font-size:var(--t4);color:var(--dim);font-weight:400;margin-top:3px}
+.v-acts{display:flex;gap:9px}
+/* Fluent の既定ボタン。地は面と同じで、枠だけで押せることを示す。
+   .p（次へ進む）だけがアクセントで塗られる。 */
+.v-btn{background:var(--panel);border:1px solid var(--line-2,var(--line));color:var(--fg);
+  border-radius:var(--r2);padding:7px 15px;font-size:var(--t4);cursor:pointer;font-family:var(--sans)}
+.v-btn:hover{background:var(--panel2);border-color:var(--hover)}
+.v-btn.p{background:var(--cur);border-color:var(--cur);color:var(--onCur);font-weight:600}
+.v-btn.p:hover{filter:brightness(1.1);background:var(--cur);border-color:var(--cur)}
+.v-th{flex:none;white-space:nowrap}
+
+.v-s{display:flex;gap:14px;padding:15px 12px;border-top:1px solid var(--line-soft);
+  border-radius:var(--r2);transition:background .18s}
+.v-s:first-of-type{border-top:none}
+.v-s.current{background:var(--cur-bg);border-top-color:transparent;box-shadow:inset 4px 0 0 var(--cur)}
+.v-s .chk{flex:none;width:28px;height:28px;border-radius:var(--r2);border:2px solid var(--line);
+  background:var(--panel2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:var(--t4);font-weight:700;color:var(--faint);margin-top:2px}
+.v-s .chk:hover{border-color:var(--cur);color:var(--cur)}
+.v-s.current .chk{border-color:var(--cur);color:var(--cur)}
+.v-s.done .chk{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.v-s .bd{flex:1;min-width:0}
+.v-s .ttl{font-size:var(--t6);font-weight:700;line-height:1.6}
+.v-s.current .ttl{color:var(--cur)}
+.v-s.done .ttl{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--faint)}
+.v-s .path{font-size:var(--t3);color:var(--faint);margin:2px 0 7px}
+.v-s .path i{font-style:normal;color:var(--pc,var(--faint))}
+.v-s .dsc{font-size:var(--t5);color:var(--dim);line-height:1.85}
+.v-s .dsc code{font-family:var(--mono);font-size:var(--t4);background:var(--panel3);
+  border:1px solid var(--line);border-radius:var(--r1);padding:2px 6px;color:var(--fg)}
+.v-s.skipped{opacity:.34}
+.v-s.skipped .ttl{text-decoration:line-through}
+
+/* 印（Fluent の Badge）。面を敷いて、字は面より 1 段明るい色にする。
+   枠だけで色を出すと、地が濃いところで字が沈む。枠は形を保つためだけの
+   薄いものにして、色の役目は面と字に持たせる。 */
+.tag{display:inline-block;font-size:var(--t3);font-weight:600;padding:1px 8px;border-radius:var(--r2);
+  margin-left:8px;vertical-align:middle;white-space:nowrap;border:1px solid transparent}
+.tag.now{background:var(--cur);color:var(--onCur)}
+.tag.sla{background:var(--panel3);color:var(--dim);border-color:var(--line-2)}
+.tag.esc{background:color-mix(in srgb, var(--s1) 20%, transparent);color:var(--s1Fg);
+  border-color:color-mix(in srgb, var(--s1) 42%, transparent)}
+.tag.cond{background:color-mix(in srgb, var(--dec) 18%, transparent);color:var(--decFg);
+  border-color:color-mix(in srgb, var(--dec) 42%, transparent)}
+.tag.tier{background:color-mix(in srgb, var(--tc) 16%, transparent);color:var(--tc);
+  border-color:color-mix(in srgb, var(--tc) 40%, transparent)}
+/* 終了（クローズ）。作業ではなく、この経路がここで終わることを示す。 */
+.tag.close{background:color-mix(in srgb, var(--ok) 20%, transparent);color:var(--okFg);
+  border-color:color-mix(in srgb, var(--ok) 42%, transparent)}
+/* 待ちだけは破線のまま。「動いていない」ことを形でも示す。 */
+.tag.wait{color:var(--faint);border:1px dashed var(--line-2);background:var(--panel3)}
+.tag.cust{background:color-mix(in srgb, var(--c1) 20%, transparent);color:var(--custFg);
+  border-color:color-mix(in srgb, var(--c1) 44%, transparent)}
+
+/* 連絡先 — 手順の中に置く。別紙を探させない。
+   グループ単位で、連絡順に並べる。 */
+.v-contacts{margin-top:12px;border:1px solid var(--line);border-radius:var(--r2);
+  background:var(--panel2);padding:9px 11px 11px}
+.v-contacts>b{display:block;font-size:var(--t3);
+  color:var(--faint);font-weight:700;margin-bottom:8px}
+.v-cg{border-top:1px solid var(--line-soft);padding:9px 0 3px}
+.v-cg:first-of-type{border-top:none;padding-top:0}
+.v-cgh{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
+.v-cgh .nm{font-size:var(--t5);font-weight:700;color:var(--fg)}
+.v-cgh em{font-style:normal;display:inline-flex;align-items:center;height:18px;padding:0 6px;
+  font-size:var(--t2);font-weight:600;border-radius:var(--r2);color:var(--kc);
+  background:color-mix(in srgb, var(--kc) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--kc) 42%, transparent)}
+.v-cgh u{text-decoration:none;font-variant-numeric:tabular-nums;font-size:var(--t2);color:var(--faint)}
+.v-cgn{font-size:var(--t3);color:var(--dim);line-height:1.65;margin:0 0 6px}
+.v-cm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:3px 0}
+.v-cm .no{flex:none;width:19px;height:19px;border-radius:50%;background:var(--panel3);
+  border:1px solid var(--line-2);font-variant-numeric:tabular-nums;font-size:var(--t2);font-weight:600;
+  color:var(--dim);display:flex;align-items:center;justify-content:center}
+.v-cm.first .no{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
+.v-cm .who{font-size:var(--t4);font-weight:600;min-width:74px}
+/* 電話番号やアカウント。手段の色（--vc）は絵と枠で示し、字は本文の色にする。
+   番号そのものを色で塗ると、読む対象と色分けの意味が混ざる（エディタ側の
+   .mem .ch と同じ判断）。けたは tabular-nums でそろう。 */
+.v-cm .ch{display:inline-flex;align-items:center;gap:5px;font-size:var(--t4);
+  font-variant-numeric:tabular-nums;color:var(--fg);
+  background:color-mix(in srgb, var(--vc) 12%, transparent);
+  border:1px solid color-mix(in srgb, var(--vc) 40%, transparent);border-radius:var(--r2);
+  padding:2px 9px 2px 4px;user-select:all}
+.v-cm .ch i{font-style:normal;width:17px;height:17px;border-radius:var(--r1);font-size:var(--t1);font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 24%, transparent);color:var(--vc);user-select:none}
+/* ロゴを使う手段は、色を付けた四角で囲まず、そのまま出す */
+.v-cm .ch i.ico{background:none;width:16px;height:16px}
+.vico{width:100%;height:100%;display:block;color:var(--vc)}
+.v-cm .mnt{flex-basis:100%;font-size:var(--t2);color:var(--faint);padding-left:27px;line-height:1.55}
+
+.v-godone{margin-top:12px;background:var(--cur);border:none;color:var(--onCur);border-radius:var(--r2);
+  padding:10px 20px;font-size:var(--t5);font-weight:700;cursor:pointer;font-family:var(--sans)}
+.v-godone:hover{filter:brightness(1.08)}
+
+.v-ask{margin-top:12px;padding:14px 16px;background:var(--panel2);border:2px solid var(--dec);border-radius:var(--r2)}
+.v-ask p{margin:0 0 10px;font-size:var(--t5);font-weight:700}
+.v-ask .opts{display:flex;gap:10px;flex-wrap:wrap}
+.v-ask button{background:var(--panel3);border:2px solid var(--line);color:var(--fg);border-radius:var(--r2);
+  padding:9px 18px;font-size:var(--t5);cursor:pointer;font-family:var(--sans)}
+.v-ask button:hover{border-color:var(--dec)}
+.v-ask button.on{border-color:var(--dec);background:color-mix(in srgb, var(--dec) 22%, transparent);color:var(--decFg);font-weight:700}
+
+.v-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:var(--t3);color:var(--dim)}
+.v-legend span{display:flex;align-items:center;gap:6px}
+.v-legend i{font-weight:700;font-size:var(--t4);font-style:normal}
+.v-note{margin:18px 0 0;font-size:var(--t4);color:var(--faint);line-height:1.75}
+.v-empty{color:var(--faint);font-size:var(--t5);margin:18px 0 6px}
+
+/* ================= スクロールバー =================
+   OS 既定のものは明るく太く、暗い画面から浮く。ここだけ別のアプリに見える。
+
+   ::-webkit-scrollbar を使う。対象は Edge と Chrome（どちらも Chromium）。
+   標準の scrollbar-color / scrollbar-width も同じことができるが、
+   Chromium では標準側を指定するとこちらが無視され、つまみを丸くしたり
+   余白を入れたりができなくなる。両方は書けないので、細かく決められる側を採る。
+
+   つまみは透明な枠で内側に寄せている。太さを変えずに細く見せられて、
+   触れる面積（12px）は保てる。 */
+*::-webkit-scrollbar{width:12px;height:12px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{
+  background:var(--sbar);border-radius:var(--r-pill);
+  border:3px solid transparent;background-clip:padding-box}
+*::-webkit-scrollbar-thumb:hover{background:var(--sbarOn);background-clip:padding-box}
+*::-webkit-scrollbar-thumb:active{background:var(--sbarOn);background-clip:padding-box}
+/* 縦と横が交わる角。既定では地と違う色の四角が残る。 */
+*::-webkit-scrollbar-corner{background:transparent}
+
+/* ================= 明るさ ================= */
+/* 明示的に選ばれていればそれに従い、選ばれていなければ OS の設定に従う。 */
+:root[data-theme="light"]{
+  /* 明るいほう。Defender の Light と同じく、白と薄い灰で積む。
+     こちらも青みを持たせない（以前は #eef1f6 系の青灰だった）。 */
+  --bg:#faf9f8; --panel:#ffffff; --panel2:#f5f5f5; --panel3:#ebebeb;
+  --line:#e0e0e0; --line-soft:#efefef;
+  --line-2:#c8c6c4;
+  --nodeline:#d6d4d2;
+  --fg:#242424; --dim:#484644; --faint:#616161;
+
+  --cur:#0f6cbd;  --cur-bg:color-mix(in srgb, #0f6cbd 10%, transparent);
+  --ok:#0e700e;   --ok-bg:color-mix(in srgb, #0e700e 10%, transparent);
+  --skip:#8a8886;
+  --s1:#c50f1f;   --s2:#bc4b09;   --s3:#835c00;
+  --dec:#6a35d9;
+
+  --c1:#c2185b; --c2:#0b62d0; --c3:#6a35d9; --c4:#a15c00; --c5:#0f8a63;
+  --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
+
+  --hover:#a0a0a0;
+  --wire:#a19f9d;
+  --onCur:#ffffff;
+  --onOk:#ffffff;
+  --topbg:rgba(255,255,255,.96);
+  --maskbg:rgba(0,0,0,.4);
+  --shadow:rgba(0,0,0,.13);
+  --decFg:#5b21b6;
+  --custFg:#b3175a;
+  --s1Fg:#a4262c;
+  --okFg:#0b6a0b;
+  --sbar:#c8c6c4;
+  --sbarOn:#a19f9d;
+  --griddot:#e8e6e4;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+  /* 明るいほう。Defender の Light と同じく、白と薄い灰で積む。
+     こちらも青みを持たせない（以前は #eef1f6 系の青灰だった）。 */
+  --bg:#faf9f8; --panel:#ffffff; --panel2:#f5f5f5; --panel3:#ebebeb;
+  --line:#e0e0e0; --line-soft:#efefef;
+  --line-2:#c8c6c4;
+  --nodeline:#d6d4d2;
+  --fg:#242424; --dim:#484644; --faint:#616161;
+
+  --cur:#0f6cbd;  --cur-bg:color-mix(in srgb, #0f6cbd 10%, transparent);
+  --ok:#0e700e;   --ok-bg:color-mix(in srgb, #0e700e 10%, transparent);
+  --skip:#8a8886;
+  --s1:#c50f1f;   --s2:#bc4b09;   --s3:#835c00;
+  --dec:#6a35d9;
+
+  --c1:#c2185b; --c2:#0b62d0; --c3:#6a35d9; --c4:#a15c00; --c5:#0f8a63;
+  --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
+
+  --hover:#a0a0a0;
+  --wire:#a19f9d;
+  --onCur:#ffffff;
+  --onOk:#ffffff;
+  --topbg:rgba(255,255,255,.96);
+  --maskbg:rgba(0,0,0,.4);
+  --shadow:rgba(0,0,0,.13);
+  --decFg:#5b21b6;
+  --custFg:#b3175a;
+  --s1Fg:#a4262c;
+  --okFg:#0b6a0b;
+  --sbar:#c8c6c4;
+  --sbarOn:#a19f9d;
+  --griddot:#e8e6e4;
+}
+}
+/* ロゴは地の明暗に関わらず本来の色のままにする */
+:root[data-theme="light"] .vico{color:var(--vc)}
+
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+
+/* ================= UI アイコン =================
+   Fluent UI System Icons（MIT）。icons.js のスプライトを <use> で参照する。
+   fill は currentColor なので、置いた場所の文字色をそのまま拾う。 */
+.ic{width:16px;height:16px;flex:none;fill:currentColor;vertical-align:-3px}
+.ic.lg{width:20px;height:20px}
+.ic.sm{width:12px;height:12px;vertical-align:-2px}

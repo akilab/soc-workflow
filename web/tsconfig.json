@@ -1,0 +1,27 @@
+{
+  "// なぜこれがあるか": [
+    "esbuild は型注釈を落とすだけで、型検査はしない。",
+    "この設定はエディタのためのものであり、ビルドには要らない。",
+    "型を確かめたいときは Node がある環境で次を実行する:",
+    "  npx typescript@5 tsc --noEmit -p web",
+    "検査できなくても go run ./cmd/build-web は通る。ビルドに Node は要らない。"
+  ],
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true
+  },
+  "include": ["src"]
+}

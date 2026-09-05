@@ -1,0 +1,1123 @@
+/* エディタのスタイル。モック（mock/soc-flow-editor-mock.html）から切り出したもの。
+ *
+ * テストモードと書き出し HTML が使う viewer 側のスタイルは internal/export/viewer.css。
+ * あちらは配布物にそのまま埋め込まれるので、こちらとは混ぜない。
+ */
+/* ==================================================================
+   editorCss — エディタ画面だけで使う。書き出しHTMLには含まれない。
+
+   画面は 2 つ。
+     フロー一覧（body.screen-events） … フローの一覧と作成
+     編集ビュー    （body.screen-edit / .screen-run）
+
+   編集ビューの配置:
+     左   … 手順アウトライン（順序と分岐の木）
+     中央 … フローキャンバス
+     右   … インスペクタ ⇄ 対応パレット（タブで切り替え）
+   ================================================================== */
+/* ==================================================================
+   アプリの骨格 — 上段バー ＋ 左の帯 ＋ 中身
+   Microsoft Defender ポータルと同じ組み方。左の帯が常に見えていることで、
+   アプリ全体の地図になる（機能が増えても迷子にならない）。
+   ================================================================== */
+:root{--top-h:48px; --rail-w:64px; --status-h:26px}
+html,body{height:100%}
+body{margin:0;overflow:hidden}
+
+.app-top{height:var(--top-h);background:var(--panel);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;padding:0 10px;position:relative;z-index:40}
+.app-name{margin:0;font-size:var(--t6);font-weight:600;white-space:nowrap;letter-spacing:.01em}
+.app-name b{color:var(--cur)}
+.app-name span{color:var(--faint);font-weight:400;font-size:var(--t4);margin-left:10px;
+  padding-left:10px;border-left:1px solid var(--line)}
+.app-ico{width:32px;height:32px;border:none;background:none;color:var(--dim);
+  border-radius:var(--r2);cursor:pointer;display:grid;place-items:center;flex:none;
+  font-family:var(--sans);font-size:var(--t3);white-space:nowrap;padding:0 6px;width:auto;min-width:32px}
+.app-ico:hover{background:var(--panel2);color:var(--fg)}
+
+.app-shell{display:flex;height:calc(100vh - var(--top-h) - var(--status-h))}
+
+/* 下段。Windows の道具らしい細い状態の帯。
+   「どこに保存されるのか」「全体で何を持っているか」「いつのものか」は、
+   画面のどこにも出ていなかった。常に見えていて困らないので、ここに置く。 */
+.app-status{height:var(--status-h);background:var(--panel);border-top:1px solid var(--line);
+  display:flex;align-items:center;gap:0;padding:0 12px;font-size:var(--t3);color:var(--faint);
+  white-space:nowrap;overflow:hidden}
+.app-status > span{display:flex;align-items:center;gap:6px;padding:0 12px}
+.app-status > span:first-child{padding-left:0}
+.app-status > span + span{border-left:1px solid var(--line)}
+.app-status .ic{width:14px;height:14px}
+.app-status .sp{flex:1;padding:0;border:none}
+.app-status b{color:var(--dim);font-weight:400;font-variant-numeric:tabular-nums}
+/* 左の帯。アイコンと短い文字。現在地には青い縦線が付く。 */
+.app-rail{width:var(--rail-w);background:var(--panel);border-right:1px solid var(--line);
+  padding:6px 0;display:flex;flex-direction:column;gap:2px;flex:none}
+/* 行き先は 3 つしかないので、絵だけにせず字も出す。字は 10px では読めない
+   （利用者の指摘）。11px・本文の色まで上げ、いま居るところは青で示す。 */
+.app-rail button{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:9px 2px 8px;background:none;border:none;color:var(--dim);cursor:pointer;
+  font-family:var(--sans);font-size:11px;line-height:1.2;text-align:center;letter-spacing:.01em}
+.app-rail button:hover{background:var(--panel2);color:var(--fg)}
+.app-rail button:focus-visible{outline:2px solid var(--cur);outline-offset:-2px}
+/* いま居るところ。Defender と同じで、左の細い棒・青い絵・濃い字の 3 つで示す。
+   地の濃さだけで示していたときは、明るい画面でほとんど分からなかった。 */
+.app-rail button.on{color:var(--fg);font-weight:600;
+  background:color-mix(in srgb, var(--cur) 12%, transparent)}
+.app-rail button.on .ic{color:var(--cur)}
+.app-rail button.on::before{content:"";position:absolute;left:0;top:5px;bottom:5px;width:3px;
+  border-radius:0 var(--r-pill) var(--r-pill) 0;background:var(--cur)}
+
+.app-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+
+/* 一覧系の画面。中身だけが縦にスクロールする。 */
+.pg{flex:1;overflow:auto;padding:16px 24px 40px}
+.pg-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
+.pg-title{margin:0;font-size:var(--t8);font-weight:600;letter-spacing:-.01em}
+.pg-count{font-size:var(--t3);color:var(--faint)}
+/* 見出しの脇に操作は置かない。
+   帯にまだ余白があるのに見出し脇にも並べると、探す場所が 2 か所になる。
+   設定も帯へ入れ、区切りで「この一覧への操作」と分けている。 */
+
+/* 操作の帯（Fluent の CommandBar）。枠を持たせない。
+   全部を枠付きボタンにすると、読むものと操作の区別が消える。 */
+.cmdbar{display:flex;align-items:center;gap:2px;padding-bottom:7px;margin-bottom:12px;
+  border-bottom:1px solid var(--line);flex-wrap:wrap}
+.cmdbar button{background:none;border:none;color:var(--fg);font-family:var(--sans);font-size:var(--t4);
+  padding:6px 10px;border-radius:var(--r2);cursor:pointer;display:flex;align-items:center;gap:7px;
+  white-space:nowrap}
+/* display:flex は [hidden] の display:none より強い（クラス > 属性の既定）。
+   これが無いと、隠したはずのボタン（顧客別フローのときだけ出す「共通との違い」）が
+   常に出てしまう。 */
+.cmdbar button[hidden]{display:none}
+.cmdbar button:hover:not(:disabled){background:var(--panel2)}
+.cmdbar button .ic{color:var(--cur)}
+.cmdbar button:disabled{color:var(--faint);cursor:default}
+.cmdbar button:disabled .ic{color:var(--faint)}
+.cmdbar button.pri{background:var(--cur);color:var(--onCur);font-weight:600;padding:6px 14px}
+.cmdbar button.pri:hover{filter:brightness(1.1);background:var(--cur)}
+.cmdbar button.pri .ic{color:var(--onCur)}
+.cmdbar select{background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+  border-radius:var(--r2);padding:5px 8px;font-size:var(--t3);font-family:var(--sans)}
+.cmdbar select:focus{outline:none;border-color:var(--cur)}
+.cmd-sep{width:1px;height:20px;background:var(--line);margin:0 6px;flex:none}
+.cmd-count{font-size:var(--t3);color:var(--faint);padding:0 8px;font-variant-numeric:tabular-nums}
+.cmd-search{display:flex;align-items:center;gap:7px;background:var(--panel2);
+  border:1px solid var(--line);border-radius:var(--r2);padding:4px 9px;color:var(--faint);min-width:220px}
+.cmd-search:focus-within{border-color:var(--cur)}
+.cmd-search input{background:none;border:none;outline:none;color:var(--fg);font-family:var(--sans);
+  font-size:var(--t3);width:100%}
+
+#scEvents,#scEdit,#scTasks,#scContacts{display:none}
+body.screen-events   #scEvents{display:flex;flex-direction:column;min-height:0;flex:1}
+body.screen-tasks    #scTasks{display:flex;flex-direction:column;min-height:0;flex:1}
+body.screen-contacts #scContacts{display:flex;flex-direction:column;min-height:0;flex:1}
+body.screen-edit  #scEdit{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+body.screen-run   #scEdit{display:flex;flex-direction:column;flex:1;min-height:0;overflow:auto}
+body.screen-edit  #runWrap{display:none}
+body.screen-run   .ed-body,body.screen-run .ed-cmd{display:none}
+body.resizing{cursor:col-resize;user-select:none}
+
+/* ---------- 共通の部品 ---------- */
+.ed-spacer{flex:1}
+/* 取り消し・やり直し。記号だけなので幅をそろえて、対の操作に見えるようにする。 */
+.ed-undo{display:flex;gap:4px;margin-left:12px;flex:none}
+.ed-undo button{width:30px;padding:0;font-size:var(--t6);line-height:1.6;font-family:var(--sans)}
+/* Fluent の既定ボタン。地は面と同じで、枠だけで押せることを示す。
+   主ボタン（.pri）だけがアクセントで塗られる。1 画面に主は 1 つ。 */
+.ed-tool{background:var(--panel);border:1px solid var(--line-2,var(--line));color:var(--fg);
+  border-radius:var(--r2);padding:6px 14px;font-size:var(--t4);cursor:pointer;
+  font-family:var(--sans);white-space:nowrap}
+.ed-tool:hover{background:var(--panel2);border-color:var(--hover)}
+.ed-tool.warn{border-color:var(--s2);color:var(--s2)}
+.ed-tool.good{border-color:var(--ok);color:var(--ok)}
+.ed-tool.pri{background:var(--cur);border-color:var(--cur);color:var(--onCur);font-weight:600}
+.ed-tool.pri:hover{filter:brightness(1.1);background:var(--cur);border-color:var(--cur)}
+.ed-tool.sm{padding:4px 9px;font-size:var(--t3)}
+/* 好みの切り替え（明るさ）は操作ではないので、枠を持たせない。
+   同じ形で並べると、めったに押さないものが一番押しそうに見える。 */
+.ed-tool.quiet{background:none;border-color:transparent;color:var(--faint)}
+.ed-tool.quiet:hover{background:var(--panel2);color:var(--dim)}
+/* 上段の区切り。何と何が別のまとまりかを、間隔ではなく線で示す。
+   間隔だけだと、画面が狭いときに詰まって区別が消える。 */
+.ed-sep{flex:none;width:1px;align-self:stretch;margin:2px 3px;background:var(--line)}
+.ed-note{margin:16px 0 30px;font-size:var(--t3);color:var(--faint);line-height:1.85}
+.ed-note b{color:var(--dim)}
+
+.brand{margin:0;font-size:var(--t7);font-weight:700;white-space:nowrap;letter-spacing:.01em}
+.brand b{color:var(--cur)}
+/* 画面の名前（連絡先・対応一覧など）。製品名と違って強調しない。 */
+.sc-name{margin:0;font-size:var(--t7);font-weight:700;white-space:nowrap;letter-spacing:.01em}
+.brand em{font-style:normal;font-size:var(--t1);letter-spacing:.16em;color:var(--faint);
+  border:1px solid var(--line);border-radius:var(--r1);padding:2px 6px;margin-left:9px;vertical-align:2px}
+
+/* ================= フロー一覧 ================= */
+.ew-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:11px}
+.ew-body{max-width:1360px;margin:0 auto;padding:26px 30px 40px}
+.ew-h{margin:0 0 16px;font-size:var(--t4);color:var(--fg);
+  font-weight:700;display:flex;align-items:baseline;gap:10px}
+.ew-h span{letter-spacing:0;text-transform:none;font-size:var(--t3);font-weight:400}
+/* 一覧の入れ物。中身は表なので、狭い画面では横に送る（列を潰さない）。 */
+.ew-grid{overflow-x:auto}
+
+/* カード。フェーズの凡例が 1 行に収まるか 2 行になるかでカードの高さが変わり、
+   同じ行の低いほうのカードは下に余りが出る。縦に並べて操作を最下段へ押し出せば、
+   高さが揃わなくても最下段はそろう。 */
+
+/* フェーズ分布 — どのフェーズに手順が集まっているフローかが一目で分かる。
+   帯だけにしてある（凡例は 2 行に折り返してカードの高さを崩していた）。
+   フェーズ名と件数は各区画の説明に入れてある。 */
+.ew-bar{display:flex;gap:2px;height:8px;border-radius:var(--r1);overflow:hidden;
+  margin-bottom:13px;background:var(--panel3)}
+.ew-bar i{display:block;height:100%}
+
+.ew-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:var(--t2);font-variant-numeric:tabular-nums;
+  padding-top:11px;border-top:1px solid var(--line-soft)}
+.ew-meta span{border:1px solid var(--line);border-radius:var(--r1);padding:2px 8px;color:var(--dim)}
+.ew-meta span.ok{border-color:var(--ok);color:var(--ok)}
+.ew-meta span.ng{border-color:var(--s2);color:var(--s2)}
+
+/* 共通フローとの関係。一覧の時点で見えていないと、開くまで分からない。 */
+.ew-rel{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 9px;
+  font-size:var(--t2);font-variant-numeric:tabular-nums}
+.ew-rel span{display:inline-flex;align-items:center;height:18px;padding:0 6px;font-weight:600;
+  border:1px solid var(--line-2);border-radius:var(--r2);color:var(--dim)}
+.ew-rel .from{color:var(--cur);border-color:var(--cur);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ew-rel .base{color:var(--ok);border-color:var(--ok)}
+.ew-rel .old{color:var(--s2);border-color:var(--s2);font-weight:700}
+
+/* 共通との違いの一覧。状態ごとに色を分ける（色だけに頼らず言葉も出す）。
+   印の形はほかの画面と同じ（面を敷いて、字は面より 1 段明るい色）。 */
+.difftbl .tag{font-size:var(--t2);font-weight:600;white-space:nowrap;
+  display:inline-flex;align-items:center;height:18px;padding:0 6px;
+  color:var(--dcFg,var(--dim));background:color-mix(in srgb, var(--dc,var(--line)) 20%, transparent);
+  border:1px solid color-mix(in srgb, var(--dc,var(--line)) 42%, transparent);
+  border-radius:var(--r2)}
+.difftbl .why{display:block;font-size:var(--t2);color:var(--faint);line-height:1.6;margin-top:3px}
+.difftbl .d-added{--dc:var(--ok);--dcFg:var(--okFg)}
+.difftbl .d-changed{--dc:var(--cur);--dcFg:var(--cur)}
+.difftbl .d-removed{--dc:var(--s1);--dcFg:var(--s1Fg)}
+.difftbl .d-removed b{color:var(--faint);text-decoration:line-through}
+.difftbl .d-same{--dc:var(--line-2);--dcFg:var(--faint)}
+.difftbl .d-same b{color:var(--dim);font-weight:400}
+
+/* 「共通との違い」ボタンの中に出す要約。 */
+.ed-tool u{text-decoration:none;font-variant-numeric:tabular-nums;font-size:var(--t2);
+  color:var(--faint);margin-left:6px}
+.ed-tool.warn u{color:inherit}
+/* カードの操作。
+   以前はホバーするまで opacity:0 で、それでも場所は取っていた。
+   高さ 260px のカードのうち 50px が、見えないボタンのための空洞だった。
+   常に出したうえで沈めておき、ホバーで前に出す。空洞が無くなり、
+   何ができるカードなのかも最初から分かる。 */
+/* 幅を等分しない。等分すると、短い「複製」と長い「顧客別を作る」が同じ幅になり、
+   320px のカードでは折り返す。文字なりの幅で右へ寄せる。
+   透明度ではなく色で沈める。透明度だと枠線まで薄くなって、押せるものに見えない。 */
+
+
+/* ================= 編集ビュー =================
+   見出しまわりは 道筋 → 題名 → メタの帯 → タブ の順。
+   Defender でインシデントを開いたときと同じ並びにしてある。 */
+.ed-head{padding:12px 20px 0;flex:none}
+
+/* 道筋。「← フロー一覧」という矢印だけのボタンをやめ、いまどこにいるかを出す。 */
+.crumb{display:flex;align-items:center;gap:5px;font-size:var(--t3);color:var(--faint);margin-bottom:3px}
+.crumb button{background:none;border:none;color:var(--cur);font-family:var(--sans);
+  font-size:var(--t3);cursor:pointer;padding:0}
+.crumb button:hover{text-decoration:underline}
+.crumb .ic{color:var(--faint)}
+
+.ed-titlerow{display:flex;align-items:center;gap:8px;min-width:0}
+.ed-title{margin:0;font-size:var(--t8);font-weight:600;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+
+/* メタの帯。開いた瞬間にこのフローの素性が 1 行で分かる。
+   Defender の「低 │ Active │ 未割り当て │ 最終更新時刻」と同じ作り。 */
+.ed-meta{display:flex;align-items:center;flex-wrap:wrap;margin:8px 0 10px;
+  font-size:var(--t3);color:var(--dim);min-height:20px}
+.ed-meta > span{display:flex;align-items:center;gap:6px;padding:0 12px}
+.ed-meta > span:first-child{padding-left:0}
+.ed-meta > span + span{border-left:1px solid var(--line)}
+.ed-meta .ic{color:var(--faint)}
+.ed-meta .ok{color:var(--ok)} .ed-meta .ok .ic{color:var(--ok)}
+.ed-meta .ng{color:var(--s2)} .ed-meta .ng .ic{color:var(--s2)}
+
+/* 編集 / テスト。Defender と同じ下線の動くタブ。 */
+.ed-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:0 -20px;padding:0 20px}
+.ed-tabs button{background:none;border:none;color:var(--dim);font-family:var(--sans);font-size:var(--t4);
+  padding:9px 12px 10px;cursor:pointer;position:relative;display:flex;align-items:center;gap:7px}
+.ed-tabs button:hover{color:var(--fg);background:var(--panel2)}
+.ed-tabs button.on{color:var(--cur);font-weight:600}
+.ed-tabs button.on::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;
+  background:var(--cur);border-radius:1px}
+.ed-cmd{padding:7px 20px;margin:0;border-bottom:1px solid var(--line)}
+
+.ed-body{display:grid;grid-template-columns:var(--wl,290px) 7px minmax(0,1fr) 7px var(--wr,324px);
+  gap:0;padding:12px 16px 14px;flex:1 1 auto;min-height:0}
+.split{cursor:col-resize;position:relative}
+.split::after{content:"";position:absolute;inset:0;margin:auto;width:1px;height:36px;
+  background:var(--line);border-radius:var(--r1);transition:background .15s}
+.split:hover::after{background:var(--cur)}
+
+/* パネル。Defender の「検出とカテゴリ」「インシデント グラフ」「タスク」と同じ作り。
+   見出しは大文字送りの小さなラベルではなく、ふつうの太字にする。
+   Fluent のパネル見出しは読ませるもので、飾りではない。 */
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);height:100%;
+  display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.pane>h3{margin:0;padding:9px 12px;font-size:var(--t4);color:var(--fg);font-weight:600;
+  border-bottom:1px solid var(--line);display:flex;
+  justify-content:space-between;align-items:center;gap:8px;flex:none}
+.pane>h3 span{font-size:var(--t3);color:var(--faint);font-weight:400;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pane .scroll{overflow:auto;flex:1;padding:10px 12px 16px;min-height:0}
+
+/* 図の縮尺。見出しの右端に、小さくまとめて置く。
+   図を見ている最中に使うものなので、操作の帯（上段）ではなく図の枠に付ける。 */
+.zoom{display:flex;align-items:center;gap:1px;flex:none;overflow:visible}
+.zoom button{background:none;border:none;color:var(--dim);cursor:pointer;
+  font-family:var(--sans);font-size:var(--t2);padding:3px 6px;border-radius:var(--r2);
+  display:flex;align-items:center;justify-content:center;min-width:26px}
+.zoom button:hover:not(:disabled){background:var(--panel2);color:var(--fg)}
+.zoom button:disabled{color:var(--line-2);cursor:default}
+.zoom #zNow{min-width:44px;font-variant-numeric:tabular-nums}
+
+/* ---------- 手順アウトライン（左） ---------- */
+.ol-row{display:flex;gap:7px;align-items:flex-start;padding:6px 8px;border-radius:var(--r2);cursor:grab;
+  position:relative;transition:background .14s,box-shadow .14s;border-left:3px solid transparent;
+  user-select:none}
+.ol-row:hover{background:var(--panel2)}
+.ol-row.sel{background:var(--cur-bg);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cur) 40%, transparent)}
+/* 掴んでいる元の行。運んでいる絵のほうが主役なので薄くするが、
+   何を掴んだか分からなくなるほど消さない（.35 では消えていた）。 */
+.ol-row.drag{opacity:.5}
+.ol-row.over{box-shadow:inset 0 2px 0 var(--cur)}
+.ol-row.d1{margin-left:6px}
+.ol-row.dec{border-left-color:var(--dec)}
+.ol-row.dec .ol-t{font-weight:600}
+.ol-no{flex:none;font-variant-numeric:tabular-nums;font-size:var(--t2);font-weight:600;color:var(--faint);
+  min-width:16px;text-align:right;padding-top:2px}
+.ol-row.sel .ol-no{color:var(--cur)}
+.ol-pc{flex:none;width:7px;height:7px;border-radius:var(--r1);background:var(--pc,var(--line));margin-top:6px}
+/* 題名。ここだけが伸び縮みする欄なので、狭くすると真っ先に潰れる。
+   min-width を 0 にしていたため、印の多いフローでは幅が 0 になり、
+   1 文字ずつ縦に折り返していた。読める下限を持たせる。
+   ペインの下限（PANE_LIMITS）でも足りるが、将来ラベルや担当の呼び名が
+   長くなったときに、また黙って潰れるのを防ぐための歯止め。 */
+.ol-t{flex:1;min-width:90px;font-size:var(--t4);line-height:1.5}
+.ol-row.dec .ol-t::before{content:"\25C6";color:var(--dec);margin-right:5px;font-size:var(--t1)}
+/* 行の右側は 3 つのまとまりに分ける。左から 数量 → ラベル → 担当。
+   これまでは生成順に混ぜていたので、同じ見た目のラベルが数量の左右に
+   分かれて、行ごとに位置が違って見えていた。 */
+.ol-q{flex:none;display:flex;gap:5px;justify-content:flex-end;
+  font-family:var(--sans);font-size:var(--t2);padding-top:2px}
+.ol-f{flex:none;display:flex;gap:5px;font-family:var(--sans);font-size:var(--t2);padding-top:2px}
+/* 印の形（Fluent の Badge）。
+   面と字を別の色にして、字は面より 1 段明るいものにする。細い枠 1 本で
+   色を出していたときは、10px の等幅と相まって「そこに何か書いてある」
+   ことしか読めなかった。地を敷いて字を太らせるほうが小さくても読める。 */
+.ol-f>span,.ol-lane .tier{flex:none;box-sizing:border-box;white-space:nowrap;
+  text-align:center;height:18px;line-height:16px;padding:0 6px;font-weight:600;
+  border:1px solid transparent;border-radius:var(--r2)}
+/* ラベルの幅は文言で決まるので固定。折り返させない——折り返すと
+   その行だけ倍の高さになり、そろえるために固定幅にした意味が無くなる。
+   等幅 10px から本文書体 12px にしたので、実測に合わせて取り直した
+   （「お客様連絡」で 74px、「エスカレ」で 62px）。 */
+.ol-f .cust{width:74px}
+.ol-f .esc{width:62px}
+.ol-row .fin,.ol-row .wait{width:44px}
+.ol-f .ghost{border-color:transparent;background:none;visibility:hidden}
+/* 担当だけは行の右端に固定する。可変幅のバッジより右に置くことで、
+   行をまたいで縦にそろい、「自分の手順はどれか」を目で追える列になる。
+   最小幅を持たせているのは、短い名前のときに列として細すぎないため。
+   長い名前（Tier3・CSIRT や 高橋工務店）は切り詰めずに伸ばす。 */
+.ol-lane{flex:none;display:flex;justify-content:flex-end;min-width:44px;
+  margin-left:5px;font-family:var(--sans);font-size:var(--t2);padding-top:2px;
+  width:var(--ol-lane-w, auto)}
+/* 印の見た目の規則。
+   枠あり … この手順の性質（有る／無い）: 担当・エスカレ・お客様連絡・終了・待ち
+   枠なし … 数量: SLA・N分岐
+   足した順に見た目がばらばらになっていたので、規則を決めて両方の画面に通した。 */
+/* SLA と分岐数は数量なので、面を敷かない（枠ありは性質、枠なしは数量）。 */
+.ol-f .sla{color:var(--dim);font-weight:400}
+.ol-f .esc{color:var(--s1Fg);background:color-mix(in srgb, var(--s1) 20%, transparent);
+  border-color:color-mix(in srgb, var(--s1) 42%, transparent)}
+
+/* 分岐ブロック — 判断ステップの下に、その判断が支配する範囲をレールで囲む。
+   「どこからどこまでが分岐か」と「どの質問への答えか」を同時に見せる。 */
+.ol-branch{margin:2px 0 8px 9px;padding:2px 0 4px 11px;border-left:2px solid var(--dec);
+  border-radius:0 0 0 3px;position:relative}
+.ol-branch::before{content:"";position:absolute;left:-5px;top:-2px;width:8px;height:8px;
+  border-radius:50%;background:var(--dec)}
+.ol-q{display:flex;gap:6px;align-items:baseline;margin:3px 0 7px;font-size:var(--t2);
+  color:var(--dim);line-height:1.55}
+.ol-q b{font-weight:400}
+.ol-q .qn{flex:none;font-variant-numeric:tabular-nums;font-size:var(--t2);font-weight:600;color:var(--dec);
+  border:1px solid var(--dec);border-radius:var(--r1);padding:0 4px;background:color-mix(in srgb, var(--dec) 12%, transparent)}
+.ol-grp{display:flex;gap:6px;align-items:center;margin:6px 0 3px;padding:3px 9px 3px 7px;
+  font-size:var(--t2);font-weight:700;color:var(--oc);border-left:2px solid var(--oc);
+  background:color-mix(in srgb, var(--oc) 9%, transparent);border-radius:0 6px 6px 0}
+.ol-grp::before{content:"";width:7px;height:7px;border-radius:var(--r1);background:var(--oc);flex:none}
+.ol-grp u{text-decoration:none;font-variant-numeric:tabular-nums;font-size:var(--t2);opacity:.75;font-weight:400}
+.ol-empty{color:var(--faint);font-size:var(--t4);line-height:1.9;padding:14px 4px}
+.ol-legend{margin-top:14px;padding-top:11px;border-top:1px solid var(--line-soft);
+  font-size:var(--t2);color:var(--faint);line-height:1.8}
+
+/* ---------- キャンバス（中央・上） ---------- */
+/* キャンバス。点の地は Defender の「インシデント グラフ」と同じ。
+   「ここは図を置く面で、書類ではない」ことが、地の作りだけで伝わる。 */
+.canvas{position:relative;overflow:auto;flex:1 1 auto;padding:14px 16px 16px;min-height:0;
+  background-image:radial-gradient(var(--griddot) 1px,transparent 1px);background-size:16px 16px}
+/* 列＝担当（レーン）、行＝手順の順番。
+   行が実施順そのものなので、線は必ず下へ進み、決して戻らない。
+   線 i は行 i と行 i+1 のあいだの帯しか通らないため、交差は起こり得ない。 */
+/* 縮尺は zoom で掛ける。transform:scale でも見た目は同じにできるが、
+   transform だと組み直しが起きないぶん、列見出しの position:sticky が
+   縮尺ぶんずれる（実測: 110% で 400px 送ると見出しが 40px 下がり、
+   ずれは送るほど増えて、最後は画面から出ていった）。
+   zoom は組み直しを伴うので、見出しはそのまま効く。
+   組み直しの副産物として、縮めると列が広くなり、題名の折り返しが減る。
+   全体を見るための縮小なので、これはむしろ都合がよい。 */
+.cgrid{position:relative;display:grid;column-gap:0;row-gap:34px;
+  padding:0 4px 20px;align-content:start;min-height:100%;
+  zoom:var(--z,1)}
+/* レーンの帯。全行にまたがって背景と区切り線を出す */
+/* 列の区切り。薄くてよいが、列の境目が見えないと担当の切り替わりが読めない。 */
+.clane{position:relative;z-index:0;
+  border-left:1px solid var(--line);background:color-mix(in srgb, var(--lc) 4%, transparent);
+  transition:background .18s,box-shadow .18s,opacity .18s}
+.clane.last{border-right:1px solid var(--line)}
+/* 列の見出し。字はどの列でも読めるよう本文の色にして、担当の色は下の 2px 罫と
+   ボックスの中の印に持たせる。字まで色を付けると、暗い色の担当が読めなかった。
+   字間を空けるのもやめた（日本語では字が散るだけで、Fluent もそうしていない）。 */
+.clane-h{grid-row:1;position:sticky;top:-14px;z-index:3;
+  margin:0;font-size:var(--t2);font-weight:600;white-space:nowrap;
+  color:var(--fg);padding:6px 8px 5px;border-bottom:2px solid var(--lc);
+  display:flex;justify-content:space-between;align-items:baseline;gap:6px;
+  background:var(--panel)}
+.clane-h u{text-decoration:none;font-family:var(--sans);font-size:var(--t2);
+  font-weight:400;color:var(--faint)}
+/* 落とす先の列。薄めるのは「そこではない」ことを示すためであって、
+   図を読めなくするためではない。目立たせる側を強くして、沈める側は戻す。 */
+body.dragging .clane.drop{background:color-mix(in srgb, var(--cur) 13%, transparent);
+  box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--cur) 60%, transparent)}
+body.dragging .clane:not(.drop){opacity:.6}
+
+/* 終了（クローズ）。作業ではなく、この経路がここで終わることを示す。
+   枠を二重にして、ほかのボックスと形で区別する。 */
+.cnode.close{box-shadow:inset 0 0 0 2px var(--panel2), inset 0 0 0 3px var(--ok),
+  0 1px 3px var(--shadow)}
+.cnode .f-fin{color:var(--okFg);background:color-mix(in srgb, var(--ok) 20%, transparent);
+  border-color:color-mix(in srgb, var(--ok) 42%, transparent)}
+.ol-row .fin{color:var(--okFg);background:color-mix(in srgb, var(--ok) 20%, transparent);
+  border-color:color-mix(in srgb, var(--ok) 42%, transparent)}
+/* 待ち。自分たちの作業ではないので、破線で「動いていない」ことを示す。 */
+.cnode.wait{border-style:dashed}
+.cnode .f-wait{color:var(--dim);background:var(--panel3);border:1px dashed var(--line-2)}
+/* 待ちだけは枠を破線のままにする。「動いていない」ことを形でも示す。 */
+.ol-row .wait{color:var(--dim);background:var(--panel3);
+  border:1px dashed var(--line-2)}
+.pal-t .k-wait{display:inline-flex;align-items:center;font-style:normal;vertical-align:-3px;
+  margin-right:5px;height:18px;padding:0 6px;font-size:var(--t2);font-weight:600;line-height:16px;
+  color:var(--dim);background:var(--panel3);border:1px dashed var(--line-2);border-radius:var(--r2)}
+
+/* 掴んで動かしている最中のボックス。 */
+.cnode.drag{opacity:.5}
+
+/* パレットから落とすとき、または手順を動かすときに、どこへ入るかを示す線。 */
+/* 落とし先の線。運んでいるものの名前もここに書く。
+   運んでいる絵は OS が描くので濃さを保証できない。こちらが描くもので
+   「何を・どこへ」を必ず読めるようにしておく。 */
+.cdrop{position:absolute;z-index:4;height:3px;background:var(--cur);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--cur) 55%, transparent);
+  pointer-events:none}
+.cdrop::before,.cdrop::after{content:"";position:absolute;top:-3px;width:8px;height:8px;
+  background:var(--cur);border-radius:50%}
+.cdrop::before{left:-4px} .cdrop::after{right:-4px}
+.cdrop b{position:absolute;left:0;top:-24px;max-width:100%;box-sizing:border-box;
+  background:var(--cur);color:var(--onCur);font-size:var(--t2);font-weight:600;
+  padding:2px 8px;border-radius:var(--r2);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;display:block;box-shadow:0 2px 6px var(--shadow)}
+
+/* 連絡の相手。矢印の行き先に置く札。
+   手順のボックスは角のある四角にしたので、こちらは丸くしておく。
+   形が違えば「手順ではない」ことが一目で分かる。 */
+.cct{position:relative;z-index:2;align-self:center;justify-self:center;
+  max-width:92%;font-size:var(--t3);font-weight:600;line-height:1.4;text-align:center;
+  color:var(--lc);background:var(--panel2);
+  border:1px dashed color-mix(in srgb, var(--lc) 55%, transparent);
+  border-radius:var(--r-pill);padding:5px 13px}
+
+/* 角は丸めない。SOC のメンバーが Microsoft Defender の画面に慣れているため、
+   そちらの角のある作りに寄せている。 */
+/* 枠の明るさで浮かせるのをやめ、影で浮かせる（Fluent のカードと同じ）。
+   #5a5a5a の枠は 1 本ずつは細くても、20 個並ぶと図全体が灰色の格子に見えていた。
+   枠は面の境目を示すだけの弱いものにして、手前にあることは影に持たせる。 */
+.cnode{position:relative;z-index:2;margin:0 16px 0 12px;
+  background:var(--panel2);border:1px solid var(--nodeline);border-left:4px solid var(--pc);
+  border-radius:0;padding:9px 11px 9px 12px;cursor:pointer;
+  box-shadow:0 1px 3px var(--shadow);
+  transition:border-color .16s,background .16s,box-shadow .16s,transform .16s}
+/* 分類の行。フェーズ（色）と担当（列）を、手順そのものの性質より上に置く。
+   列が担当を表してはいるが、縦に長いフローでは列見出しが視界から外れる。
+   ボックス自身にも書いておけば、どこを見ていても分かる。 */
+.cnode .cls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
+.cnode .cls .ph{font-style:normal;font-size:var(--t2);font-weight:600;color:var(--pc)}
+/* ボックスの中の印も、アウトラインと同じ形にそろえる（面＋面より明るい字）。
+   同じものを指す印が画面ごとに違う見た目だと、対応が付かない。 */
+.cnode .cls .who,.cnode .f-esc,.cnode .f-fin,.cnode .f-wait{
+  font-style:normal;font-family:var(--sans);font-size:var(--t2);font-weight:600;
+  letter-spacing:0;height:18px;line-height:16px;padding:0 6px;
+  border:1px solid transparent;border-radius:var(--r2);
+  display:inline-flex;align-items:center;white-space:nowrap}
+.cnode .cls .who{color:var(--lc);background:color-mix(in srgb, var(--lc) 16%, transparent);
+  border-color:color-mix(in srgb, var(--lc) 40%, transparent)}
+.cnode:hover{background:var(--panel3);box-shadow:0 3px 8px var(--shadow)}
+.cnode.sel{border-color:var(--cur);background:var(--cur-bg);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--cur) 20%, transparent), 0 1px 3px var(--shadow)}
+.cnode.new{animation:pop .32s ease-out}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.cnode .num{position:absolute;top:-7px;left:-7px;width:20px;height:20px;border-radius:50%;
+  background:var(--panel3);border:1px solid var(--line-2);font-family:var(--sans);font-size:var(--t2);
+  font-weight:600;color:var(--dim);display:flex;align-items:center;justify-content:center}
+.cnode.sel .num{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
+.cnode b{display:block;font-size:var(--t4);font-weight:600;line-height:1.5;word-break:break-word}
+/* 対応の補足。書き出し HTML の .v-node .t と同じ値にする（viewer.css）。
+   同じ図なので、片方だけ大きさや色が違うと別物に見える。 */
+.cnode .t{display:block;font-size:var(--t2);color:var(--faint);line-height:1.4;margin-top:2px}
+/* フラグはタイトルの下に置く。絶対配置だと長い SLA が文字に重なる。 */
+.cnode .flags{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;
+  padding-top:5px;border-top:1px solid var(--line-soft);font-size:var(--t2);font-family:var(--sans)}
+.cnode .f-dec{color:var(--dec)} .cnode .f-cond{color:var(--decFg)}
+.cnode .f-esc{color:var(--s1Fg);background:color-mix(in srgb, var(--s1) 20%, transparent);
+  border-color:color-mix(in srgb, var(--s1) 42%, transparent)}
+.cnode .f-sla{color:var(--dim)}
+.cwires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
+/* 連絡の矢印。手順の流れとは別種の線なので、点線にして区別する */
+.cwires path.ca{stroke-width:1.4;stroke-dasharray:2 3;opacity:.85;fill:none}
+.cwires.focus path.ca{opacity:.25}
+/* 既定の線は少し明るく。選択・ホバー中は、繋がる線だけを残して他を沈める。
+   セレクタを直接の子に限定しないと、矢印（marker 内の path）まで fill:none になって消える。 */
+/* 線は薄めない。透かすと、矢印の頭（marker は透明度を継がない）だけが濃く
+   残って、線と頭で色が違って見えていた。濃さは --wire の色そのもので決める。 */
+.cwires>path{stroke:var(--wire);stroke-width:1.6;fill:none;
+  stroke-linecap:round;stroke-linejoin:round;
+  transition:opacity .16s,stroke .16s,stroke-width .16s}
+.cwires.focus>path{opacity:.2}
+/* 選択・ホバー中の線だけ、進む向きに破線を流す。
+   「常時動くものは置かない」原則があるので、選択している間だけに限る。
+   テストモードと書き出し HTML には入れない。 */
+.cwires>path.hot{stroke:var(--cur);stroke-width:2.4;opacity:1;
+  stroke-dasharray:9 7;animation:wire-flow 900ms linear infinite}
+@keyframes wire-flow{from{stroke-dashoffset:0}to{stroke-dashoffset:-16}}
+@media (prefers-reduced-motion: reduce){
+  /* 動きを止めるだけだと破線が残って読みにくいので、実線に戻す */
+  .cwires>path.hot{stroke-dasharray:none}
+}
+/* 矢印の色は CSS で持たせる。属性だとテーマ切り替えに追従しない。 */
+.cwires marker path{fill:var(--wire)}
+.cwires #eah-hot path{fill:var(--cur)}
+.cempty{color:var(--faint);font-size:var(--t4);padding:40px 0;text-align:center;line-height:2}
+.cempty b{display:block;color:var(--dim);font-size:var(--t5);margin-bottom:4px}
+
+/* ---------- 右サイドバー: タブ ---------- */
+.tabs{display:flex;flex:none;border-bottom:1px solid var(--line);padding:0 6px;gap:2px}
+.tabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);
+  font-family:var(--sans);font-size:var(--t4);font-weight:400;padding:9px 4px 9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:color .15s,border-color .15s}
+.tabs button:hover{color:var(--fg);background:var(--panel2)}
+.tabs button.on{color:var(--cur);border-bottom-color:var(--cur);font-weight:600}
+/* タブの件数。印と同じ形にそろえる（.bdg の色だけを変えたもの）。
+   中身が無いときは出さない。空の枠だけが残ると、何かが欠けて見える。 */
+.tabs button i:empty{display:none}
+.tabs button i{font-style:normal;display:inline-flex;align-items:center;height:18px;padding:0 6px;
+  font-size:var(--t2);font-weight:600;font-variant-numeric:tabular-nums;border-radius:var(--r2);
+  color:var(--faint);background:var(--panel3);border:1px solid var(--line-2)}
+.tabs button.on i{color:var(--cur);background:color-mix(in srgb, var(--cur) 18%, transparent);
+  border-color:color-mix(in srgb, var(--cur) 42%, transparent)}
+#paneRight.tab-ins #palwrap{display:none}
+#paneRight.tab-pal .ins{display:none}
+.palwrap{overflow:auto;flex:1;padding:10px 12px 16px;min-height:0}
+
+/* ---------- ランチャー（左上の点の集まり） ----------
+   Defender の同じ位置にあるものに倣う。上段のすぐ下に、左端から出す。
+   モーダルにはしない——行き先を選ぶだけで、背後の作業を止める必要がない。 */
+.launcher{position:absolute;top:calc(var(--top-h) - 4px);left:8px;z-index:70;
+  width:340px;padding:16px 18px 14px;border-radius:var(--r3);
+  background:var(--panel);border:1px solid var(--line-2);
+  box-shadow:0 12px 34px var(--shadow);
+  opacity:0;transform:translateY(-6px);pointer-events:none;
+  transition:opacity .14s,transform .14s}
+.launcher.on{opacity:1;transform:none;pointer-events:auto}
+.lc-head h2{margin:0;font-size:var(--t6);font-weight:600;display:flex;align-items:center;gap:6px}
+.lc-head p{margin:3px 0 14px;font-size:var(--t2);color:var(--faint)}
+/* 一覧へ戻る。見出しの中に置いて、入力の面から出る道を 1 つにする。 */
+.lc-back{background:none;border:1px solid transparent;border-radius:var(--r2);
+  color:var(--faint);width:24px;height:24px;margin-left:-4px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center}
+.lc-back:hover{background:var(--panel2);color:var(--fg)}
+.lc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+
+/* 追加・変更の入力。右のパネルへ移さず、この面の中で切り替える。 */
+.lc-form label{display:block;font-size:var(--t3);color:var(--dim);margin:12px 0 5px}
+.lc-form label:first-child{margin-top:0}
+.lc-form input{width:100%;box-sizing:border-box;background:var(--panel2);
+  border:1px solid var(--line-2);border-bottom:1px solid var(--faint);color:var(--fg);
+  border-radius:var(--r2) var(--r2) 0 0;padding:7px 10px;font-size:var(--t4);
+  font-family:var(--sans)}
+.lc-form input:focus{outline:none;border-bottom:2px solid var(--cur);padding-bottom:6px}
+.lc-form .icpick{grid-template-columns:repeat(6,1fr)}
+.lc-err{margin:10px 0 0;padding:7px 10px;border-radius:var(--r2);font-size:var(--t3);
+  color:var(--s1Fg);background:color-mix(in srgb, var(--s1) 16%, transparent);
+  border:1px solid color-mix(in srgb, var(--s1) 40%, transparent);line-height:1.6}
+.lc-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+
+/* 1 マス。押すと開く。触れているあいだだけ、直すと消すが右上に出る。 */
+.lc-t{position:relative}
+.lc-t>button{width:100%;background:none;border:1px solid transparent;border-radius:var(--r2);
+  color:var(--fg);font-family:var(--sans);font-size:var(--t2);line-height:1.4;
+  padding:12px 6px 10px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:7px;text-align:center}
+.lc-t>button .ic{color:var(--cur)}
+.lc-t>button span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;word-break:break-word}
+.lc-t>button:hover{background:var(--panel2)}
+.lc-t>button:focus-visible{outline:2px solid var(--cur);outline-offset:-2px}
+.lc-ops{position:absolute;top:2px;right:2px;display:none;gap:0}
+.lc-t:hover .lc-ops,.lc-t:focus-within .lc-ops{display:flex}
+.lc-ops button{min-width:22px;height:22px}
+.lc-ops .ic{width:13px;height:13px}
+
+/* 追加のマス。点線で囲むのはここだけ——「まだ何も入っていない場所」を
+   示すためで、ボタンの飾りではない。 */
+.lc-new{background:none;border:1px dashed var(--line-2);border-radius:var(--r2);
+  color:var(--cur);font-family:var(--sans);font-size:var(--t2);font-weight:600;
+  padding:12px 6px 10px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:7px}
+.lc-new:hover{background:color-mix(in srgb, var(--cur) 12%, transparent);border-color:var(--cur)}
+
+/* 絵を選ぶ欄（ui.ts の askModal の type:"icon"）。 */
+.icpick{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.icpick button{background:var(--panel2);border:1px solid var(--line-2);border-radius:var(--r2);
+  color:var(--dim);height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.icpick button:hover{color:var(--fg);border-color:var(--hover)}
+.icpick button.on{color:var(--cur);border-color:var(--cur);
+  background:color-mix(in srgb, var(--cur) 16%, transparent)}
+
+/* ---------- 印（Fluent の Badge）の共通形 ----------
+   面を敷いて、字は面より 1 段明るい色。色は --bc（面と枠）と --bf（字）で渡す。
+   同じ形をこれまで画面ごとに書き足していたので、ここに 1 つ持つ。
+   古い画面のものも形は同じなので、触るときにこちらへ寄せていく。 */
+.bdg{display:inline-flex;align-items:center;height:18px;padding:0 6px;white-space:nowrap;
+  font-family:var(--sans);font-size:var(--t2);font-weight:600;line-height:16px;
+  border-radius:var(--r2);color:var(--bf,var(--dim));
+  background:color-mix(in srgb, var(--bc,var(--line-2)) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--bc,var(--line-2)) 42%, transparent)}
+/* 数量。印ではないので面は敷かない（枠ありは性質、枠なしは数量）。 */
+.qty{font-family:var(--sans);font-size:var(--t2);color:var(--faint);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* 行の中の操作（並べ替え・編集・削除）。
+   Fluent の行操作は枠を持たない。24px の四角を並べると、それ自体が
+   表の列のように見えて、読むものと操作の区別が消える。 */
+.rowops button{background:none;border:1px solid transparent;color:var(--faint);
+  border-radius:var(--r2);min-width:26px;height:26px;padding:0 6px;font-size:var(--t2);
+  cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;
+  justify-content:center;transition:background .12s,color .12s}
+.rowops button:hover:not(:disabled){background:var(--panel3);color:var(--fg)}
+.rowops button.dgr:hover:not(:disabled){background:color-mix(in srgb, var(--s1) 18%, transparent);
+  color:var(--s1Fg)}
+.rowops button:disabled{color:var(--line-2);cursor:default}
+
+/* 追加の操作。破線の枠をやめる（Fluent に破線のボタンは無い）。
+   足すものだと分かるのは＋の記号と言葉であって、枠の種類ではない。 */
+.addrow{width:100%;background:none;border:1px solid var(--line-2);color:var(--cur);
+  border-radius:var(--r2);padding:7px;font-size:var(--t3);font-weight:600;cursor:pointer;
+  font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:6px}
+.addrow:hover{background:color-mix(in srgb, var(--cur) 12%, transparent);border-color:var(--cur)}
+
+/* ---------- 対応パレット（右サイドバー・縦） ---------- */
+/* 打ち込む場所は、枠をひとつ強い罫（--line-2）にする。--line は面の境目の色で、
+   入力欄に使うと「ここに打てる」ことが見えなかった。 */
+.pal-search{width:100%;background:var(--panel2);border:1px solid var(--line-2);color:var(--fg);
+  border-radius:var(--r2);padding:7px 11px;font-size:var(--t4);font-family:var(--sans);margin-bottom:7px}
+/* 並び順と絞り込み — 44 件を超えると定義順では定番が埋もれる */
+.tools{display:flex;gap:6px;margin-bottom:12px}
+.tools select{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line-2);
+  color:var(--dim);border-radius:var(--r2);padding:5px 7px;font-size:var(--t3);font-family:var(--sans)}
+.tools select:focus{outline:none;border-color:var(--cur);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--cur) 25%, transparent)}
+.tools select.on{border-color:var(--cur);color:var(--cur)}
+.pal-search:focus{outline:none;border-color:var(--cur);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--cur) 25%, transparent)}
+.pal-g{margin-bottom:13px}
+.pal-g>h4{margin:0 0 7px;font-size:var(--t3);font-weight:600;color:var(--dim);
+  display:flex;align-items:center;gap:7px;user-select:none;
+  padding-bottom:4px;border-bottom:1px solid var(--pc)}
+.pal-g>h4>span{cursor:pointer;display:flex;align-items:center;gap:7px;flex:1;min-width:0}
+.pal-g>h4>span::before{content:"";width:9px;height:9px;border-radius:var(--r1);background:var(--pc);flex:none}
+.pal-g>h4 u{text-decoration:none;font-family:var(--sans);font-size:var(--t2);color:var(--faint);
+  font-weight:400;font-variant-numeric:tabular-nums}
+.pal-g>h4 button{flex:none;background:none;border:1px solid transparent;color:var(--faint);
+  border-radius:var(--r2);width:22px;height:22px;line-height:1;cursor:pointer;padding:0;
+  display:flex;align-items:center;justify-content:center}
+.pal-g>h4 button:hover{background:var(--panel2);color:var(--cur)}
+
+/* パレットの札。掴んで運ぶものなので、キャンバスのボックスと同じ
+   「角のある四角＋左のフェーズ色」にしておくと、置いた先の姿が想像できる。 */
+.pal-t{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--pc);
+  border-radius:0;padding:7px 9px;margin-bottom:5px;cursor:grab;position:relative;
+  transition:border-color .15s,background .15s}
+.pal-t:hover{background:var(--panel3);border-color:var(--hover)}
+.pal-t:active{cursor:grabbing}
+.pal-t.drag{opacity:.5}
+.pal-t b{display:block;font-size:var(--t4);font-weight:600;line-height:1.45;padding-right:58px}
+.pal-t span.nt{display:block;font-size:var(--t2);color:var(--faint);line-height:1.4;margin-top:1px}
+.pal-t .use{position:absolute;top:6px;right:7px;display:flex;gap:4px;align-items:center}
+.pal-t .u-in{--bc:var(--cur);--bf:var(--cur)}
+.pal-t .u-all{font-family:var(--sans);font-size:var(--t2);color:var(--faint);
+  font-variant-numeric:tabular-nums}
+.pal-t .add{position:absolute;bottom:6px;right:7px;opacity:0;background:var(--panel3);
+  border:1px solid var(--line-2);color:var(--dim);border-radius:var(--r2);width:22px;height:22px;
+  cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center}
+.pal-t:hover .add{opacity:1}
+.pal-t .add:hover{border-color:var(--cur);color:var(--cur)}
+.pal-empty{color:var(--faint);font-size:var(--t4);line-height:1.9;padding:10px 2px}
+
+/* ---------- インスペクタ（右・タブ内） ---------- */
+/* 欄の名前。大文字送りをやめ、ふつうの文字にする。
+   和文には大文字が無いので、送りだけが効いて読みにくくなっていた。 */
+.ins label{display:block;font-size:var(--t3);color:var(--dim);font-weight:400;margin:14px 0 5px}
+.ins label:first-child{margin-top:0}
+/* 入力欄は Fluent の形。下辺だけが太くなって、いま触っている欄が分かる。 */
+.ins input[type=text],.ins textarea,.ins select{width:100%;background:var(--panel2);
+  border:1px solid var(--line);border-bottom:1px solid var(--faint);color:var(--fg);
+  border-radius:var(--r2) var(--r2) 0 0;padding:7px 10px;font-size:var(--t4);
+  font-family:var(--sans);line-height:1.65}
+.ins textarea{resize:vertical;min-height:120px}
+.ins input:focus,.ins textarea:focus,.ins select:focus{outline:none;
+  border-bottom:2px solid var(--cur);padding-bottom:6px}
+.ins .row{display:flex;gap:8px}
+.ins .row>*{flex:1;min-width:0}
+.ins .hint{font-size:var(--t2);color:var(--faint);line-height:1.6;margin:5px 0 0}
+.ins .chk{display:flex;align-items:center;gap:8px;font-size:var(--t4);color:var(--dim);cursor:pointer;
+  background:var(--panel2);border:1px solid var(--line);border-radius:var(--r2);padding:8px 10px}
+.ins .chk input{accent-color:var(--s1)}
+/* まとまり（連絡先・表示条件・判断）。地を色で染めるのをやめる。
+   薄くても色が付いていると「注意すべきもの」に見え、検証の帯と紛れる。
+   まとまりであることは枠と左の帯で示し、色は見出しの字だけに残す。 */
+.ins .sect{border:1px solid var(--line);border-left:2px solid var(--dec);
+  border-radius:0 var(--r2) var(--r2) 0;padding:11px 12px;margin-top:13px}
+.ins .sect>h4{margin:0 0 8px;font-size:var(--t3);color:var(--dec);font-weight:600;
+  display:flex;justify-content:space-between;align-items:center}
+.ins .cond{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.ins .cond select{font-size:var(--t3);padding:6px 8px}
+.ins .x{flex:none;background:none;border:1px solid transparent;color:var(--faint);
+  border-radius:var(--r2);width:28px;height:28px;cursor:pointer;font-size:var(--t5);line-height:1;
+  display:inline-flex;align-items:center;justify-content:center}
+.ins .x:hover{background:color-mix(in srgb, var(--s1) 18%, transparent);color:var(--s1Fg)}
+.ins .mini{background:none;border:1px solid var(--line-2);color:var(--dec);border-radius:var(--r2);
+  padding:6px 10px;font-size:var(--t3);font-weight:600;cursor:pointer;font-family:var(--sans);width:100%}
+.ins .mini:hover{background:color-mix(in srgb, var(--dec) 12%, transparent);border-color:var(--dec)}
+.ins .mini:disabled{cursor:default;opacity:.55}
+.ins .opt{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.ins .opt i{width:9px;height:9px;border-radius:var(--r1);flex:none}
+.ins .del{width:100%;margin-top:15px;background:none;border:1px solid var(--line-2);color:var(--dim);
+  border-radius:var(--r2);padding:8px;font-size:var(--t4);cursor:pointer;font-family:var(--sans)}
+.ins .del:hover{border-color:var(--s1);color:var(--s1)}
+.ins .none{color:var(--faint);font-size:var(--t4);line-height:1.85}
+.ins .taskref{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--pc);
+  border-radius:var(--r2);padding:7px 10px;font-size:var(--t3);color:var(--dim);margin-bottom:2px}
+.ins .taskref b{color:var(--fg);font-size:var(--t4);display:block}
+
+/* ---------- モーダル ---------- */
+.mask{position:fixed;inset:0;background:var(--maskbg);backdrop-filter:blur(4px);z-index:80;
+  display:none;align-items:center;justify-content:center;padding:26px}
+.mask.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);width:100%;
+  max-width:1080px;max-height:100%;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 70px var(--shadow)}
+.modal>header{padding:15px 20px;border-bottom:1px solid var(--line);display:flex;
+  align-items:center;justify-content:space-between;gap:16px}
+.modal>header h2{margin:0;font-size:var(--t7);font-weight:600}
+.modal>header h2 small{display:block;font-size:var(--t3);color:var(--faint);font-weight:400;margin-top:2px}
+.modal .mbody{overflow:auto;padding:18px 20px;flex:1}
+.modal>footer{padding:13px 20px;border-top:1px solid var(--line);display:flex;gap:10px;
+  justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.modal>footer .fnote{margin-right:auto;font-size:var(--t3);color:var(--faint);line-height:1.6}
+.xbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:var(--r2);width:30px;height:30px;
+  cursor:pointer;font-size:var(--t7);line-height:1}
+.xbtn:hover{border-color:var(--s1);color:var(--s1)}
+.frame{width:100%;height:min(60vh,540px);border:1px solid var(--line);border-radius:var(--r3);background:var(--bg)}
+
+.tbl{width:100%;border-collapse:collapse;font-size:var(--t4)}
+/* 表の見出し。大文字送りをやめる（和文には効かず、欧文だけ間延びする）。
+   Fluent の表は見出しも本文と同じ書式で、太さだけで区別する。 */
+.tbl th{text-align:left;font-size:var(--t3);color:var(--dim);
+  border-bottom:1px solid var(--line-2,var(--line));padding:8px 9px;font-weight:600;white-space:nowrap}
+.tbl td{border-bottom:1px solid var(--line-soft);padding:9px;vertical-align:middle;line-height:1.65}
+.tbl tr:hover td{background:var(--panel2)}
+/* 数はけた合わせのために等幅にしていたが、書体を変えずに tabular-nums で
+   同じことができる。Cascadia Mono は本文（Segoe UI）と字面が違いすぎた。 */
+.tbl .num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tbl .long{color:var(--s2);font-weight:600}
+/* パネルの中の表は縦に長くなる。見出しを残しておかないと、下まで送ったときに
+   どの列が何なのか分からなくなる。 */
+.panel-body .tbl th{position:sticky;top:0;z-index:1;background:var(--panel)}
+.panel-body .tbl th:first-child{width:1%}
+
+.pathkey{display:flex;flex-wrap:wrap;gap:5px}
+/* 回答の組み合わせ。答えの色は分岐の色で、ほかの画面と同じものを指す。 */
+.pathkey em{font-style:normal;font-size:var(--t2);font-weight:600;
+  color:var(--c,var(--faint));background:color-mix(in srgb, var(--c,var(--line)) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--c,var(--line)) 42%, transparent);
+  border-radius:var(--r2);padding:1px 7px}
+
+/* フェーズ設定 */
+.ph-name{width:100%;background:var(--panel2);border:1px solid var(--line-2);color:var(--fg);
+  border-radius:var(--r2);padding:6px 9px;font-size:var(--t4);font-family:var(--sans)}
+.ph-name:focus{outline:none;border-color:var(--cur);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--cur) 25%, transparent)}
+/* 色見本。1 行 10 色を 5 列 2 段に置く。1 つずつに灰色の枠を付けていたので、
+   50 個ぶんの枠が網目に見えて、肝心の色が読み取りにくかった。
+   枠は選んでいるものにだけ付ける。 */
+.ph-sw{display:grid;grid-template-columns:repeat(5,18px);gap:4px}
+.ph-sw button{width:18px;height:18px;border-radius:var(--r2);border:1px solid transparent;
+  cursor:pointer;padding:0}
+.ph-sw button:hover{box-shadow:0 0 0 2px var(--line-2)}
+.ph-sw button.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--fg)}
+.ph-mv{display:flex;gap:2px}
+.ph-preview{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 0;padding:11px 12px;
+  background:var(--panel2);border:1px solid var(--line);border-radius:var(--r2);align-items:center}
+/* 並びの下見。字はどの色でも読めるよう本文の色にして、フェーズの色は
+   下の 2px 罫に持たせる（キャンバスの列見出しと同じ考え方）。 */
+.ph-preview em{font-style:normal;font-size:var(--t3);font-weight:600;color:var(--fg);
+  border-bottom:2px solid var(--pc);padding:0 3px 3px}
+.ph-preview i{font-style:normal;color:var(--faint);font-size:var(--t2)}
+
+/* 検証の結果（Fluent の MessageBar）。
+   地をその重さの色でうっすら染め、重さは絵で示す。以前は灰色の箱に
+   「エラー」「注意」の札を貼っていたので、箱がどれも同じ見た目になり、
+   一覧の中でどれが重いのか札を読むまで分からなかった。
+   色だけに頼らないという決めごとがあるので、言葉も本文の頭に残してある。 */
+.msgbar{display:flex;gap:10px;padding:10px 12px;border-radius:var(--r2);
+  margin-bottom:8px;align-items:flex-start;
+  background:color-mix(in srgb, var(--mc) 14%, transparent);
+  border:1px solid color-mix(in srgb, var(--mc) 38%, transparent)}
+.msgbar>.ic{flex:none;margin-top:3px;color:var(--mcFg)}
+.msgbar.err{--mc:var(--s1);--mcFg:var(--s1Fg)}
+.msgbar.wrn{--mc:var(--s2);--mcFg:var(--s2)}
+.msgbar.ok{--mc:var(--ok);--mcFg:var(--okFg)}
+.msgbar b{display:block;font-size:var(--t4);font-weight:600;line-height:1.6}
+.msgbar b u{text-decoration:none;color:var(--mcFg);margin-right:5px}
+.msgbar span{display:block;font-size:var(--t3);color:var(--dim);line-height:1.7;margin-top:2px}
+
+/* ---------- テスト ---------- */
+#runWrap{display:none}
+body.screen-run #runWrap{display:block}   /* これが無く、テストモードが真っ白だった */
+.runbar{margin:12px 20px 0;padding:10px 14px;border-radius:var(--r2);
+  border:1px solid color-mix(in srgb, var(--dec) 38%, transparent);
+  background:color-mix(in srgb, var(--dec) 14%, transparent);
+  font-size:var(--t4);color:var(--fg);line-height:1.7}
+.runbar b{color:var(--decFg)}
+
+
+/* ================= 対応管理画面 ================= */
+.tk-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:11px}
+.tk-search{background:var(--panel2);border:1px solid var(--line-2);color:var(--fg);border-radius:var(--r2);
+  padding:7px 12px;font-size:var(--t4);font-family:var(--sans);width:240px}
+.tk-search:focus{outline:none;border-color:var(--cur);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--cur) 25%, transparent)}
+
+.tk-g{margin-bottom:24px}
+.tk-g>h3{margin:0 0 6px;font-size:var(--t4);font-weight:600;color:var(--fg);
+  display:flex;align-items:center;gap:9px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.tk-g>h3 .dot{width:10px;height:10px;border-radius:var(--r1);background:var(--pc);flex:none}
+.tk-g>h3 u{text-decoration:none;font-family:var(--sans);font-size:var(--t2);color:var(--faint);
+  font-weight:400;font-variant-numeric:tabular-nums}
+/* フェーズへの追加。見出しの中の操作なので枠は持たせない（Fluent の作法）。 */
+.tk-g>h3 button{margin-left:auto;background:none;border:1px solid transparent;color:var(--cur);
+  font-family:var(--sans);font-size:var(--t3);font-weight:600;padding:4px 8px;
+  border-radius:var(--r2);cursor:pointer;display:flex;align-items:center;gap:5px}
+.tk-g>h3 button:hover{background:color-mix(in srgb, var(--cur) 12%, transparent)}
+
+/* ================= 入力モーダル / トースト ================= */
+.formx label{margin-top:13px}
+.formx label:first-child{margin-top:0}
+.cfm{font-size:var(--t5);line-height:1.85;color:var(--fg);margin:0}
+.cfm ul{margin:10px 0 0;padding-left:20px;color:var(--dim);font-size:var(--t4);line-height:1.8}
+.cfm em{font-style:normal;color:var(--s2)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:100;
+  background:var(--panel3);border:1px solid var(--ok);border-radius:var(--r2);padding:10px 20px;
+  font-size:var(--t4);color:var(--fg);box-shadow:0 12px 34px var(--shadow);opacity:0;
+  transition:opacity .18s,transform .18s;pointer-events:none;max-width:80vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.warn{border-color:var(--s2);color:var(--s2)}
+
+/* 対応管理画面のツールバー */
+.tk-bar{display:flex;gap:8px;align-items:center;margin:0 0 16px}
+.tk-bar select{background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+  border-radius:var(--r2);padding:6px 10px;font-size:var(--t4);font-family:var(--sans)}
+.tk-bar select:focus{outline:none;border-color:var(--cur)}
+.tk-bar select.on{border-color:var(--cur);color:var(--cur)}
+.tk-bar .sp{flex:1}
+.tk-bar em{font-style:normal;font-size:var(--t3);color:var(--faint);font-variant-numeric:tabular-nums}
+/* 直したほうがよい数（担当が空の連絡先など）。数えて出さないと気付けない。 */
+.tk-bar em .warn{color:var(--s2);font-weight:700}
+
+/* 複数選択の一括操作（インスペクタ側に出す） */
+.bulk h4{margin:0 0 4px;font-size:var(--t6);color:var(--cur)}
+.bulk>p{margin:0 0 14px;font-size:var(--t3);color:var(--faint);line-height:1.7}
+.bulk ol{margin:0 0 16px;padding-left:20px;font-size:var(--t4);color:var(--dim);line-height:1.85;
+  max-height:220px;overflow:auto}
+.bulk ol li::marker{color:var(--faint);font-variant-numeric:tabular-nums;font-size:var(--t2)}
+.bulk .act{display:flex;flex-direction:column;gap:8px}
+.bulk .act button{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
+  border-radius:var(--r2);padding:9px;font-size:var(--t4);cursor:pointer;font-family:var(--sans)}
+.bulk .act button:hover{border-color:var(--cur);color:var(--cur)}
+.bulk .act button.dgr:hover{border-color:var(--s1);color:var(--s1)}
+.ol-row.sel-multi{background:color-mix(in srgb, var(--cur) 9%, transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cur) 30%, transparent)}
+
+/* ---------- 担当（Tier）と連絡先 ---------- */
+.ol-lane .tier{color:var(--tc);background:color-mix(in srgb, var(--tc) 16%, transparent);
+  border-color:color-mix(in srgb, var(--tc) 40%, transparent)}
+.ol-f .cust{color:var(--custFg);background:color-mix(in srgb, var(--c1) 20%, transparent);
+  border-color:color-mix(in srgb, var(--c1) 44%, transparent)}
+/* 担当を示すバッジは要らなくなった。列そのものが担当を表すため。
+   「! エスカレ ［Tier1］」と並んで「Tier1 にエスカレする」と読み違えられる
+   問題も、これで構造ごと消えた。 */
+.cnode .f-ct{display:inline-flex;gap:3px;align-items:center}
+.cnode .f-ct i{font-style:normal;width:14px;height:14px;border-radius:var(--r1);font-size:var(--t1);
+  display:inline-flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 20%, transparent);
+  border:1px solid color-mix(in srgb, var(--vc) 45%, transparent);color:var(--vc)}
+
+/* 保存できていないことを知らせる帯。トーストは 2.6 秒で消えるので、
+   書いた内容が届いていないことに気づけるよう、消えない表示を出す。 */
+.savewarn{display:none}
+.savewarn.on{display:block;margin:0 0 12px;padding:9px 11px;
+  border:1px solid var(--s1);border-left:4px solid var(--s1);
+  background:color-mix(in srgb, var(--s1) 10%, transparent)}
+.savewarn b{display:block;font-size:var(--t3);color:var(--s1);margin-bottom:3px}
+.savewarn span{display:block;font-size:var(--t2);line-height:1.6;color:var(--dim)}
+.savewarn button{margin-top:7px;font:inherit;font-size:var(--t2);cursor:pointer;
+  padding:4px 12px;border:1px solid var(--s1);background:transparent;color:var(--s1)}
+.savewarn button:hover{background:color-mix(in srgb, var(--s1) 16%, transparent)}
+
+.ins .ct-row{display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line-soft)}
+.ins .ct-row:first-of-type{border-top:none}
+.ins .ct-row .vs{flex:none;display:flex;gap:3px}
+.ins .ct-row i{flex:none;font-style:normal;width:20px;height:20px;border-radius:var(--r1);font-size:var(--t1);
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
+.ins .ct-row i.ico,.ctp i.ico,.mem .ch i.ico,.cnode .f-ct i.ico{background:none;border:none}
+.ins .ct-row b{font-size:var(--t4);font-weight:700;white-space:nowrap}
+.ins .ct-row span{flex:1;min-width:0;font-size:var(--t2);color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 連絡先のまとまり。左の帯と見出しの字だけで区別する（地は染めない）。 */
+.ins .sect.ct{border-left-color:var(--c6)}
+.ins .sect.ct>h4{color:var(--c6)}
+
+/* 連絡先を選ぶモーダル */
+.ctpick{display:flex;flex-direction:column;gap:6px}
+.ctp{display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);
+  border-radius:var(--r2);padding:9px 11px;cursor:pointer;transition:border-color .15s}
+.ctp:hover{border-color:var(--hover)}
+.ctp:has(input:checked){border-color:var(--cur);background:var(--cur-bg)}
+.ctp input{accent-color:var(--cur);flex:none}
+.ctp i{flex:none;font-style:normal;width:24px;height:24px;border-radius:var(--r2);font-size:var(--t2);font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
+.ctp b{font-size:var(--t5);white-space:nowrap}
+.ctp span{flex:1;min-width:0;font-size:var(--t3);color:var(--dim)}
+.ctp em{font-style:normal;font-size:var(--t2);color:var(--kc);border:1px solid var(--kc);
+  border-radius:var(--r1);padding:0 6px;flex:none}
+
+/* ---------- 一覧の行（対応／連絡先） ---------- */
+/* 対応の行。囲みをやめて、罫線で区切る表にする。
+   カードで囲むと 48 件が 48 個の箱になって、上下に読めない。
+   フェーズの色は左端の細い帯だけに残す（見出しにも同じ色があるので、
+   行では「どの塊にいるか」を思い出させるだけでよい）。 */
+.rw{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) 130px minmax(0,1.1fr) 128px;
+  gap:14px;align-items:center;background:none;border:none;
+  border-bottom:1px solid var(--line);border-left:2px solid var(--pc,var(--line));
+  border-radius:0;padding:9px 14px;margin:0;transition:background .12s}
+.rw:hover{background:var(--panel2)}
+
+/* 列の見出し。行と同じ格子に載せて、上下がそろって見えるようにする。
+   狭い画面では行が 2 列に畳まれるので、そのときは見出しを出さない
+   （列と対応しなくなり、かえって読み違える）。 */
+.rw-h{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) 130px minmax(0,1.1fr) 128px;
+  gap:14px;padding:6px 16px;font-size:var(--t3);
+  color:var(--dim);font-weight:600;border-bottom:1px solid var(--line)}
+/* 狭い画面では列を畳まず、横に送る。畳むと 5 つの値が 2 列に折り重なって、
+   どれが何の値なのか読めなくなっていた（フロー一覧でも同じ結論を出している）。 */
+.tk-g{min-width:980px}
+
+.rw .v{font-size:var(--t5);line-height:1.5;word-break:break-word}
+.rw .v.mono{font-variant-numeric:tabular-nums;font-size:var(--t4);color:var(--cur)}
+.rw .v.dim{color:var(--dim);font-size:var(--t4)}
+/* 担当と種類の印。ほかの画面と同じ形（面＋面より明るい字）。 */
+.rw .badge{display:inline-flex;align-items:center;gap:6px;height:18px;padding:0 6px;
+  font-size:var(--t2);font-weight:600;line-height:16px;border-radius:var(--r2);
+  color:var(--bc,var(--dim));background:color-mix(in srgb, var(--bc,var(--line-2)) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--bc,var(--line-2)) 42%, transparent)}
+.rw .badge i{font-style:normal;font-weight:600;font-size:var(--t2)}
+/* 使用数は押せないので、青にしない。青は押せるものの色にしておく。 */
+.rw .use b{display:block;font-size:var(--t4);font-weight:600;color:var(--fg);
+  font-variant-numeric:tabular-nums}
+.rw .use:not(.on) b{color:var(--faint);font-weight:400}
+.rw .use span{display:block;font-size:var(--t2);color:var(--faint);line-height:1.55;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw .acts{display:flex;gap:2px;justify-content:flex-end}
+.rw .note{grid-column:1/-1;font-size:var(--t3);color:var(--faint);line-height:1.6;
+  border-top:1px solid var(--line-soft);padding-top:7px;margin-top:2px}
+
+/* ---------- 連絡先グループ ---------- */
+/* 連絡先のグループ。こちらは中に順序付きのメンバーを持つので、
+   1 行の表にはできない。囲みは残しつつ、区分の色は左端の細い帯だけにする。 */
+.cg{background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--kc,var(--line));
+  border-radius:var(--r3);padding:12px 14px;margin-bottom:8px}
+.cg-h{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.cg-h b{font-size:var(--t6);font-weight:600}
+/* 区分・件数・使用状況。印はどの画面でも同じ形（.bdg）にする。 */
+.cg-h .kind{--bc:var(--kc);--bf:var(--kc)}
+.cg-h .cnt{font-variant-numeric:tabular-nums;font-size:var(--t3);color:var(--faint)}
+.cg-h .use{--bc:var(--line-2);--bf:var(--faint)}
+.cg-h .use.on{--bc:var(--cur);--bf:var(--cur)}
+/* フロー図でこの連絡先を置く列。担当バッジ（.tier）と同じ見た目にして、
+   キャンバスの列と結びつける。空のときは、黙って線だけ出ないのが一番分かりにくいので、
+   「担当なし」と書いて破線で囲む。 */
+.cg-h .cg-lane{--bc:var(--tc);--bf:var(--tc)}
+.cg-h .cg-lane.none{--bf:var(--faint);background:var(--panel2);
+  border:1px dashed var(--line-2);font-weight:400}
+.cg-h .sp{flex:1}
+.cg-note{font-size:var(--t3);color:var(--dim);line-height:1.7;margin:7px 0 0}
+.cg-uses{font-size:var(--t3);color:var(--faint);line-height:1.65;margin:4px 0 0}
+.cg-mem{margin-top:11px;border-top:1px solid var(--line-soft);padding-top:9px}
+.cg-mem>h5{margin:0 0 7px;font-size:var(--t3);
+  color:var(--faint);font-weight:700}
+.mem{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 9px;border-radius:var(--r2);
+  background:var(--panel2);border:1px solid var(--line);margin-bottom:6px}
+.mem .no{flex:none;width:20px;height:20px;border-radius:50%;background:var(--panel3);
+  border:1px solid var(--line-2);font-family:var(--sans);font-size:var(--t2);font-weight:600;
+  font-variant-numeric:tabular-nums;
+  color:var(--dim);display:flex;align-items:center;justify-content:center}
+.mem.first .no{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
+.mem .who{font-size:var(--t5);font-weight:600;min-width:90px}
+/* 電話番号やアカウント。手段の色（--vc）は絵と枠で示し、字は本文の色にする。
+   番号そのものを色で塗ると、読む対象と色分けの意味が混ざる。
+   けたは tabular-nums でそろう（等幅書体は本文と字面が違いすぎた）。 */
+.mem .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:var(--t4);
+  font-variant-numeric:tabular-nums;color:var(--fg);
+  background:color-mix(in srgb, var(--vc) 12%, transparent);
+  border:1px solid color-mix(in srgb, var(--vc) 40%, transparent);
+  border-radius:var(--r2);padding:2px 9px 2px 4px}
+.mem .ch i{font-style:normal;width:16px;height:16px;border-radius:var(--r1);font-size:var(--t1);font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--vc) 24%, transparent);color:var(--vc)}
+.mem .mnt{flex-basis:100%;font-size:var(--t2);color:var(--faint);padding-left:30px;line-height:1.55}
+.mem .sp{flex:1}
+.mem .ops{display:flex;gap:2px}
+
+/* パレットで「終了」の対応を見分ける印。
+   使用回数のバッジは右上に絶対配置されているので、そこへ重ねない。
+   名前の頭にインラインで置けば、何を修飾しているかも明確になる。 */
+.pal-t .k-fin{display:inline-flex;align-items:center;font-style:normal;vertical-align:-3px;
+  margin-right:5px;height:18px;padding:0 6px;font-size:var(--t2);font-weight:600;line-height:16px;
+  color:var(--okFg);background:color-mix(in srgb, var(--ok) 20%, transparent);
+  border:1px solid color-mix(in srgb, var(--ok) 42%, transparent);border-radius:var(--r2)}
+
+/* ================= フロー一覧の表 =================
+   Defender のインシデント一覧と同じ作り。行に罫線、囲みも角丸も無し。 */
+.flowtbl{min-width:1000px}
+.flowtbl thead th{white-space:nowrap}
+.flowtbl tbody tr{cursor:pointer}
+.flowtbl td.name b{font-size:var(--t4);font-weight:600;display:block;line-height:1.45}
+.flowtbl td.name .sub{display:block;font-size:var(--t3);color:var(--faint);
+  line-height:1.5;margin-top:1px}
+.flowtbl td.num{font-variant-numeric:tabular-nums;text-align:right;color:var(--dim)}
+.flowtbl .ew-bar{display:flex;height:8px;width:140px;border-radius:var(--r1);
+  overflow:hidden;background:var(--panel3)}
+.flowtbl .ew-bar i{display:block;height:100%}
+
+/* 重大度の 3 目盛り。Defender と同じ形。色だけに頼らず言葉も添える。 */
+.sevcell{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:var(--t3);color:var(--dim)}
+.sevm{display:flex;gap:2px;flex:none}
+.sevm i{width:4px;height:11px;background:var(--line);border-radius:1px;display:block}
+.sevm.S1 i{background:var(--s1)}
+.sevm.S2 i:nth-child(-n+2){background:var(--s2)}
+.sevm.S3 i:nth-child(1){background:var(--s3)}
+
+/* 状態（検証）。記号と言葉の両方を出す。 */
+.state{display:inline-flex;align-items:center;gap:6px;font-size:var(--t3);color:var(--dim);white-space:nowrap}
+.state.ok,.state.ok .ic{color:var(--ok)}
+.state.ng,.state.ng .ic{color:var(--s2)}
+
+/* 行の操作。アイコンだけにして、行の中身を邪魔しない。 */
+.flowtbl td.acts{white-space:nowrap;text-align:right}
+.flowtbl td.acts button{background:none;border:none;color:var(--faint);cursor:pointer;
+  width:28px;height:28px;border-radius:var(--r2);display:inline-grid;place-items:center}
+.flowtbl tbody tr:hover td.acts button{color:var(--dim)}
+.flowtbl td.acts button:hover{background:var(--panel3);color:var(--fg)}
+.flowtbl td.acts button.dg:hover{color:var(--s1)}
+.flowtbl .ew-rel{margin:0;font-size:var(--t3)}
+
+/* ================= 右のパネル（Fluent の Drawer） =================
+   見るもの・直すものはここ。背後の一覧が見えたままなので、
+   「どれを直しているか」を見失わない。
+   モーダルは背後を全部隠して手を止めるので、取り消せない確認だけに使う。 */
+.panel-wrap{position:fixed;inset:0;z-index:80;display:none}
+.panel-wrap.on{display:block}
+/* 背景は薄く敷くだけ。中央のダイアログほど強くしない——
+   こちらは「止めている」のではなく「横に開いている」ので。 */
+.panel-scrim{position:absolute;inset:0;background:rgba(0,0,0,.32)}
+.panel-body{position:absolute;top:0;right:0;bottom:0;width:min(520px,100vw);
+  background:var(--panel);border-left:1px solid var(--line);
+  box-shadow:-8px 0 28px var(--shadow);display:flex;flex-direction:column;
+  animation:panel-in .16s ease-out}
+.panel-wrap.wide .panel-body{width:min(1100px,100vw)}
+@keyframes panel-in{from{transform:translateX(16px);opacity:.6}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.panel-body{animation:none}}
+
+.panel-body > header{display:flex;align-items:flex-start;gap:12px;
+  padding:14px 16px 12px;border-bottom:1px solid var(--line);flex:none}
+.panel-body > header h2{margin:0;font-size:var(--t7);font-weight:600;flex:1;min-width:0}
+.panel-body > header h2 small{display:block;font-size:var(--t3);color:var(--faint);
+  font-weight:400;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-body .pbody{overflow:auto;padding:16px;flex:1;min-height:0}
+.panel-body > footer{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;
+  justify-content:flex-end;align-items:center;flex-wrap:wrap;flex:none}
+.panel-body > footer .fnote{margin-right:auto;font-size:var(--t3);color:var(--faint);line-height:1.6}
+
+/* 起動できなかったとき。画面が空のまま何も言わないのが一番困る。 */
+.fatal{background:var(--panel);border:1px solid var(--s1);border-left:3px solid var(--s1);
+  border-radius:var(--r3);padding:16px 18px;max-width:640px}
+.fatal b{display:block;font-size:var(--t6);font-weight:600;margin-bottom:6px}
+.fatal p{margin:4px 0;font-size:var(--t4);color:var(--dim);line-height:1.7}
+
+/* 確認ダイアログの「削除する」。
+   .ed-tool.dgr は一覧の中で控えめに置くための形（薄い灰）なので、
+   そのままダイアログに出すと無効なボタンに見える。
+   ここは押してもらう場所なので、危険な色ではっきり出す。 */
+.modal .ed-tool.dgr{border-color:var(--s1);color:var(--s1);font-weight:600}
+.modal .ed-tool.dgr:hover{background:var(--s1);color:#fff;border-color:var(--s1)}
+
+/* 運んでいるもの。掴んだ要素をそのまま複製して、指に付いてくる
+   （dom.ts の startCarry）。ブラウザに絵を渡す仕組みは使っていない——
+   渡した絵は必ず薄く合成されてしまい、こちらから透過を無くせないため。
+   これは画面の上に自分で置いているだけなので、透過は無い。
+
+   このファイルの最後に置いてあるのは、複製が元のクラス（.pal-t / .cnode /
+   .ol-row）をそのまま持っているため。あとに書かれたほうが勝つ。 */
+.dragghost{position:fixed!important;left:0;top:0;z-index:200;margin:0;
+  pointer-events:none;opacity:1;
+  background:var(--panel3);
+  box-shadow:inset 0 0 0 2px var(--cur),0 10px 24px rgba(0,0,0,.55)}
+
+/* 製品アイコン（色付き）。単色のアイコン（.ic）と違い、文字色を拾わせない。
+   大きさだけ揃えて、中身は元の絵のままにする。 */
+.bic{width:16px;height:16px;vertical-align:-3px;flex:none}
+.bic.lg{width:24px;height:24px}

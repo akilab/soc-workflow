@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOC Workflow</title>
+<link rel="stylesheet" href="viewer.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="screen-events">
+
+<!-- ================= 製品の上段 =================
+     画面によらず常に同じ。製品名と、好みの切り替えだけを置く。
+     Defender ポータルと同じ位置・同じ役割にしてある。 -->
+<header class="app-top">
+  <!-- ランチャー。SOC の作業は 1 つの画面で完結しないので、よく開く先を
+       ここから始められるようにする。中身は組織ごとに違うので固定しない。 -->
+  <button class="app-ico" id="appMenu" type="button" title="リンク集">
+    <svg class="ic lg"><use href="#ic-grid"/></svg></button>
+  <div class="launcher" id="launcher">
+    <div class="lc-head" id="launchHead"></div>
+    <div class="lc-grid" id="launchBody"></div>
+  </div>
+  <h1 class="app-name">SOC <b>Workflow</b><span>対応フローの設計</span></h1>
+  <div class="ed-spacer"></div>
+  <button class="app-ico" data-th type="button"></button>
+</header>
+
+<div class="app-shell">
+  <!-- ================= 左の帯 =================
+       行き先は 3 つだけ。ここが常に見えていることで、
+       アプリ全体の地図になる（フェーズ・担当の設定は行き先ではないので、
+       フロー画面の見出し脇に置いてある）。 -->
+  <nav class="app-rail" id="appRail">
+    <button type="button" data-nav="events">
+      <svg class="ic lg"><use href="#ic-flow"/></svg>フロー</button>
+    <button type="button" data-nav="tasks">
+      <svg class="ic lg"><use href="#ic-task"/></svg>対応</button>
+    <button type="button" data-nav="contacts">
+      <svg class="ic lg"><use href="#ic-people"/></svg>連絡先</button>
+  </nav>
+
+  <div class="app-main">
+
+<!-- ================= フロー一覧 ================= -->
+<div id="scEvents">
+  <div class="pg">
+    <div class="pg-head">
+      <h2 class="pg-title">フロー</h2>
+      <span class="pg-count" id="ewCount"></span>
+    </div>
+
+    <!-- 操作の帯。枠を持たせない。読むものと操作が見分けられる。
+         見出しの脇にも操作を置くと、探す場所が 2 か所になる。
+         区切りの左が「この一覧に対する操作」、右が「全体の設定」。 -->
+    <div class="cmdbar">
+      <button id="ewNew"><svg class="ic"><use href="#ic-add"/></svg>作成</button>
+      <button id="ewExportAll"><svg class="ic"><use href="#ic-export"/></svg>エクスポート</button>
+      <div class="cmd-sep"></div>
+      <button id="ewPhases"><svg class="ic"><use href="#ic-layer"/></svg>フェーズ設定</button>
+      <button id="ewLanes"><svg class="ic"><use href="#ic-org"/></svg>担当設定</button>
+      <div class="ed-spacer"></div>
+    </div>
+
+    <div id="ewGrid"></div>
+    <p class="ed-note" id="ewNote"></p>
+  </div>
+</div>
+
+<!-- ================= 編集ビュー ================= -->
+<div id="scEdit">
+
+  <!-- 見出しまわり。道筋 → 題名 → メタの帯 → タブ の順。
+       Defender でインシデントを開いたときと同じ並びにしてある。 -->
+  <div class="ed-head">
+    <nav class="crumb">
+      <button type="button" id="btnBack">フロー</button>
+      <svg class="ic sm"><use href="#ic-chev-r"/></svg>
+      <span id="crumbNow"></span>
+    </nav>
+
+    <div class="ed-titlerow">
+      <button class="app-ico" id="btnBack2" type="button" title="フローへ戻る">
+        <svg class="ic lg"><use href="#ic-back"/></svg></button>
+      <h2 class="ed-title" id="edTitle"></h2>
+    </div>
+
+    <!-- メタの帯。開いた瞬間にこのフローの素性が 1 行で分かる。 -->
+    <div class="ed-meta" id="edMeta"></div>
+
+    <div class="ed-tabs">
+      <button data-mode="edit" class="on"><svg class="ic"><use href="#ic-edit"/></svg>編集</button>
+      <button data-mode="run"><svg class="ic"><use href="#ic-play"/></svg>テスト</button>
+    </div>
+  </div>
+
+  <!-- 操作の帯 -->
+  <div class="cmdbar ed-cmd">
+    <!-- 取り消し・やり直し。試して戻せることが、この道具の使い方そのものなので
+         見えるところに置く。キーボードは Ctrl+Z / Ctrl+Shift+Z で全画面から使える。 -->
+    <button id="btnUndo" type="button" disabled>
+      <svg class="ic"><use href="#ic-undo"/></svg>元に戻す</button>
+    <button id="btnRedo" type="button" disabled>
+      <svg class="ic"><use href="#ic-redo"/></svg>やり直し</button>
+    <div class="cmd-sep"></div>
+    <!-- このフローの設定 -->
+    <button id="btnLanes"><svg class="ic"><use href="#ic-org"/></svg>担当</button>
+    <div class="cmd-sep"></div>
+    <!-- 中身を読むもの。押すと今の状態が分かる。
+         「共通との違い」は顧客別フローのときだけ出す（screens/edit.ts が出し入れする）。 -->
+    <button id="btnDiff" hidden><svg class="ic"><use href="#ic-branch"/></svg>共通との違い</button>
+    <button id="btnCheck"><svg class="ic"><use href="#ic-check"/></svg>検証</button>
+    <button id="btnPaths"><svg class="ic"><use href="#ic-list"/></svg>経路一覧</button>
+    <div class="ed-spacer"></div>
+    <button class="pri" id="btnExport"><svg class="ic"><use href="#ic-export"/></svg>エクスポート</button>
+  </div>
+
+  <div class="ed-body" id="edBody">
+
+    <div class="pane">
+      <h3>手順アウトライン <span id="olCount"></span></h3>
+      <div class="scroll" id="olList"></div>
+    </div>
+
+    <div class="split" data-target="left"></div>
+
+    <div class="pane">
+      <h3>フローキャンバス <span id="canvHint">右の対応パレットからドラッグして投入</span>
+        <span class="zoom" id="canvZoom">
+          <button type="button" id="zOut" title="縮小（Ctrl＋ホイールでも変えられます）">
+            <svg class="ic"><use href="#ic-zoom-out"/></svg></button>
+          <button type="button" id="zNow" title="等倍に戻す">100%</button>
+          <button type="button" id="zIn" title="拡大（Ctrl＋ホイールでも変えられます）">
+            <svg class="ic"><use href="#ic-zoom-in"/></svg></button>
+        </span>
+      </h3>
+      <div class="canvas" id="canvas">
+        <div class="cgrid" id="cgrid"><svg class="cwires" id="cwires"></svg></div>
+      </div>
+    </div>
+
+    <div class="split" data-target="right"></div>
+
+    <!-- 右: インスペクタ ⇄ 対応パレット をタブで切り替える -->
+    <div class="pane tab-ins" id="paneRight">
+      <div class="tabs">
+        <button data-tab="ins" class="on">インスペクタ</button>
+        <button data-tab="pal">対応パレット<i id="tabPalNo"></i></button>
+      </div>
+      <div class="scroll ins" id="insScroll">
+        <div class="savewarn" id="insWarn"></div>
+        <div id="ins"></div>
+      </div>
+      <div class="palwrap" id="palwrap">
+        <input class="pal-search" id="palSearch" type="text" placeholder="対応を検索…">
+        <div class="tools">
+          <select id="palSort" title="並び順">
+            <option value="use">使用の多い順</option>
+            <option value="def">定義順</option>
+            <option value="name">名前順</option>
+          </select>
+          <select id="palFilter" title="絞り込み">
+            <option value="all">すべて</option>
+            <option value="here">このフローで使用中</option>
+            <option value="unused">未使用</option>
+          </select>
+        </div>
+        <div id="palList"></div>
+        <button class="addrow" id="palNew">
+          <svg class="ic"><use href="#ic-add"/></svg>新しい対応を作る</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="runWrap">
+    <div class="runbar">
+      <b>テスト</b> — 対応者と同じ画面です。ここで見えているものが、そのまま書き出される単一 HTML になります。
+      ここで付けた進捗と回答は、編集モードに戻ると破棄されます。
+    </div>
+    <div id="runRoot"></div>
+  </div>
+
+</div>
+
+<!-- 対応一覧 -->
+<div id="scTasks">
+  <div class="pg">
+    <div class="pg-head">
+      <h2 class="pg-title">対応</h2>
+      <span class="pg-count" id="tkCount"></span>
+    </div>
+
+    <div class="cmdbar">
+      <button id="tkNew"><svg class="ic"><use href="#ic-add"/></svg>作成</button>
+      <button id="tkPhases"><svg class="ic"><use href="#ic-layer"/></svg>フェーズ設定</button>
+      <div class="cmd-sep"></div>
+      <label class="cmd-search">
+        <svg class="ic"><use href="#ic-search"/></svg>
+        <input id="tkSearch" type="text" placeholder="対応を検索">
+      </label>
+      <select id="tkSort" title="並び順">
+        <option value="use">使用の多い順</option>
+        <option value="def">定義順</option>
+        <option value="name">名前順</option>
+      </select>
+      <select id="tkFilter" title="絞り込み">
+        <option value="all">すべて</option>
+        <option value="used">どこかで使用中</option>
+        <option value="unused">未使用</option>
+      </select>
+      <div class="ed-spacer"></div>
+      <span class="cmd-count" id="tkStat"></span>
+    </div>
+
+    <div id="tkList"></div>
+    <p class="ed-note">
+      <b>対応はフローをまたいで再利用される部品です。</b>
+      フロー図に置くと「手順」になり、手順はそこから先、このフローでの言い方
+      （題名・詳細・SLA・担当）を自分で持ちます。ここで対応名を直しても、
+      すでに置いてある手順の題名は変わりません。手順の題名は編集ビューで直します。<br>
+      <b>フェーズ</b>を変えると、その対応を使っているすべての手順の色とラベルが変わります
+      （フロー図の列は担当です）。<b>種類</b>も同じく、すべての手順に効きます。
+      <b>既定の担当</b>は手順を置くときの初期値なので、すでに置いてある手順は動きません。
+      どこかのフローで使われている対応は削除できません。
+    </p>
+  </div>
+</div>
+
+<!-- 連絡先 -->
+<div id="scContacts">
+  <div class="pg">
+    <div class="pg-head">
+      <h2 class="pg-title">連絡先</h2>
+      <span class="pg-count" id="ctCount"></span>
+      <div class="ed-spacer"></div>
+    </div>
+
+    <div class="cmdbar">
+      <button id="ctNew"><svg class="ic"><use href="#ic-add"/></svg>作成</button>
+      <div class="cmd-sep"></div>
+      <label class="cmd-search">
+        <svg class="ic"><use href="#ic-search"/></svg>
+        <input id="ctSearch" type="text" placeholder="名前・電話・アカウントで検索">
+      </label>
+      <select id="ctKindF" title="区分">
+        <option value="all">すべての区分</option>
+        <option value="esc">エスカレーション先</option>
+        <option value="internal">社内</option>
+        <option value="customer">お客様</option>
+        <option value="external">外部機関・ベンダー</option>
+      </select>
+      <select id="ctViaF" title="連絡手段">
+        <option value="all">すべての手段</option>
+        <option value="phone">電話</option>
+        <option value="teams">Teams</option>
+        <option value="elgana">Elgana</option>
+        <option value="mail">メール</option>
+      </select>
+      <select id="ctLaneF" title="担当"></select>
+      <div class="ed-spacer"></div>
+      <span class="cmd-count" id="ctStat"></span>
+    </div>
+
+    <div id="ctList"></div>
+    <p class="ed-note">
+      <b>連絡先はグループごとに、連絡順のメンバーを持ちます。</b>
+      「管理職に連絡」は 1 番から順に掛けて、繋がらなければ次へ——という運用をそのまま表します。
+      1 人が電話・Teams・Elgana・メールを複数持てます（入力した手段だけが表示されます）。
+      番号が変わったらここを直せば、参照しているすべての手順に反映されます。
+      使われているグループは削除できません。<br>
+      <b>「担当」は、この連絡先をフロー図のどの列に置くかです。</b>
+      決めておくと、その連絡先を使う手順から列へ線が引かれ、「ここで誰に連絡するか」が
+      図の上で分かります。決まっていないグループは「担当なし」と表示され、図には線が出ません
+      （手順の連絡先一覧と書き出した HTML には、これまでどおり名前と宛先が出ます）。
+      絞り込みの「担当なし」でまとめて探せます。
+    </p>
+  </div>
+</div>
+
+  </div><!-- /.app-main -->
+</div><!-- /.app-shell -->
+
+<!-- ================= 下段（状態） =================
+     飾りではなく、いま画面のどこにも出ていないことを出す。
+     「どこに保存されるのか」「全体で何を持っているか」「いつのものか」は、
+     道具の性格上いつでも見えていてよい。中身は main.ts が入れる。 -->
+<footer class="app-status" id="appStatus"></footer>
+
+<!-- 通知 -->
+<div class="toast" id="toast"></div>
+
+<!-- ================= 右のパネル =================
+     見るもの・直すものはここに出す。背後の一覧が見えたままなので、
+     「どれを直しているか」を見失わない。Microsoft の作法（Fluent の Drawer）。 -->
+<div class="panel-wrap" id="panel">
+  <div class="panel-scrim" data-x="close"></div>
+  <aside class="panel-body" role="dialog" aria-modal="true">
+    <header>
+      <h2 id="pTitle"></h2>
+      <button class="app-ico" id="pClose" type="button" title="閉じる">
+        <svg class="ic lg"><use href="#ic-dismiss"/></svg></button>
+    </header>
+    <div class="pbody" id="pBody"></div>
+    <footer id="pFoot"></footer>
+  </aside>
+</div>
+
+<!-- ================= 中央のダイアログ =================
+     取り消せない操作の確認だけ。背後を止めるべき場面にしか使わない。 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <header>
+      <h2 id="mTitle">タイトル<small id="mSub"></small></h2>
+      <button class="xbtn" id="mClose">×</button>
+    </header>
+    <div class="mbody" id="mBody"></div>
+    <footer id="mFoot"></footer>
+  </div>
+</div>
+
+<!-- viewer は書き出し HTML と同じものを、素の script として先に読む。
+     モジュールにすると書き出し側で使えなくなるため（web/src/viewer.d.ts）。 -->
+<!-- UI アイコンのスプライト。viewer.js より先に読む（viewer.js が使う）。
+     書き出し HTML では export.go が同じものを埋め込む。 -->
+<script src="icons.js"></script>
+<!-- 製品アイコン（色付き）。ランチャーだけが使う。書き出す HTML には入らない -->
+<script src="brand.js"></script>
+<script src="viewer.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

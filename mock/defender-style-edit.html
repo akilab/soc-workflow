@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>SOC Workflow — 編集ビュー（Defender 風・案）</title>
+<style>
+:root{
+  --bg:#0f0f0f; --bg-top:#0a0a0a; --bg-nav:#141414;
+  --surface:#1b1b1b; --surface-2:#242424; --surface-3:#2e2e2e;
+  --line:#2f2f2f; --line-2:#3d3d3d;
+  --fg:#ffffff; --fg-2:#c7c7c7; --fg-3:#9a9a9a;
+  --accent:#479ef5; --accent-2:#2886de; --accent-bg:rgba(71,158,245,.14);
+  --sev-h:#d13438; --sev-m:#ff8c00; --sev-l:#fce100; --ok:#54b054; --warn:#ffb900;
+  --p1:#e3618a; --p2:#4a9be0; --p3:#9a76d8; --p4:#e0a03c; --p5:#3fc09a;
+  --dec:#a97bff; --esc:#e06c6c;
+  --grid-dot:#1e1e1e;                 /* キャンバスの点。Defender のグラフと同じ地 */
+  --r-s:2px; --r:4px; --r-l:6px;
+  --t-cap:10px; --t-sm:12px; --t-md:14px; --t-lg:16px; --t-title:20px; --t-page:28px;
+  --sans:"Segoe UI","Yu Gothic UI","Hiragino Sans","Noto Sans JP",sans-serif;
+  --mono:"Cascadia Mono",Consolas,monospace;
+}
+:root[data-theme="light"]{
+  --bg:#faf9f8; --bg-top:#ffffff; --bg-nav:#f3f2f1;
+  --surface:#ffffff; --surface-2:#f3f2f1; --surface-3:#edebe9;
+  --line:#e1dfdd; --line-2:#c8c6c4;
+  --fg:#242424; --fg-2:#484644; --fg-3:#616161;
+  --accent:#0f6cbd; --accent-2:#0c5aa0; --accent-bg:rgba(15,108,189,.10);
+  --sev-l:#c19c00; --ok:#0e700e;
+  --p1:#c2185b; --p2:#0b62d0; --p3:#6a35d9; --p4:#a15c00; --p5:#0f8a63;
+  --dec:#6a35d9; --esc:#c62828; --grid-dot:#e8e6e4;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(--t-md);
+  line-height:1.5;-webkit-font-smoothing:antialiased}
+svg.i{width:16px;height:16px;flex:none;fill:currentColor;vertical-align:-3px}
+svg.i.lg{width:20px;height:20px}
+svg.i.sm{width:12px;height:12px}
+
+/* ---------- 上段・左の帯（一覧と共通） ---------- */
+.top{height:48px;background:var(--bg-top);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:14px;padding:0 12px}
+.top .waffle,.top .icons button{width:32px;height:32px;border:none;background:none;color:var(--fg-2);
+  border-radius:var(--r);cursor:pointer;display:grid;place-items:center}
+.top .waffle:hover,.top .icons button:hover{background:var(--surface-2);color:var(--fg)}
+.top .name{font-size:var(--t-lg);font-weight:600}
+.top .name span{color:var(--fg-3);font-weight:400;margin-left:8px;font-size:var(--t-md)}
+.top .sp{flex:1}
+.top .icons{display:flex;gap:2px}
+.shell{display:flex;height:calc(100vh - 48px)}
+.rail{width:56px;background:var(--bg-nav);border-right:1px solid var(--line);
+  padding:6px 0;display:flex;flex-direction:column;gap:2px;flex:none}
+.rail a{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 2px 7px;color:var(--fg-3);text-decoration:none;font-size:var(--t-cap);line-height:1.2;text-align:center}
+.rail a:hover{background:var(--surface-2);color:var(--fg-2)}
+.rail a.on{color:var(--fg);background:var(--surface-2)}
+.rail a.on::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;
+  border-radius:0 var(--r-s) var(--r-s) 0;background:var(--accent)}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.head{padding:12px 20px 0;flex:none}
+
+/* ---------- 道筋・見出し・メタ ---------- */
+.crumb{display:flex;align-items:center;gap:5px;font-size:var(--t-sm);color:var(--fg-3);margin-bottom:3px}
+.crumb a{color:var(--accent);text-decoration:none}
+.crumb a:hover{text-decoration:underline}
+.titlerow{display:flex;align-items:center;gap:10px}
+.iconbtn{width:30px;height:30px;border:none;background:none;color:var(--fg-2);
+  border-radius:var(--r);cursor:pointer;display:grid;place-items:center;flex:none}
+.iconbtn:hover{background:var(--surface-2);color:var(--fg)}
+.titlerow h1{font-size:var(--t-page);font-weight:600;margin:0;letter-spacing:-.01em}
+.titlerow .sp{flex:1}
+.linkbtn{background:none;border:none;color:var(--accent);font-family:var(--sans);font-size:var(--t-sm);
+  cursor:pointer;display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--r)}
+.linkbtn:hover{background:var(--surface-2)}
+
+/* メタの帯。Defender の「低 │ Active │ 未割り当て │ 最終更新時刻」と同じ作り */
+.meta{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:8px 0 10px;font-size:var(--t-sm);color:var(--fg-2)}
+.meta > span{display:flex;align-items:center;gap:6px;padding:0 12px}
+.meta > span:first-child{padding-left:0}
+.meta > span + span{border-left:1px solid var(--line-2)}
+.meta .i{color:var(--fg-3)}
+.meta .ok .i{color:var(--ok)}
+.sev{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.sev .bars{display:flex;gap:2px}
+.sev .bars i{width:4px;height:11px;background:var(--line-2);border-radius:1px;display:block}
+.sev.h .bars i{background:var(--sev-h)} .sev.m .bars i:nth-child(-n+2){background:var(--sev-m)}
+.sev.l .bars i:nth-child(1){background:var(--sev-l)}
+
+/* ---------- タブ ---------- */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:0 -20px;padding:0 20px}
+.tabs button{background:none;border:none;color:var(--fg-2);font-family:var(--sans);font-size:var(--t-md);
+  padding:9px 12px 10px;cursor:pointer;position:relative;display:flex;align-items:center;gap:7px}
+.tabs button:hover{color:var(--fg);background:var(--surface-2)}
+.tabs button.on{color:var(--accent);font-weight:600}
+.tabs button.on::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;
+  background:var(--accent);border-radius:1px}
+.tabs .num{color:var(--fg-3);font-weight:400}
+
+/* ---------- 操作の帯 ---------- */
+.cmd{display:flex;align-items:center;gap:2px;padding:7px 20px;border-bottom:1px solid var(--line);flex:none}
+.cmd button{background:none;border:none;color:var(--fg);font-family:var(--sans);font-size:var(--t-md);
+  padding:6px 10px;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.cmd button:hover{background:var(--surface-2)}
+.cmd button:disabled{color:var(--fg-3);cursor:default}
+.cmd button:disabled:hover{background:none}
+.cmd button .i{color:var(--accent)}
+.cmd button.plain .i{color:var(--fg-2)}
+.cmd button:disabled .i{color:var(--fg-3)}
+.cmd .sp{flex:1}
+.sepv{width:1px;height:20px;background:var(--line);margin:0 6px}
+.pri{background:var(--accent);border:1px solid var(--accent);color:#fff;font-weight:600;
+  border-radius:var(--r);padding:6px 14px;font-size:var(--t-md);font-family:var(--sans);cursor:pointer;
+  display:flex;align-items:center;gap:7px}
+.pri:hover{background:var(--accent-2)}
+.pri .i{color:#fff !important}
+
+/* ---------- 3 つのパネル ---------- */
+.body{flex:1;display:grid;grid-template-columns:440px 1fr 340px;gap:10px;padding:10px 20px 14px;min-height:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);
+  display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.panel > header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);flex:none}
+.panel > header b{font-size:var(--t-md);font-weight:600}
+.panel > header .sp{flex:1}
+.panel > header .cnt{font-size:var(--t-sm);color:var(--fg-3)}
+.panel > header .tool{width:26px;height:26px;border:none;background:none;color:var(--fg-3);
+  border-radius:var(--r);cursor:pointer;display:grid;place-items:center}
+.panel > header .tool:hover{background:var(--surface-2);color:var(--fg)}
+.panel .scroll{overflow:auto;padding:10px 12px;flex:1;min-height:0}
+.panel > header select{background:var(--surface-2);border:1px solid var(--line-2);color:var(--fg-2);
+  border-radius:var(--r);font-family:var(--sans);font-size:var(--t-sm);padding:3px 6px}
+
+/* ---------- 手順アウトライン ---------- */
+.ol{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:var(--r);cursor:pointer}
+.ol:hover{background:var(--surface-2)}
+.ol.on{background:var(--accent-bg);box-shadow:inset 2px 0 0 var(--accent)}
+.ol .no{width:16px;text-align:right;font-family:var(--mono);font-size:var(--t-sm);color:var(--fg-3);flex:none;padding-top:2px}
+.ol .pc{width:3px;align-self:stretch;border-radius:1px;background:var(--pc);flex:none;margin-top:3px}
+.ol .t{flex:1;min-width:90px;font-size:var(--t-md);line-height:1.45}
+.ol .q{flex:none;font-family:var(--mono);font-size:var(--t-sm);color:var(--fg-3);padding-top:2px}
+.ol .f{flex:none;display:flex;gap:4px;padding-top:2px}
+.ol .lane{flex:none;width:52px;text-align:right;padding-top:2px}
+.tag{display:inline-block;font-size:var(--t-cap);font-weight:600;line-height:16px;height:16px;
+  padding:0 5px;border-radius:var(--r-s);border:1px solid currentColor;white-space:nowrap}
+.tag.lane{color:var(--accent);border-color:var(--accent);width:auto}
+.tag.esc{color:var(--esc)} .tag.cust{color:var(--p1)}
+.olgrp{margin:6px 0 4px;padding:4px 10px;border-left:2px solid var(--pcg,var(--p4));
+  background:var(--surface-2);border-radius:0 var(--r) var(--r) 0;font-size:var(--t-sm);color:var(--fg-2)}
+.olgrp b{color:var(--fg);font-weight:600}
+.olq{display:flex;align-items:center;gap:7px;margin:8px 0 2px;font-size:var(--t-sm);color:var(--fg-3)}
+.olq .qn{width:18px;height:18px;border-radius:var(--r-s);background:var(--dec);color:#fff;
+  display:grid;place-items:center;font-size:var(--t-cap);font-weight:700}
+
+/* ---------- キャンバス ---------- */
+.canvas{position:relative;flex:1;min-height:0;overflow:auto;
+  background-image:radial-gradient(var(--grid-dot) 1px,transparent 1px);background-size:16px 16px}
+.zoom{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:1px;z-index:5}
+.zoom button{width:28px;height:28px;background:var(--surface);border:1px solid var(--line-2);color:var(--fg-2);
+  cursor:pointer;display:grid;place-items:center}
+.zoom button:first-child{border-radius:var(--r) var(--r) 0 0}
+.zoom button:last-child{border-radius:0 0 var(--r) var(--r)}
+.zoom button+button{border-top:none}
+.zoom button:hover{background:var(--surface-2);color:var(--fg)}
+.lanes{display:grid;grid-template-columns:repeat(4,1fr);min-width:560px;padding:0 8px 20px}
+.lane-h{grid-row:1;position:sticky;top:0;z-index:3;text-align:center;font-size:var(--t-sm);font-weight:600;
+  padding:7px 4px 8px;background:var(--surface);border-bottom:2px solid var(--lc);color:var(--lc)}
+.lane-bg{grid-row:1/99;border-left:1px solid var(--line)}
+.lane-bg.last{border-right:1px solid var(--line)}
+.node{position:relative;z-index:2;margin:14px 12px;background:var(--surface-2);
+  border:1px solid var(--line-2);border-left:3px solid var(--pc);border-radius:0;padding:8px 10px;cursor:pointer}
+.node:hover{background:var(--surface-3)}
+.node.on{border-color:var(--accent);border-left-color:var(--pc);background:var(--accent-bg);
+  box-shadow:0 0 0 1px var(--accent)}
+.node .cls{display:flex;gap:6px;align-items:center;margin-bottom:3px;font-size:var(--t-cap)}
+.node .cls .ph{font-weight:700;color:var(--pc)}
+.node .n{font-size:var(--t-md);font-weight:600;line-height:1.4;display:block}
+.node .t{font-size:var(--t-sm);color:var(--fg-3);display:block;margin-top:2px}
+.node .num{position:absolute;top:-8px;left:-8px;width:18px;height:18px;border-radius:var(--r-s);
+  background:var(--surface-3);border:1px solid var(--line-2);font-family:var(--mono);font-size:var(--t-cap);
+  color:var(--fg-2);display:grid;place-items:center}
+.node.on .num{background:var(--accent);border-color:var(--accent);color:#fff}
+.node .flags{display:flex;gap:5px;margin-top:6px;padding-top:5px;border-top:1px solid var(--line)}
+
+/* ---------- インスペクタ ---------- */
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:var(--t-sm);color:var(--fg-2);margin-bottom:4px}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--surface-2);border:1px solid var(--line-2);
+  border-bottom:1px solid var(--fg-3);color:var(--fg);border-radius:var(--r) var(--r) 0 0;
+  padding:6px 9px;font-family:var(--sans);font-size:var(--t-md)}
+.fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-bottom:2px solid var(--accent);padding-bottom:5px}
+.fld textarea{resize:vertical;min-height:64px;line-height:1.6}
+.chkline{display:flex;align-items:center;gap:8px;font-size:var(--t-md);margin:10px 0}
+.chkline i{width:16px;height:16px;border:1px solid var(--line-2);border-radius:var(--r-s);display:block}
+.sechead{display:flex;align-items:center;gap:7px;font-size:var(--t-sm);font-weight:600;color:var(--fg-2);
+  margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
+.sechead .sp{flex:1}
+.addbtn{width:100%;background:none;border:1px dashed var(--line-2);color:var(--fg-3);border-radius:var(--r);
+  padding:7px;font-family:var(--sans);font-size:var(--t-sm);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:6px}
+.addbtn:hover{border-color:var(--accent);color:var(--accent)}
+.hint{font-size:var(--t-sm);color:var(--fg-3);line-height:1.7;margin:6px 0 0}
+
+.themebtn{position:fixed;right:14px;bottom:12px;z-index:60;background:var(--surface);
+  border:1px solid var(--line-2);color:var(--fg);border-radius:var(--r);padding:6px 12px;cursor:pointer;
+  font-family:var(--sans);font-size:var(--t-sm)}
+</style>
+</head>
+<body>
+
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 20 20"><path d="M4 3h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm9 0h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM4 12h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Zm9 0h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-flow" viewBox="0 0 20 20"><path d="M7 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2v2h4a1 1 0 0 1 1 1v2h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1v-1H6v1h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1V9a1 1 0 0 1 1-1h4V6H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-task" viewBox="0 0 20 20"><path d="M7 2a2 2 0 0 0-2 2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1a2 2 0 0 0-2-2H7Zm0 1.5h6a.5.5 0 0 1 .5.5v.5h-7V4a.5.5 0 0 1 .5-.5Zm-.4 6.9 1.9 1.9 3.9-3.9 1.1 1.1-5 5-3-3 1.1-1.1Z"/></symbol>
+  <symbol id="i-people" viewBox="0 0 20 20"><path d="M7.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM3 12h9a2 2 0 0 1 2 2v.5C14 16.4 11.5 18 7.5 18S1 16.4 1 14.5V14a2 2 0 0 1 2-2Zm11.2-1.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm.3 1.5H16a3 3 0 0 1 3 3v.4c0 1.4-1.3 2.6-3.6 3 .7-.8 1.1-1.8 1.1-2.9V14c0-.8-.3-1.5-.8-2Z"/></symbol>
+  <symbol id="i-layer" viewBox="0 0 20 20"><path d="M9.6 2.1a1 1 0 0 1 .8 0l7 3.2a1 1 0 0 1 0 1.8l-7 3.2a1 1 0 0 1-.8 0l-7-3.2a1 1 0 0 1 0-1.8l7-3.2ZM3 9.6l6.6 3a1 1 0 0 0 .8 0l6.6-3 .4.2a1 1 0 0 1 0 1.8l-7 3.2a1 1 0 0 1-.8 0l-7-3.2a1 1 0 0 1 0-1.8l.4-.2Z"/></symbol>
+  <symbol id="i-org" viewBox="0 0 20 20"><path d="M8 2h4a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.2v2H15a1 1 0 0 1 1 1v1.2h1a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-2.8a1 1 0 0 1 1-1h.5V11h-8v.2H6a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2.8a1 1 0 0 1 1-1h1V10a1 1 0 0 1 1-1h4.2V7H8a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-add" viewBox="0 0 20 20"><path d="M10 3a.8.8 0 0 1 .8.8v5.4h5.4a.8.8 0 0 1 0 1.6h-5.4v5.4a.8.8 0 0 1-1.6 0v-5.4H3.8a.8.8 0 0 1 0-1.6h5.4V3.8A.8.8 0 0 1 10 3Z"/></symbol>
+  <symbol id="i-export" viewBox="0 0 20 20"><path d="M10 2.5a.8.8 0 0 1 .8.8v7.4l2.3-2.3a.8.8 0 1 1 1.1 1.1l-3.6 3.7a.8.8 0 0 1-1.2 0L5.8 9.5a.8.8 0 0 1 1.1-1.1l2.3 2.3V3.3a.8.8 0 0 1 .8-.8ZM3.5 12a.8.8 0 0 1 .8.8V15c0 .4.3.7.7.7h10c.4 0 .7-.3.7-.7v-2.2a.8.8 0 0 1 1.6 0V15a2.3 2.3 0 0 1-2.3 2.3H5A2.3 2.3 0 0 1 2.7 15v-2.2a.8.8 0 0 1 .8-.8Z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 20 20"><path d="M8.4 4.2a.9.9 0 0 1 0 1.3L4.8 9.1h11.3a.9.9 0 0 1 0 1.8H4.8l3.6 3.6a.9.9 0 1 1-1.3 1.3l-5.1-5.1a.9.9 0 0 1 0-1.3l5.1-5.1a.9.9 0 0 1 1.3 0Z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 20 20"><path d="M7.4 4.4a.8.8 0 0 1 1.1 0l5 5a.8.8 0 0 1 0 1.2l-5 5a.8.8 0 1 1-1.1-1.2L11.8 10 7.4 5.6a.8.8 0 0 1 0-1.2Z"/></symbol>
+  <symbol id="i-chevl" viewBox="0 0 20 20"><path d="M12.6 4.4a.8.8 0 0 0-1.1 0l-5 5a.8.8 0 0 0 0 1.2l5 5a.8.8 0 1 0 1.1-1.2L8.2 10l4.4-4.4a.8.8 0 0 0 0-1.2Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm3.9 5.4a.8.8 0 0 0-1.1 0L9 11.2 7.2 9.4a.8.8 0 1 0-1.1 1.2l2.3 2.3c.3.3.8.3 1.1 0l4.4-4.4a.8.8 0 0 0 0-1.1Z"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 20 20"><path d="M5.5 2a2.5 2.5 0 0 1 .8 4.9v1.4A2 2 0 0 0 8.3 10h3.4a2 2 0 0 0 2-1.7V6.9a2.5 2.5 0 1 1 1.6 0v1.4a3.6 3.6 0 0 1-3.4 3.3h-1V13a2.5 2.5 0 1 1-1.6 0v-1.4h-1A3.6 3.6 0 0 1 4.7 8.3V6.9A2.5 2.5 0 0 1 5.5 2Z"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 20 20"><path d="M7.6 4.2a.8.8 0 0 1 0 1.2L5.8 7.2h5.7a5.3 5.3 0 0 1 0 10.6H8a.8.8 0 0 1 0-1.6h3.5a3.7 3.7 0 0 0 0-7.4H5.8l1.8 1.8a.8.8 0 1 1-1.2 1.2L3.2 8.6a.8.8 0 0 1 0-1.2l3.2-3.2a.8.8 0 0 1 1.2 0Z"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 20 20"><path d="M12.4 4.2a.8.8 0 0 0 0 1.2l1.8 1.8H8.5a5.3 5.3 0 1 0 0 10.6H12a.8.8 0 0 0 0-1.6H8.5a3.7 3.7 0 0 1 0-7.4h5.7l-1.8 1.8a.8.8 0 1 0 1.2 1.2l3.2-3.2a.8.8 0 0 0 0-1.2l-3.2-3.2a.8.8 0 0 0-1.2 0Z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 20 20"><path d="M6.3 3.3a1 1 0 0 1 1 0l9 6a1 1 0 0 1 0 1.7l-9 6A1 1 0 0 1 5.8 16V4.2a1 1 0 0 1 .5-.9Z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 20 20"><path d="M14.5 2.6a2 2 0 0 1 2.9 2.9l-.9.9-2.9-2.9.9-.9ZM12.5 4.6l2.9 2.9-7.6 7.6a2 2 0 0 1-.9.5l-3 .8a.6.6 0 0 1-.8-.8l.8-3a2 2 0 0 1 .5-.9l8.1-8.1Z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 20 20"><path d="M3.5 4.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm3.3.2h9.4a.8.8 0 0 1 0 1.6H6.8a.8.8 0 0 1 0-1.6ZM3.5 9a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm3.3.2h9.4a.8.8 0 0 1 0 1.6H6.8a.8.8 0 0 1 0-1.6ZM3.5 13.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm3.3.2h9.4a.8.8 0 0 1 0 1.6H6.8a.8.8 0 0 1 0-1.6Z"/></symbol>
+  <symbol id="i-more" viewBox="0 0 20 20"><path d="M5 8.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 3a.8.8 0 0 0-.8.8V10c0 .3.1.5.3.6l2.5 2a.8.8 0 0 0 1-1.2l-2.2-1.8V5.8A.8.8 0 0 0 10 5Z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 20 20"><path d="M10 4a.7.7 0 0 1 .7.7v4.6h4.6a.7.7 0 0 1 0 1.4h-4.6v4.6a.7.7 0 0 1-1.4 0v-4.6H4.7a.7.7 0 0 1 0-1.4h4.6V4.7A.7.7 0 0 1 10 4Z"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 20 20"><path d="M4.7 9.3h10.6a.7.7 0 0 1 0 1.4H4.7a.7.7 0 0 1 0-1.4Z"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 20 20"><path d="M3 3h5v1.6H4.6V8H3V3Zm9 0h5v5h-1.6V4.6H12V3ZM3 12h1.6v3.4H8V17H3v-5Zm13.4 0H18v5h-5v-1.6h3.4V12Z" transform="translate(-1 -1)"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 20 20"><path d="M8.3 2.2a.8.8 0 0 1 .2 1A6.4 6.4 0 0 0 16.8 12a.8.8 0 0 1 1 1A8 8 0 1 1 8.3 2.2Z"/></symbol>
+  <symbol id="i-set" viewBox="0 0 20 20"><path d="M10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-1.3-4.8h2.6c.5 0 .9.3 1 .8l.3 1.4c.4.2.8.4 1.1.6l1.4-.5c.4-.2.9 0 1.2.4l1.3 2.2c.2.4.2.9-.2 1.2l-1.1.9v1.3l1.1.9c.4.3.4.8.2 1.2l-1.3 2.2c-.3.4-.8.6-1.2.4l-1.4-.5-1.1.6-.3 1.4c-.1.5-.5.8-1 .8H8.7c-.5 0-.9-.3-1-.8l-.3-1.4-1.1-.6-1.4.5c-.4.2-.9 0-1.2-.4L2.4 12c-.2-.4-.2-.9.2-1.2l1.1-.9V8.6l-1.1-.9c-.4-.3-.4-.8-.2-1.2l1.3-2.2c.3-.4.8-.6 1.2-.4l1.4.5 1.1-.6.3-1.4c.1-.5.5-.8 1-.8Z"/></symbol>
+  <symbol id="i-help" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 11.2a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm0-7.4c-1.6 0-2.8 1.1-2.8 2.6a.8.8 0 0 0 1.6 0c0-.6.5-1 1.2-1s1.2.4 1.2 1c0 .4-.1.6-.7 1.1l-.3.3c-.7.6-1 1.1-1 1.9a.8.8 0 0 0 1.6 0c0-.3.1-.5.5-.8l.3-.3c.8-.7 1.2-1.2 1.2-2.2 0-1.5-1.2-2.6-2.8-2.6Z"/></symbol>
+</svg>
+
+<div class="top">
+  <button class="waffle"><svg class="i lg"><use href="#i-grid"/></svg></button>
+  <div class="name">SOC Workflow <span>| 対応フローの設計</span></div>
+  <div class="sp"></div>
+  <div class="icons">
+    <button><svg class="i lg"><use href="#i-moon"/></svg></button>
+    <button><svg class="i lg"><use href="#i-set"/></svg></button>
+    <button><svg class="i lg"><use href="#i-help"/></svg></button>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="rail">
+    <a href="#" class="on"><svg class="i lg"><use href="#i-flow"/></svg>フロー</a>
+    <a href="#"><svg class="i lg"><use href="#i-task"/></svg>対応</a>
+    <a href="#"><svg class="i lg"><use href="#i-people"/></svg>連絡先</a>
+    <a href="#"><svg class="i lg"><use href="#i-layer"/></svg>フェーズ</a>
+    <a href="#"><svg class="i lg"><use href="#i-org"/></svg>担当</a>
+  </nav>
+
+  <div class="main">
+    <div class="head">
+      <div class="crumb"><a href="#">フロー</a><svg class="i sm"><use href="#i-chev"/></svg><span>橋本製作所</span></div>
+
+      <div class="titlerow">
+        <button class="iconbtn" title="フローへ戻る"><svg class="i lg"><use href="#i-back"/></svg></button>
+        <h1>橋本製作所</h1>
+        <div class="sp"></div>
+        <button class="linkbtn"><svg class="i"><use href="#i-edit"/></svg>フローの管理</button>
+        <button class="iconbtn"><svg class="i lg"><use href="#i-more"/></svg></button>
+      </div>
+
+      <!-- Defender の「低 │ Active │ 未割り当て │ 最終更新時刻」と同じ帯。
+           開いた瞬間に、このフローの素性が 1 行で分かる。 -->
+      <div class="meta">
+        <span class="sev l"><span class="bars"><i></i><i></i><i></i></span>低 (S3)</span>
+        <span><svg class="i"><use href="#i-list"/></svg>11 手順</span>
+        <span><svg class="i"><use href="#i-branch"/></svg>2 経路</span>
+        <span class="ok"><svg class="i"><use href="#i-check"/></svg>検証 OK</span>
+        <span><svg class="i"><use href="#i-branch"/></svg>フィッシングメールの報告 から作成・共通と同じ</span>
+        <span><svg class="i"><use href="#i-clock"/></svg>最終更新: 2026年9月5日 11:40</span>
+      </div>
+
+      <div class="tabs">
+        <button class="on"><svg class="i"><use href="#i-edit"/></svg>編集</button>
+        <button><svg class="i"><use href="#i-play"/></svg>テスト</button>
+      </div>
+    </div>
+
+    <div class="cmd">
+      <button class="plain" disabled><svg class="i"><use href="#i-undo"/></svg>元に戻す</button>
+      <button class="plain"><svg class="i"><use href="#i-redo"/></svg>やり直し</button>
+      <div class="sepv"></div>
+      <button><svg class="i"><use href="#i-org"/></svg>担当</button>
+      <button><svg class="i"><use href="#i-branch"/></svg>共通との違い</button>
+      <button class="plain"><svg class="i" style="color:var(--ok)"><use href="#i-check"/></svg>検証 OK</button>
+      <button class="plain"><svg class="i"><use href="#i-list"/></svg>経路一覧</button>
+      <div class="sp"></div>
+      <button class="pri"><svg class="i"><use href="#i-export"/></svg>エクスポート</button>
+    </div>
+
+    <div class="body">
+      <!-- ========== 手順アウトライン ========== -->
+      <section class="panel">
+        <header>
+          <b>手順アウトライン</b><span class="cnt">11 手順</span>
+          <span class="sp"></span>
+          <button class="tool" title="折りたたむ"><svg class="i"><use href="#i-chevl"/></svg></button>
+        </header>
+        <div class="scroll">
+          <div class="ol" style="--pc:var(--p1)"><span class="no">1</span><span class="pc"></span>
+            <span class="t">報告を受領する</span><span class="q">30分</span><span class="f"></span>
+            <span class="lane"><span class="tag lane">Tier1</span></span></div>
+          <div class="ol" style="--pc:var(--p2)"><span class="no">2</span><span class="pc"></span>
+            <span class="t">同報範囲を特定する</span><span class="q"></span><span class="f"></span>
+            <span class="lane"><span class="tag lane">Tier1</span></span></div>
+          <div class="ol" style="--pc:var(--p2)"><span class="no">3</span><span class="pc"></span>
+            <span class="t">リンクと添付を解析する</span><span class="q"></span><span class="f"></span>
+            <span class="lane"><span class="tag lane">Tier1</span></span></div>
+          <div class="ol on" style="--pc:var(--p2)"><span class="no">4</span><span class="pc"></span>
+            <span class="t">フィッシングか判定する</span><span class="q">3分岐</span><span class="f"></span>
+            <span class="lane"><span class="tag lane">Tier1</span></span></div>
+
+          <div class="olq"><span class="qn">4</span>判定結果はどちらですか？</div>
+          <div class="olgrp"><b>フィッシング</b> のとき</div>
+
+          <div class="ol" style="--pc:var(--p4)"><span class="no">5</span><span class="pc"></span>
+            <span class="t">送信元とリンク先をブロックする</span><span class="q"></span><span class="f"></span>
+            <span class="lane"><span class="tag lane">Tier2</span></span></div>
+          <div class="ol" style="--pc:var(--p2)"><span class="no">6</span><span class="pc"></span>
+            <span class="t">クリック・入力の有無を確認する</span><span class="q"></span>
+            <span class="f"><span class="tag esc">エスカレ</span></span>
+            <span class="lane"><span class="tag lane">Tier1</span></span></div>
+          <div class="ol" style="--pc:var(--p4)"><span class="no">7</span><span class="pc"></span>
+            <span class="t">認証情報を入力した利用者を対処する</span><span class="q"></span><span class="f"></span>
+            <span class="lane"><span class="tag lane">Tier2</span></span></div>
+          <div class="ol" style="--pc:var(--p3)"><span class="no">8</span><span class="pc"></span>
+            <span class="t">同報者へ注意喚起する</span><span class="q"></span>
+            <span class="f"><span class="tag cust">お客様連絡</span></span>
+            <span class="lane"><span class="tag lane">Tier1</span></span></div>
+          <div class="ol" style="--pc:var(--p3)"><span class="no">9</span><span class="pc"></span>
+            <span class="t">報告者へ結果を返す</span><span class="q"></span><span class="f"></span>
+            <span class="lane"><span class="tag lane">Tier1</span></span></div>
+          <div class="ol" style="--pc:var(--p3)"><span class="no">10</span><span class="pc"></span>
+            <span class="t">記録する</span><span class="q"></span><span class="f"></span>
+            <span class="lane"><span class="tag lane">Tier1</span></span></div>
+        </div>
+      </section>
+
+      <!-- ========== フロー キャンバス ========== -->
+      <section class="panel">
+        <header>
+          <b>フロー キャンバス</b>
+          <span class="sp"></span>
+          <select><option>担当で並べる</option></select>
+          <button class="tool"><svg class="i"><use href="#i-more"/></svg></button>
+        </header>
+        <div class="canvas">
+          <div class="zoom">
+            <button title="拡大"><svg class="i"><use href="#i-plus"/></svg></button>
+            <button title="縮小"><svg class="i"><use href="#i-minus"/></svg></button>
+            <button title="全体を表示"><svg class="i"><use href="#i-fit"/></svg></button>
+          </div>
+          <div class="lanes">
+            <div class="lane-bg" style="grid-column:1"></div>
+            <div class="lane-bg" style="grid-column:2"></div>
+            <div class="lane-bg" style="grid-column:3"></div>
+            <div class="lane-bg last" style="grid-column:4"></div>
+            <div class="lane-h" style="grid-column:1;--lc:var(--p1)">橋本製作所</div>
+            <div class="lane-h" style="grid-column:2;--lc:var(--accent)">Tier1</div>
+            <div class="lane-h" style="grid-column:3;--lc:var(--p4)">Tier2</div>
+            <div class="lane-h" style="grid-column:4;--lc:var(--p3)">Tier3</div>
+
+            <div class="node" style="grid-column:2;grid-row:2;--pc:var(--p1)"><span class="num">1</span>
+              <span class="cls"><span class="ph">受信・確認</span><span class="tag lane">Tier1</span></span>
+              <span class="n">報告を受領する</span><span class="t">SIEM で担当者アサイン</span>
+              <span class="flags"><span class="tag" style="color:var(--fg-3)">30分</span></span></div>
+            <div class="node" style="grid-column:2;grid-row:3;--pc:var(--p2)"><span class="num">2</span>
+              <span class="cls"><span class="ph">情報収集</span><span class="tag lane">Tier1</span></span>
+              <span class="n">同報範囲を特定する</span><span class="t">EDR / プロキシ / 認証ログ</span></div>
+            <div class="node on" style="grid-column:2;grid-row:4;--pc:var(--p2)"><span class="num">4</span>
+              <span class="cls"><span class="ph">情報収集</span><span class="tag lane">Tier1</span></span>
+              <span class="n">フィッシングか判定する</span><span class="t">調査の結論。判定根拠を残す</span>
+              <span class="flags"><span class="tag" style="color:var(--dec)">◆ 判断</span></span></div>
+            <div class="node" style="grid-column:3;grid-row:5;--pc:var(--p4)"><span class="num">5</span>
+              <span class="cls"><span class="ph">封じ込め</span><span class="tag lane" style="color:var(--p4);border-color:var(--p4)">Tier2</span></span>
+              <span class="n">送信元とリンク先をブロックする</span><span class="t">Proxy / FW に IOC 追加</span>
+              <span class="flags"><span class="tag" style="color:var(--p4)">⋔ フィッシング</span></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== インスペクタ ========== -->
+      <section class="panel">
+        <header>
+          <b>手順の詳細</b>
+          <span class="sp"></span>
+          <button class="tool" title="対応パレット"><svg class="i"><use href="#i-task"/></svg></button>
+          <button class="tool" title="閉じる"><svg class="i"><use href="#i-chev"/></svg></button>
+        </header>
+        <div class="scroll">
+          <div class="fld"><label>手順のタイトル</label><input value="フィッシングか判定する"></div>
+          <div class="fld"><label>詳細</label>
+            <textarea>ヘッダー・本文・リンク先・添付の解析結果をもとに判定する。判定根拠を記録に残す。</textarea></div>
+          <div style="display:flex;gap:10px">
+            <div class="fld" style="flex:1"><label>担当</label><select><option>Tier1</option></select></div>
+            <div class="fld" style="flex:1"><label>SLA</label><input value="15分"></div>
+          </div>
+          <div class="chkline"><i></i>エスカレーション判断が必要</div>
+
+          <div class="sechead"><svg class="i"><use href="#i-people"/></svg>連絡先<span class="sp"></span>
+            <button class="tool"><svg class="i"><use href="#i-add"/></svg></button></div>
+          <button class="addbtn"><svg class="i"><use href="#i-add"/></svg>連絡先を追加</button>
+
+          <div class="sechead"><svg class="i"><use href="#i-branch"/></svg>判断<span class="sp"></span></div>
+          <div class="fld"><label>質問</label><input value="判定結果はどちらですか？"></div>
+          <p class="hint">この判断の答えが、以降の手順の表示条件を決めます。</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<button class="themebtn" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')">明るさを切り替え</button>
+</body>
+</html>

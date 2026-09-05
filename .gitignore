@@ -1,7 +1,24 @@
 # エージェントの作業メモ（明示的な依頼があるまでコミットしない）
 working-memory/
 
-# Python（uv で作るプロジェクト内環境）
+# Python（uv で作るプロジェクト内環境。モックのビルド道具に使う）
 .venv/
 __pycache__/
 *.py[cod]
+
+# Go のビルド成果物
+/soc-workflow
+/soc-workflow.exe
+/soc-workflow.exe~
+/dist/
+
+# 実行時に作られるデータ（種データは internal/store/seed.json が正本）
+/soc-workflow.json
+/soc-workflow.json.lock
+*.json.lock
+
+# フロントエンド
+# internal/web/dist は生成物だがコミットする。無いと embed が解決できず、
+# フロントエンドを組み立てないと go build が通らなくなるため。
+/web/node_modules/
+/web/dist/
