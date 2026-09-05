@@ -31,6 +31,8 @@ func main() {
 func run() error {
 	dataPath := flag.String("data", "", "データファイルの場所（既定: 実行ファイルの隣）")
 	addr := flag.String("addr", "127.0.0.1:8765", "待ち受けるアドレス")
+	empty := flag.Bool("empty", false,
+		"種データを入れず、空から始める（データファイルがまだ無いときだけ効く）")
 	flag.Parse()
 
 	path, err := store.ResolvePath(*dataPath)
@@ -38,7 +40,14 @@ func run() error {
 		return err
 	}
 
-	st, err := store.Open(path, store.Seed())
+	// 種データはダミーなので、自分たちのフローを一から作るなら入れないほうがよい。
+	// ファイルが既にあるときは、どちらを指定しても中身はそのまま。
+	seed := store.Seed()
+	if *empty {
+		seed = store.Empty()
+	}
+
+	st, err := store.Open(path, seed)
 	if err != nil {
 		return err
 	}

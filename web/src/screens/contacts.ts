@@ -121,7 +121,7 @@ export class ContactsScreen {
       box.innerHTML = groups.length
         ? '<p class="pal-empty">条件に合う連絡先がありません。</p>'
         : '<p class="pal-empty">連絡先がまだありません。' +
-          "右上の「＋ 新しいグループ」から作ってください。</p>";
+          "上の「作成」から作ってください。</p>";
     }
   }
 

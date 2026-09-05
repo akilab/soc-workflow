@@ -84,7 +84,7 @@ export class TasksScreen {
       box.innerHTML = narrowed
         ? '<p class="pal-empty">条件に合う対応がありません。</p>'
         : '<p class="pal-empty">対応がまだありません。' +
-          "右上の「＋ 新しい対応」から作ってください。</p>";
+          "上の「作成」から作ってください。</p>";
     }
 
     const total = this.db.tasks.length;
