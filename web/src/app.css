@@ -39,6 +39,13 @@ body.resizing{cursor:col-resize;user-select:none}
 .ed-tool.pri{background:var(--ok);border-color:var(--ok);color:var(--onOk);font-weight:700}
 .ed-tool.pri:hover{filter:brightness(1.08);background:var(--ok)}
 .ed-tool.sm{padding:4px 9px;font-size:var(--t3)}
+/* 好みの切り替え（明るさ）は操作ではないので、枠を持たせない。
+   同じ形で並べると、めったに押さないものが一番押しそうに見える。 */
+.ed-tool.quiet{background:none;border-color:transparent;color:var(--faint)}
+.ed-tool.quiet:hover{background:var(--panel2);color:var(--dim)}
+/* 上段の区切り。何と何が別のまとまりかを、間隔ではなく線で示す。
+   間隔だけだと、画面が狭いときに詰まって区別が消える。 */
+.ed-sep{flex:none;width:1px;align-self:stretch;margin:2px 3px;background:var(--line)}
 .ed-note{margin:16px 0 30px;font-size:var(--t3);color:var(--faint);line-height:1.85}
 .ed-note b{color:var(--dim)}
 
@@ -190,10 +197,14 @@ body.resizing{cursor:col-resize;user-select:none}
   font-family:var(--mono);font-size:var(--t1);padding-top:3px}
 .ol-f{flex:none;display:flex;gap:4px;font-family:var(--mono);font-size:var(--t1);padding-top:3px}
 /* ラベルの幅は文言で決まるので一定。使わない行には空の枠を置いて位置を保つ。 */
-.ol-f>span{flex:none;text-align:center;box-sizing:border-box}
-.ol-f .cust{width:58px}
-.ol-f .esc{width:58px}
-.ol-row .fin,.ol-row .wait{width:30px}
+/* ラベルの幅は文言で決まるので固定。折り返させない——折り返すと
+   その行だけ倍の高さになり、そろえるために固定幅にした意味が無くなる。
+   文字を 9.5px から 10px にしたときに 58px では 2px 足りず、実際に
+   「！エスカ／レ」と割れた。実測（10px で 60px 必要）に合わせて広げる。 */
+.ol-f>span{flex:none;text-align:center;box-sizing:border-box;white-space:nowrap}
+.ol-f .cust{width:62px}
+.ol-f .esc{width:62px}
+.ol-row .fin,.ol-row .wait{width:33px}
 .ol-f .ghost{border-color:transparent;background:none;visibility:hidden}
 /* 担当だけは行の右端に固定する。可変幅のバッジより右に置くことで、
    行をまたいで縦にそろい、「自分の手順はどれか」を目で追える列になる。

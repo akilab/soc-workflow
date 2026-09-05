@@ -14,12 +14,16 @@
   <div class="ew-top">
     <h1 class="brand">SOC <b>Workflow</b></h1>
     <div class="ed-spacer"></div>
-    <button class="ed-tool" data-th type="button"></button>
-    <button class="ed-tool" id="ewLanes">担当設定</button>
-    <button class="ed-tool" id="ewPhases">フェーズ設定</button>
+    <!-- 並びは使う頻度の順。中身を書く場所（対応・連絡先）が先、
+         組み立ての土台（フェーズ・担当）が次、その先に操作。 -->
     <button class="ed-tool" id="ewTasks">対応一覧</button>
     <button class="ed-tool" id="ewContacts">連絡先</button>
+    <div class="ed-sep"></div>
+    <button class="ed-tool" id="ewPhases">フェーズ設定</button>
+    <button class="ed-tool" id="ewLanes">担当設定</button>
+    <div class="ed-sep"></div>
     <button class="ed-tool" id="ewExportAll">全フローを書き出し</button>
+    <button class="ed-tool quiet" data-th type="button"></button>
   </div>
   <div class="ew-body">
     <h2 class="ew-h">対応フロー <span id="ewCount"></span></h2>
@@ -41,17 +45,22 @@
       <button class="ed-tool" id="btnRedo" type="button" disabled>↷</button>
     </div>
     <div class="ed-spacer"></div>
-    <button class="ed-tool" data-th type="button"></button>
+    <!-- このフローの設定 -->
     <button class="ed-tool" id="btnLanes">担当</button>
-    <!-- 顧客別フローのときだけ出す（screens/edit.ts が出し入れする） -->
+    <div class="ed-sep"></div>
+    <!-- 中身を読むもの。押すと今の状態が分かる。
+         「共通との違い」は顧客別フローのときだけ出す（screens/edit.ts が出し入れする）。 -->
     <button class="ed-tool" id="btnDiff" hidden>共通との違い</button>
     <button class="ed-tool" id="btnCheck">検証</button>
     <button class="ed-tool" id="btnPaths">経路一覧</button>
+    <div class="ed-sep"></div>
+    <!-- 見え方の切り替えと、持ち出し -->
     <div class="ed-modes">
       <button data-mode="edit" class="on">編集</button>
       <button data-mode="run">試走</button>
     </div>
     <button class="ed-tool pri" id="btnExport">書き出し</button>
+    <button class="ed-tool quiet" data-th type="button"></button>
   </div>
 
   <div class="ed-body" id="edBody">
@@ -120,9 +129,9 @@
     <h1 class="sc-name">対応一覧</h1>
     <div class="ed-spacer"></div>
     <input class="tk-search" id="tkSearch" type="text" placeholder="対応を検索…">
-    <button class="ed-tool" data-th type="button"></button>
     <button class="ed-tool" id="tkPhases">フェーズ設定</button>
     <button class="ed-tool pri" id="tkNew">＋ 新しい対応</button>
+    <button class="ed-tool quiet" data-th type="button"></button>
   </div>
   <div class="ew-body">
     <h2 class="ew-h">対応 <span id="tkCount"></span></h2>
@@ -164,8 +173,8 @@
     <div class="ed-spacer"></div>
     <input class="tk-search" id="ctSearch" type="text"
            placeholder="名前・電話・アカウントで検索…">
-    <button class="ed-tool" data-th type="button"></button>
     <button class="ed-tool pri" id="ctNew">＋ 新しいグループ</button>
+    <button class="ed-tool quiet" data-th type="button"></button>
   </div>
   <div class="ew-body">
     <h2 class="ew-h">連絡先 <span id="ctCount"></span></h2>
