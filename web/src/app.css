@@ -150,21 +150,12 @@ body.resizing{cursor:col-resize;user-select:none}
 .ew-h{margin:0 0 16px;font-size:var(--t4);color:var(--fg);
   font-weight:700;display:flex;align-items:baseline;gap:10px}
 .ew-h span{letter-spacing:0;text-transform:none;font-size:var(--t3);font-weight:400}
-.ew-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+/* 一覧の入れ物。中身は表なので、狭い画面では横に送る（列を潰さない）。 */
+.ew-grid{overflow-x:auto}
 
 /* カード。フェーズの凡例が 1 行に収まるか 2 行になるかでカードの高さが変わり、
    同じ行の低いほうのカードは下に余りが出る。縦に並べて操作を最下段へ押し出せば、
    高さが揃わなくても最下段はそろう。 */
-.ew-card{display:flex;flex-direction:column;
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);padding:16px 17px 13px;
-  cursor:pointer;position:relative;transition:border-color .18s,background .18s,transform .18s,box-shadow .18s}
-.ew-card .ew-acts{margin-top:auto;padding-top:11px}
-.ew-card:hover{border-color:var(--cur);background:var(--panel2);transform:translateY(-2px);
-  box-shadow:0 10px 28px var(--shadow)}
-.ew-card .ew-hd{display:flex;gap:10px;align-items:flex-start;margin-bottom:5px}
-.ew-card .ew-hd b{font-size:var(--t6);font-weight:700;line-height:1.5;flex:1;min-width:0}
-.ew-card:hover .ew-hd b{color:var(--cur)}
-.ew-sub{margin:0 0 13px;font-size:var(--t4);color:var(--dim);line-height:1.6;min-height:2.1em}
 
 /* フェーズ分布 — どのフェーズに手順が集まっているフローかが一目で分かる。
    帯だけにしてある（凡例は 2 行に折り返してカードの高さを崩していた）。
@@ -212,19 +203,7 @@ body.resizing{cursor:col-resize;user-select:none}
 /* 幅を等分しない。等分すると、短い「複製」と長い「顧客別を作る」が同じ幅になり、
    320px のカードでは折り返す。文字なりの幅で右へ寄せる。
    透明度ではなく色で沈める。透明度だと枠線まで薄くなって、押せるものに見えない。 */
-.ew-acts{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
-.ew-acts button{flex:none;background:none;border:1px solid var(--line-soft);color:var(--faint);
-  border-radius:var(--r1);padding:4px 9px;font-size:var(--t2);cursor:pointer;font-family:var(--sans);
-  transition:border-color .16s,color .16s,background .16s}
-.ew-card:hover .ew-acts button{border-color:var(--line);color:var(--dim)}
-.ew-acts button:hover{border-color:var(--hover);color:var(--fg);background:var(--panel2)}
-.ew-acts button.dg:hover{border-color:var(--s1);color:var(--s1)}
 
-.ew-new{background:none;border:1px dashed var(--line);border-radius:var(--r3);color:var(--faint);
-  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;
-  min-height:190px;cursor:pointer;font-family:var(--sans);font-size:var(--t4);transition:border-color .18s,color .18s}
-.ew-new:hover{border-color:var(--ok);color:var(--ok)}
-.ew-new u{text-decoration:none;font-size:var(--t8);line-height:1}
 
 /* ================= 編集ビュー =================
    見出しまわりは 道筋 → 題名 → メタの帯 → タブ の順。
@@ -504,7 +483,7 @@ body.dragging .clane:not(.drop){opacity:.35}
 .tools select.on{border-color:var(--cur);color:var(--cur)}
 .pal-search:focus{outline:none;border-color:var(--cur)}
 .pal-g{margin-bottom:13px}
-.pal-g>h4{margin:0 0 7px;font-size:var(--t2);font-weight:700;letter-spacing:.07em;color:var(--pc);
+.pal-g>h4{margin:0 0 7px;font-size:var(--t3);font-weight:600;color:var(--dim);
   display:flex;align-items:center;gap:7px;user-select:none;
   padding-bottom:4px;border-bottom:1px solid var(--pc)}
 .pal-g>h4>span{cursor:pointer;display:flex;align-items:center;gap:7px;flex:1;min-width:0}
@@ -512,12 +491,14 @@ body.dragging .clane:not(.drop){opacity:.35}
 .pal-g>h4 u{text-decoration:none;font-family:var(--mono);font-size:var(--t1);color:var(--faint);font-weight:400}
 .pal-g>h4 button{flex:none;background:none;border:1px solid var(--line);color:var(--faint);
   border-radius:var(--r1);width:20px;height:20px;font-size:var(--t3);line-height:1;cursor:pointer;padding:0}
-.pal-g>h4 button:hover{border-color:var(--ok);color:var(--ok)}
+.pal-g>h4 button:hover{border-color:var(--cur);color:var(--cur)}
 
+/* パレットの札。掴んで運ぶものなので、キャンバスのボックスと同じ
+   「角のある四角＋左のフェーズ色」にしておくと、置いた先の姿が想像できる。 */
 .pal-t{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--pc);
-  border-radius:var(--r2);padding:7px 9px;margin-bottom:6px;cursor:grab;position:relative;
-  transition:border-color .15s,background .15s,transform .12s}
-.pal-t:hover{background:var(--panel3);border-color:var(--hover);transform:translateX(2px)}
+  border-radius:0;padding:7px 9px;margin-bottom:5px;cursor:grab;position:relative;
+  transition:border-color .15s,background .15s}
+.pal-t:hover{background:var(--panel3);border-color:var(--hover)}
 .pal-t:active{cursor:grabbing}
 .pal-t.drag{opacity:.4}
 .pal-t b{display:block;font-size:var(--t4);font-weight:600;line-height:1.45;padding-right:58px}
@@ -530,10 +511,10 @@ body.dragging .clane:not(.drop){opacity:.35}
   border:1px solid var(--line);color:var(--dim);border-radius:var(--r1);width:20px;height:20px;
   font-size:var(--t4);line-height:1;cursor:pointer;transition:opacity .15s}
 .pal-t:hover .add{opacity:1}
-.pal-t .add:hover{border-color:var(--ok);color:var(--ok)}
+.pal-t .add:hover{border-color:var(--cur);color:var(--cur)}
 .pal-new{width:100%;background:none;border:1px dashed var(--line);color:var(--faint);border-radius:var(--r2);
   padding:8px;font-size:var(--t3);cursor:pointer;font-family:var(--sans)}
-.pal-new:hover{border-color:var(--ok);color:var(--ok)}
+.pal-new:hover{border-color:var(--cur);color:var(--cur)}
 .pal-empty{color:var(--faint);font-size:var(--t4);line-height:1.9;padding:10px 2px}
 
 /* ---------- インスペクタ（右・タブ内） ---------- */
@@ -846,7 +827,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .mem .ops button:disabled{opacity:.3;cursor:default}
 .cg-add{width:100%;background:none;border:1px dashed var(--line);color:var(--faint);border-radius:var(--r2);
   padding:7px;font-size:var(--t3);cursor:pointer;font-family:var(--sans)}
-.cg-add:hover{border-color:var(--ok);color:var(--ok)}
+.cg-add:hover{border-color:var(--cur);color:var(--cur)}
 
 /* パレットで「終了」の対応を見分ける印。
    使用回数のバッジは右上に絶対配置されているので、そこへ重ねない。
