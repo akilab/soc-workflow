@@ -556,6 +556,70 @@ export function setDragLabel(text: string): void {
   dragLabel = text;
 }
 
+// ---------------------------------------------------------------------------
+// 端まで運んだときの送り
+// ---------------------------------------------------------------------------
+
+/**
+ * 掴んだまま端へ寄せると、図が送られる。
+ *
+ * 17 手順のフローでも、下のほうへ運ぶには一度置いてから送り直すしかなかった。
+ * 掴んでいるあいだブラウザは自分で送ってくれないので、こちらで送る。
+ *
+ * 速さは端に近いほど速くする。一定だと、少し送りたいときに行き過ぎる。
+ * 指を止めていても送り続ける——端に寄せたまま待つ、という操作がしたいので。
+ * dragover は動かしているあいだしか来ないため、送りは別の輪で回す。
+ */
+const EDGE = 56; // 端とみなす幅
+const MAX_STEP = 18; // 1 フレームに送る最大の量
+
+let scrollLoop = 0;
+let vx = 0;
+let vy = 0;
+
+/** 指の位置から送る速さを決める。キャンバスの上で dragover のたびに呼ぶ。 */
+export function edgeScroll(x: number, y: number): void {
+  const view = document.getElementById("canvas");
+  if (!view) return;
+  const r = view.getBoundingClientRect();
+  vx = speed(x - r.left, r.right - x);
+  vy = speed(y - r.top, r.bottom - y);
+
+  if (!vx && !vy) return;
+  if (scrollLoop) return;
+  // 落とさずに掴んだまま外へ出ることもあるので、dragend でも必ず止める。
+  document.addEventListener("dragend", stopEdgeScroll, { once: true });
+  scrollLoop = requestAnimationFrame(stepScroll);
+}
+
+export function stopEdgeScroll(): void {
+  if (scrollLoop) cancelAnimationFrame(scrollLoop);
+  scrollLoop = 0;
+  vx = 0;
+  vy = 0;
+}
+
+/** 端からの距離を、送る量に変える。手前が端なら戻る向き、奥が端なら進む向き。 */
+function speed(near: number, far: number): number {
+  if (near < EDGE) return -Math.ceil(((EDGE - Math.max(near, 0)) / EDGE) * MAX_STEP);
+  if (far < EDGE) return Math.ceil(((EDGE - Math.max(far, 0)) / EDGE) * MAX_STEP);
+  return 0;
+}
+
+function stepScroll(): void {
+  const view = document.getElementById("canvas");
+  if (!view || (!vx && !vy)) {
+    stopEdgeScroll();
+    return;
+  }
+  view.scrollTop += vy;
+  view.scrollLeft += vx;
+  // 送ったぶん座標が変わる。scroll の知らせを待たず、自分で捨てる。
+  // 送ったのは自分なので、他人から知らせてもらう筋合いがない。
+  clearDropGeometry();
+  scrollLoop = requestAnimationFrame(stepScroll);
+}
+
 /** 直前に示した落とし先。同じところなら画面を触らない。 */
 let lastSpot = " ";
 

@@ -172,6 +172,12 @@ export class ContactsScreen {
   // -------------------------------------------------------------------------
 
   private card(g: ContactGroup): HTMLElement {
+    // 並べ替えは全体の並びに対して行う。絞り込んで見ているときも、
+    // 動かしているのは全体の並びなので、端かどうかは全体で見る。
+    const all = this.api.db.contactGroups;
+    const at = all.indexOf(g);
+    const first = at <= 0;
+    const last = at === all.length - 1;
     const kd = KIND[g.kind] ?? { l: g.kind, c: "var(--line)" };
     const uses = this.usedBy(g.key);
     const evNames = [...new Set(uses.map((u) => u.ev))];
@@ -199,6 +205,12 @@ export class ContactsScreen {
       (uses.length ? `${uses.length} 手順で使用` : "未使用") +
       "</span>" +
       '<span class="sp"></span>' +
+      // 並び順は作った順で固定だった。一次連絡先を上へ動かせるようにする。
+      '<span class="cg-mv rowops">' +
+      `<button data-up${first ? " disabled" : ""} title="上へ">` +
+      '<svg class="ic"><use href="#ic-chev-u"/></svg></button>' +
+      `<button data-dn${last ? " disabled" : ""} title="下へ">` +
+      '<svg class="ic"><use href="#ic-chev-d"/></svg></button></span>' +
       '<button class="ed-tool sm" data-ed>編集</button>' +
       '<button class="ed-tool sm dgr" data-rm' +
       (uses.length
@@ -226,6 +238,12 @@ export class ContactsScreen {
       .querySelector("[data-ed]")!
       .addEventListener("click", () => void this.editGroup(g));
     card
+      .querySelector("[data-up]")!
+      .addEventListener("click", () => void this.move(g, -1));
+    card
+      .querySelector("[data-dn]")!
+      .addEventListener("click", () => void this.move(g, 1));
+    card
       .querySelector("[data-add]")!
       .addEventListener("click", () => void this.addMember(g));
     if (!uses.length) {
@@ -234,6 +252,26 @@ export class ContactsScreen {
         .addEventListener("click", () => void this.deleteGroup(g));
     }
     return card;
+  }
+
+  /**
+   * 並びを 1 つずらす。
+   *
+   * サーバへは並び全体を送る。「どれとどれを入れ替えたか」ではなく
+   * 「こういう並びにしたい」を送るほうが、途中でずれたときに立て直せる。
+   */
+  private async move(g: ContactGroup, dir: -1 | 1): Promise<void> {
+    const keys = this.api.db.contactGroups.map((x) => x.key);
+    const at = keys.indexOf(g.key);
+    const to = at + dir;
+    if (at < 0 || to < 0 || to >= keys.length) return;
+    [keys[at], keys[to]] = [keys[to], keys[at]];
+    try {
+      await this.api.orderContactGroups(keys);
+    } catch (e) {
+      if (e instanceof ApiError) showApiError(e, "連絡先の並べ替え");
+      else toast(String(e), true);
+    }
   }
 
   private memberLine(

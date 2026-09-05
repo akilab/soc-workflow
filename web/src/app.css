@@ -1121,3 +1121,6 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
    大きさだけ揃えて、中身は元の絵のままにする。 */
 .bic{width:16px;height:16px;vertical-align:-3px;flex:none}
 .bic.lg{width:24px;height:24px}
+
+/* 連絡先の並べ替え。編集・削除の左に置く（並びは中身より弱い操作なので）。 */
+.cg-mv{display:flex;gap:2px;margin-right:4px}

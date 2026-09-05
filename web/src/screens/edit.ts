@@ -13,11 +13,13 @@ import {
   applyZoom,
   clearDropGeometry,
   dropSpotAt,
+  edgeScroll,
   renderCanvas,
   scrollToSelected,
   setZoom,
   showDropSpot,
   stepZoom,
+  stopEdgeScroll,
 } from "../canvas";
 import { optColor, optLabel } from "../branch";
 import { changedDetail, diffFrom, diffSummary } from "../derive";
@@ -627,18 +629,22 @@ export class EditScreen {
           e.dataTransfer.effectAllowed === "move" ? "move" : "copy";
       }
       showDropSpot(eventLanes(this.api.db, this.evt), spotFrom(e));
+      // 端へ寄せているあいだは図を送る。掴んだまま下まで運べるようにする。
+      edgeScroll(e.clientX, e.clientY);
     });
     canvas.addEventListener("dragleave", (e) => {
       // 中の要素をまたぐたびに発火するので、本当に外へ出たときだけ消す。
       if (canvas.contains(e.relatedTarget as Node | null)) return;
       showDropSpot(eventLanes(this.api.db, this.evt), null);
       clearDropGeometry();
+      stopEdgeScroll();
     });
     canvas.addEventListener("drop", (e) => {
       e.preventDefault();
       const spot = spotFrom(e);
       showDropSpot(eventLanes(this.api.db, this.evt), null);
       clearDropGeometry();
+      stopEdgeScroll();
       document.body.classList.remove("dragging");
 
       const data = e.dataTransfer?.getData("text/plain") ?? "";

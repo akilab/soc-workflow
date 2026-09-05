@@ -42,7 +42,7 @@ export class EventsScreen {
         "<th>フロー名</th><th>重大度</th><th>手順</th><th>経路</th>" +
         "<th>フェーズ分布</th><th>検証</th><th>元にしたフロー</th><th></th>" +
         "</tr></thead><tbody>" +
-        db.events.map((ev) => this.row(ev)).join("") +
+        db.events.map((ev, i) => this.row(ev, i, db.events.length)).join("") +
         "</tbody></table>"
       : '<p class="pal-empty">フローがまだありません。' +
         "上の「作成」から作ってください。</p>";
@@ -54,8 +54,9 @@ export class EventsScreen {
   }
 
   /** フロー 1 件の行。 */
-  private row(ev: EventFlow): string {
+  private row(ev: EventFlow, i: number, total: number): string {
     const db = this.api.db;
+    const last = i === total - 1;
     const v = validate(db, ev);
     const dist = phaseDist(db, ev);
 
@@ -94,6 +95,13 @@ export class EventsScreen {
       `${v.issues.length ? `${v.issues.length} 件` : "OK"}</span></td>` +
       `<td>${this.relation(ev)}</td>` +
       '<td class="acts">' +
+      // 並び順は作った順で固定だった。よく開くものを上へ動かせるようにする。
+      // ドラッグではなく上下のボタンにしたのは、たまに 1 つ動かすだけの
+      // 操作だから（手順の並べ替えのように、何度も動かすものではない）。
+      `<button data-a="up" data-key="${k}"${i === 0 ? " disabled" : ""} title="上へ">` +
+      '<svg class="ic"><use href="#ic-chev-u"/></svg></button>' +
+      `<button data-a="down" data-key="${k}"${last ? " disabled" : ""} title="下へ">` +
+      '<svg class="ic"><use href="#ic-chev-d"/></svg></button>' +
       // 「開く」は置かない。行そのものが押せるので、同じことを 2 つ並べても
       // 選ぶ手間が増えるだけになる。ここに残すのは、押さないと分からない操作だけ。
       `<button data-a="dup" data-key="${k}" title="複製">` +
@@ -169,6 +177,12 @@ export class EventsScreen {
           break;
         case "del":
           void this.remove(key);
+          break;
+        case "up":
+          void this.move(key, -1);
+          break;
+        case "down":
+          void this.move(key, 1);
           break;
       }
     });
@@ -259,6 +273,25 @@ export class EventsScreen {
       if (made) this.onOpen(made.key);
     } catch (e) {
       this.fail(e, "顧客別フローの作成");
+    }
+  }
+
+  /**
+   * 並びを 1 つずらす。
+   *
+   * サーバへは並び全体を送る。「どれとどれを入れ替えたか」ではなく
+   * 「こういう並びにしたい」を送るほうが、途中でずれたときに立て直せる。
+   */
+  private async move(key: string, dir: -1 | 1): Promise<void> {
+    const keys = this.api.db.events.map((e) => e.key);
+    const at = keys.indexOf(key);
+    const to = at + dir;
+    if (at < 0 || to < 0 || to >= keys.length) return;
+    [keys[at], keys[to]] = [keys[to], keys[at]];
+    try {
+      await this.api.orderEvents(keys);
+    } catch (e) {
+      this.fail(e, "フローの並べ替え");
     }
   }
 
