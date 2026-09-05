@@ -1,33 +1,45 @@
-:root{
-  --bg:#0a0c11; --panel:#12161e; --panel2:#181d27; --panel3:#1f2531;
-  --line:#2b3242; --line-soft:#212734;
-  /* ボックスの枠。地との対比を 3.0 以上にする（非テキストの目安）。
-     --line（1.64）では、選んでいないボックスの輪郭がほとんど見えなかった。 */
-  --nodeline:#5c6880;
-  --fg:#f0f3f8; --dim:#aab4c6; --faint:#7d8798;
+/* 色と寸法。Microsoft Defender ポータル（Fluent 2）に寄せてある。
+   社内の対応者が毎日見ている画面と同じ作法にすることで、
+   「知らない道具」ではなく「いつもの画面」として読めるようにする。
 
-  --cur:#ffc93c;  --cur-bg:rgba(255,201,60,.13);
-  --ok:#3ddc97;   --ok-bg:rgba(61,220,151,.13);
-  --skip:#6b7383;
-  --s1:#ff6b6b;   --s2:#ffb02e;   --s3:#5ad1e6;
+   紺（#0a0c11 系）ではなく **無彩色の黒** で積む。Defender の地には青みが無く、
+   そこに色を足すと途端に別物に見える。色を持つのはフェーズ・重大度・
+   アクセントだけにして、地と枠は灰で通す。 */
+:root{
+  --bg:#0f0f0f; --panel:#1b1b1b; --panel2:#242424; --panel3:#2e2e2e;
+  --line:#2f2f2f; --line-soft:#252525;
+  /* ボックスの枠。地との対比を 3.0 以上にする（非テキストの目安）。 */
+  --nodeline:#5a5a5a;
+  --fg:#ffffff; --dim:#c7c7c7; --faint:#9a9a9a;
+
+  /* アクセント。Fluent の communication blue（暗い地の上での値）。
+     選択・現在地・主ボタンはすべてこれ。以前は黄だったが、
+     Microsoft の画面で黄は「注意」の色なので、選択に使うと意味がずれる。 */
+  --cur:#479ef5;  --cur-bg:rgba(71,158,245,.16);
+  --ok:#54b054;   --ok-bg:rgba(84,176,84,.14);
+  --skip:#6e6e6e;
+  /* 重大度。Defender と同じ割り当て（高=赤 / 中=橙 / 低=黄）。 */
+  --s1:#d13438;   --s2:#ff8c00;   --s3:#fce100;
   --dec:#a97bff;
 
-  /* フェーズ（カテゴリ）の色 — 列・ボックス・パレット・レーンで一貫して使う */
-  --c1:#ff5c8a; --c2:#4aa8ff; --c3:#a97bff; --c4:#ffb02e; --c5:#2ee6a8; --c6:#5ad1e6;
-  --c7:#ff8a4c; --c8:#8ce36b; --c9:#e36bd0; --c10:#7c8cff;
+  /* フェーズ（カテゴリ）の色 — 列・ボックス・パレット・レーンで一貫して使う。
+     地が無彩色になったぶん、彩度を少し落として浮かないようにしてある。 */
+  --c1:#e3618a; --c2:#4a9be0; --c3:#9a76d8; --c4:#e0a03c; --c5:#3fc09a; --c6:#4fb9cf;
+  --c7:#e08050; --c8:#7fc95f; --c9:#cf6ec0; --c10:#7681e0;
 
   /* 明るさ切り替えのために、直に書いていた色もトークンにする */
-  --hover:#404a5e;          /* ホバー時の枠線 */
-  --wire:#77839a;           /* フロー図の接続線 */
-  --onCur:#1a1405;          /* --cur の上に載せる文字 */
-  --onOk:#04241a;           /* --ok の上に載せる文字 */
-  --topbg:rgba(10,12,17,.96);
-  --maskbg:rgba(5,7,11,.82);
-  --shadow:rgba(0,0,0,.45);
+  --hover:#4a4a4a;          /* ホバー時の枠線 */
+  --wire:#8a8a8a;           /* フロー図の接続線 */
+  --onCur:#ffffff;          /* --cur の上に載せる文字 */
+  --onOk:#ffffff;           /* --ok の上に載せる文字 */
+  --topbg:rgba(10,10,10,.96);
+  --maskbg:rgba(0,0,0,.6);
+  --shadow:rgba(0,0,0,.5);
   --decFg:#bfa0ff;          /* 判断色の文字（地の明暗で変える） */
-  --custFg:#ff8fb0;         /* 顧客連絡の文字 */
-  --sbar:#39415a;           /* スクロールバーのつまみ */
-  --sbarOn:#5c6880;         /* 同、触れているとき */
+  --custFg:#f08cae;         /* 顧客連絡の文字 */
+  --sbar:#4a4a4a;           /* スクロールバーのつまみ */
+  --sbarOn:#6a6a6a;         /* 同、触れているとき */
+  --griddot:#1e1e1e;        /* キャンバスの点。Defender のグラフと同じ地 */
 
   /* 文字の段階。
      以前は 9〜26px を 0.5px 刻みで 18 種類使っていた。段階ではなく漂流で、
@@ -40,17 +52,21 @@
        t6 小見出し（カードの題名、ペインの見出し）
        t7 画面の名前
        t8 数字の表示（試走のメーター） */
-  --t1:10px; --t2:11px; --t3:12px; --t4:13px;
-  --t5:14px; --t6:15px; --t7:18px; --t8:24px;
+  /* Fluent のランプ（10/12/14/16/20/28）に寄せた。t2 と t4 を 1px ずつ
+     動かしただけで、段階の数は 8 のまま。 */
+  --t1:10px; --t2:12px; --t3:12px; --t4:14px;
+  --t5:14px; --t6:16px; --t7:20px; --t8:28px;
 
-  /* 角の丸み。以前は 1〜14px を 1px 刻みで 14 種類。役目ごとに 4 段階へ。
+  /* 角の丸み。Fluent は 4px が基本で、大きく丸めない。
      手順のボックス（.cnode / .v-node）だけは 0 のまま——角のある四角は
-     Microsoft Defender に寄せた意図的な選択なので、この段階には入れない。
+     Defender に寄せた意図的な選択なので、この段階には入れない。
        r1 印・バッジ  r2 ボタン・入力・小さな枠  r3 カード・パネル  r-pill 丸 */
-  --r1:4px; --r2:8px; --r3:12px; --r-pill:999px;
+  --r1:2px; --r2:4px; --r3:6px; --r-pill:999px;
 
   --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
-  --sans:"Meiryo UI","Hiragino Sans","Helvetica Neue","Noto Sans JP","Segoe UI",sans-serif;
+  /* 欧文は Segoe UI、和文は Yu Gothic UI。Defender の日本語画面と同じ組み合わせ。
+     Segoe UI に和文は無いので、日本語だけが次の Yu Gothic UI へ落ちる。 */
+  --sans:"Segoe UI","Yu Gothic UI","Meiryo UI","Hiragino Sans","Noto Sans JP",sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -282,59 +298,65 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 /* ================= 明るさ ================= */
 /* 明示的に選ばれていればそれに従い、選ばれていなければ OS の設定に従う。 */
 :root[data-theme="light"]{
-  --bg:#eef1f6; --panel:#ffffff; --panel2:#f5f7fb; --panel3:#e8edf5;
-  --line:#ccd5e2; --line-soft:#e4e9f1;
-  --nodeline:#8896ac;
-  --fg:#131924; --dim:#48566b; --faint:#76839a;
+  /* 明るいほう。Defender の Light と同じく、白と薄い灰で積む。
+     こちらも青みを持たせない（以前は #eef1f6 系の青灰だった）。 */
+  --bg:#faf9f8; --panel:#ffffff; --panel2:#f5f5f5; --panel3:#ebebeb;
+  --line:#e0e0e0; --line-soft:#efefef;
+  --nodeline:#909090;
+  --fg:#242424; --dim:#484644; --faint:#616161;
 
-  --cur:#a86a00;  --cur-bg:color-mix(in srgb, #a86a00 12%, transparent);
-  --ok:#0f8a4f;   --ok-bg:color-mix(in srgb, #0f8a4f 12%, transparent);
-  --skip:#8a94a6;
-  --s1:#c62828;   --s2:#a15c00;   --s3:#00718f;
+  --cur:#0f6cbd;  --cur-bg:color-mix(in srgb, #0f6cbd 10%, transparent);
+  --ok:#0e700e;   --ok-bg:color-mix(in srgb, #0e700e 10%, transparent);
+  --skip:#8a8886;
+  --s1:#c50f1f;   --s2:#bc4b09;   --s3:#835c00;
   --dec:#6a35d9;
 
   --c1:#c2185b; --c2:#0b62d0; --c3:#6a35d9; --c4:#a15c00; --c5:#0f8a63;
   --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
 
-  --hover:#9aa7bb;
-  --wire:#8b98ad;
+  --hover:#a0a0a0;
+  --wire:#8a8a8a;
   --onCur:#ffffff;
   --onOk:#ffffff;
-  --topbg:rgba(255,255,255,.94);
-  --maskbg:rgba(28,36,50,.42);
-  --shadow:rgba(22,32,52,.16);
+  --topbg:rgba(255,255,255,.96);
+  --maskbg:rgba(0,0,0,.4);
+  --shadow:rgba(0,0,0,.13);
   --decFg:#5b21b6;
   --custFg:#b3175a;
-  --sbar:#c3ccdb;
-  --sbarOn:#9aa7bb;
+  --sbar:#c8c6c4;
+  --sbarOn:#a19f9d;
+  --griddot:#e8e6e4;
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){
-  --bg:#eef1f6; --panel:#ffffff; --panel2:#f5f7fb; --panel3:#e8edf5;
-  --line:#ccd5e2; --line-soft:#e4e9f1;
-  --nodeline:#8896ac;
-  --fg:#131924; --dim:#48566b; --faint:#76839a;
+  /* 明るいほう。Defender の Light と同じく、白と薄い灰で積む。
+     こちらも青みを持たせない（以前は #eef1f6 系の青灰だった）。 */
+  --bg:#faf9f8; --panel:#ffffff; --panel2:#f5f5f5; --panel3:#ebebeb;
+  --line:#e0e0e0; --line-soft:#efefef;
+  --nodeline:#909090;
+  --fg:#242424; --dim:#484644; --faint:#616161;
 
-  --cur:#a86a00;  --cur-bg:color-mix(in srgb, #a86a00 12%, transparent);
-  --ok:#0f8a4f;   --ok-bg:color-mix(in srgb, #0f8a4f 12%, transparent);
-  --skip:#8a94a6;
-  --s1:#c62828;   --s2:#a15c00;   --s3:#00718f;
+  --cur:#0f6cbd;  --cur-bg:color-mix(in srgb, #0f6cbd 10%, transparent);
+  --ok:#0e700e;   --ok-bg:color-mix(in srgb, #0e700e 10%, transparent);
+  --skip:#8a8886;
+  --s1:#c50f1f;   --s2:#bc4b09;   --s3:#835c00;
   --dec:#6a35d9;
 
   --c1:#c2185b; --c2:#0b62d0; --c3:#6a35d9; --c4:#a15c00; --c5:#0f8a63;
   --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
 
-  --hover:#9aa7bb;
-  --wire:#8b98ad;
+  --hover:#a0a0a0;
+  --wire:#8a8a8a;
   --onCur:#ffffff;
   --onOk:#ffffff;
-  --topbg:rgba(255,255,255,.94);
-  --maskbg:rgba(28,36,50,.42);
-  --shadow:rgba(22,32,52,.16);
+  --topbg:rgba(255,255,255,.96);
+  --maskbg:rgba(0,0,0,.4);
+  --shadow:rgba(0,0,0,.13);
   --decFg:#5b21b6;
   --custFg:#b3175a;
-  --sbar:#c3ccdb;
-  --sbarOn:#9aa7bb;
+  --sbar:#c8c6c4;
+  --sbarOn:#a19f9d;
+  --griddot:#e8e6e4;
 }
 }
 /* ロゴは地の明暗に関わらず本来の色のままにする */
