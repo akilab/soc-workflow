@@ -26,7 +26,7 @@ import { SLASettings } from "../sla";
 import { changedDetail, diffFrom, diffSummary } from "../derive";
 import type { StepDiff } from "../derive";
 import { $, $as, esc } from "../dom";
-import { eventLanes, eventOf, fmtMin, validate } from "../flow";
+import { eventLanes, eventOf, validate } from "../flow";
 import { Inspector } from "../inspector";
 import { renderOutline, reorderedIds } from "../outline";
 import { Palette } from "../palette";
@@ -467,13 +467,11 @@ export class EditScreen {
     const evt = this.evt;
     if (!evt) return;
     const r = validate(this.api.db, evt);
-    const mins = r.paths.map((p) => p.minutes);
-    const max = Math.max(0, ...mins);
-    // 全部同じ長さなら、どれも色を付けない。全行が色付きだと「最も長い」が
-    // 何も言っていないことになる（実データで 4 経路とも 16 時間 45 分だった）。
-    const varies = max > Math.min(...mins);
-    const anyWait = r.paths.some((p) => p.waitMinutes > 0);
 
+    // 目標時間の合計は出さない。手順ごとの目標を足した数は「この経路の重さ」
+    // でしかなく、1 営業日の手順が 2 つあるだけで 16 時間を超える。実データの
+    // 4 経路がすべて同じ 16 時間 45 分を並べていて、読む人には何も伝わって
+    // いなかった。約束した時間は SLA として別に持つ（sla.ts）。
     const rows = r.paths
       .map((p, i) => {
         const keys = Object.keys(p.answers);
@@ -492,11 +490,6 @@ export class EditScreen {
           `<tr><td class="num">${i + 1}</td>` +
           `<td><div class="pathkey">${chips}</div></td>` +
           `<td class="num">${p.count}</td>` +
-          `<td class="num${varies && p.minutes >= max ? " long" : ""}">` +
-          `${fmtMin(p.minutes)}</td>` +
-          (anyWait
-            ? `<td class="num">${p.waitMinutes ? fmtMin(p.waitMinutes) : "—"}</td>`
-            : "") +
           "</tr>"
         );
       })
@@ -506,15 +499,9 @@ export class EditScreen {
       "経路一覧",
       `${evt.title} — ${r.paths.length} 経路`,
       '<p class="ins hint" style="margin:0 0 12px">分岐の全組み合わせです。' +
-        (varies ? "目標時間の合計が最も長い経路を色付きで示します。" : "") +
-        (anyWait
-          ? "待ちは自分たちが動く時間ではないので、分けて数えています。"
-          : "") +
         "対応者は 1 本しか辿りませんが、設計する側は全部を見る必要があります。</p>" +
         '<table class="tbl"><thead><tr><th>#</th><th>回答の組み合わせ</th>' +
-        "<th>手順数</th><th>目標時間の合計</th>" +
-        (anyWait ? "<th>待ち</th>" : "") +
-        "</tr></thead>" +
+        "<th>手順数</th></tr></thead>" +
         `<tbody>${rows}</tbody></table>`,
     );
   }
