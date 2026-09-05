@@ -4,8 +4,8 @@
  * 同じフローを 2 つの軸で同時に見せている。アウトラインは「どの順で、どの条件のときに」、
  * キャンバスは「どのフェーズのどこにあるか」。設計しているときはこの 2 つを行き来する。
  *
- * 試走モードは、書き出し HTML と同じ viewer をそのまま起動する。
- * 「試走で見えているものが、そのまま配布物になる」を仕組みで保証している。
+ * テストモードは、書き出し HTML と同じ viewer をそのまま起動する。
+ * 「テストで見えているものが、そのまま配布物になる」を仕組みで保証している。
  */
 
 import { Api, ApiError, stepInput } from "../api";
@@ -27,7 +27,13 @@ import { Selection } from "../select";
 import { EventLaneSettings } from "../settings";
 import type { DropSpot } from "../canvas";
 import type { EventFlow } from "../types";
-import { closeModal, openModal, showApiError, toast } from "../ui";
+import {
+  closeModal,
+  openModal,
+  showApiError,
+  surfaceFoot,
+  toast,
+} from "../ui";
 
 type Mode = "edit" | "run";
 
@@ -272,11 +278,11 @@ export class EditScreen {
   }
 
   // -------------------------------------------------------------------------
-  // 試走
+  // テスト
   // -------------------------------------------------------------------------
 
   private setMode(m: Mode): void {
-    // 試走へ移る前に、打ちかけの文字を送り切る。
+    // テストへ移る前に、打ちかけの文字を送り切る。
     // 送る前に viewer を立ち上げると、書きかけの内容が反映されない。
     if (m === "run") void this.inspector.flush();
     this.mode = m;
@@ -298,7 +304,7 @@ export class EditScreen {
   private startRun(): void {
     this.stopRun();
     const db = this.api.db;
-    // storageKey を渡さない＝試走の進捗は保存しない。編集中の下書きを汚さないため。
+    // storageKey を渡さない＝テストの進捗は保存しない。編集中の下書きを汚さないため。
     this.viewer = mountViewer(
       $("runRoot"),
       {
@@ -418,7 +424,7 @@ export class EditScreen {
         : "") + '<button class="ed-tool pri" data-x="close">閉じる</button>',
     );
 
-    $("mFoot")
+    surfaceFoot()
       .querySelector("#diffAck")
       ?.addEventListener("click", () => void this.ackDiff(evt.key));
   }
@@ -487,13 +493,15 @@ export class EditScreen {
     const evt = this.evt;
     if (!evt) return;
     openModal(
-      "書き出し",
+      "エクスポート",
       evt.title,
       '<p class="ins hint" style="margin:0 0 12px">下のプレビューは、実際に書き出される HTML を' +
         "そのまま表示しています。外部依存はありません。ファイルをコピーするだけで配れます。</p>" +
         `<iframe class="frame" src="${esc(this.api.exportUrl(this.eventKey))}"></iframe>`,
       `<a class="ed-tool pri" href="${esc(this.api.downloadUrl(this.eventKey))}" download>保存する</a>` +
         '<button class="ed-tool" data-x="close">閉じる</button>',
+      // プレビューは中身そのものに幅が要るので、広く開く。
+      true,
     );
   }
 

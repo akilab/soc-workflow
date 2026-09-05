@@ -272,8 +272,27 @@
      道具の性格上いつでも見えていてよい。中身は main.ts が入れる。 -->
 <footer class="app-status" id="appStatus"></footer>
 
-<!-- 通知・モーダル -->
+<!-- 通知 -->
 <div class="toast" id="toast"></div>
+
+<!-- ================= 右のパネル =================
+     見るもの・直すものはここに出す。背後の一覧が見えたままなので、
+     「どれを直しているか」を見失わない。Microsoft の作法（Fluent の Drawer）。 -->
+<div class="panel-wrap" id="panel">
+  <div class="panel-scrim" data-x="close"></div>
+  <aside class="panel-body" role="dialog" aria-modal="true">
+    <header>
+      <h2 id="pTitle"></h2>
+      <button class="app-ico" id="pClose" type="button" title="閉じる">
+        <svg class="ic lg"><use href="#ic-dismiss"/></svg></button>
+    </header>
+    <div class="pbody" id="pBody"></div>
+    <footer id="pFoot"></footer>
+  </aside>
+</div>
+
+<!-- ================= 中央のダイアログ =================
+     取り消せない操作の確認だけ。背後を止めるべき場面にしか使わない。 -->
 <div class="mask" id="mask">
   <div class="modal">
     <header>

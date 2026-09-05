@@ -15,7 +15,7 @@ import { EditScreen } from "./screens/edit";
 import { EventsScreen } from "./screens/events";
 import { TasksScreen } from "./screens/tasks";
 import { Settings } from "./settings";
-import { closeModal, showApiError, toast } from "./ui";
+import { closeModal, showApiError, surfaceOpen, toast } from "./ui";
 
 type Screen = "events" | "edit" | "contacts" | "tasks";
 
@@ -141,6 +141,10 @@ class App {
     $("mask").addEventListener("click", (e) => {
       if (e.target === $("mask")) closeModal(); // 外側を押したら閉じる
     });
+    // パネルの背景。押したら閉じる。
+    $("panel")
+      .querySelector<HTMLElement>(".panel-scrim")
+      ?.addEventListener("click", closeModal);
     $("btnUndo").addEventListener("click", () => void this.stepHistory(true));
     $("btnRedo").addEventListener("click", () => void this.stepHistory(false));
 
@@ -155,9 +159,9 @@ class App {
       // ここで横取りすると、1 文字消したいだけなのに手順ごと戻ってしまう。
       const t = e.target as HTMLElement | null;
       if (t?.closest("input, textarea, select, [contenteditable]")) return;
-      // ダイアログが開いているあいだも触らない。裏側のデータが
+      // パネルやダイアログが開いているあいだも触らない。裏側のデータが
       // 入れ替わると、いま書いている内容が何に対するものか分からなくなる。
-      if ($("mask").classList.contains("on")) return;
+      if (surfaceOpen()) return;
 
       const k = e.key.toLowerCase();
       if (k === "z" && !e.shiftKey) {
@@ -214,9 +218,9 @@ class App {
     const msg = e instanceof ApiError ? e.message : String(e);
     document.body.className = "screen-events";
     $("ewGrid").innerHTML =
-      '<div class="ew-card"><div class="ew-hd"><b>データを読み込めません</b></div>' +
-      `<p class="ew-sub">${escapeText(msg)}</p>` +
-      '<p class="ew-sub">サーバが動いているか確認してから、再読み込みしてください。</p></div>';
+      '<div class="fatal"><b>データを読み込めません</b>' +
+      `<p>${escapeText(msg)}</p>` +
+      "<p>サーバが動いているか確認してから、再読み込みしてください。</p></div>";
   }
 }
 

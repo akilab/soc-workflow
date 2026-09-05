@@ -1,34 +1,102 @@
 /**
- * モーダルとトースト。
+ * 別の面（パネル・ダイアログ）とトースト。
  *
  * ブラウザ標準の prompt / confirm / alert は使わない。
  * 環境によっては prompt() が例外になる（モックでこれに当たった）うえ、
  * 見た目も画面から浮く。入力も確認も通知も、画面の中で受ける。
+ *
+ * 面は 2 種類だけ。Microsoft の作法にそろえてある。
+ *
+ *   パネル（右から出る）… 1 件を見る・直す。背後の一覧が見えたままなので、
+ *                        「どれを直しているか」を見失わない。既定はこちら
+ *   ダイアログ（中央）  … 短い決断だけ。特に取り消せない操作の確認
+ *
+ * モーダルは背後を全部隠して操作を止めるので、本当に止めるべきときにだけ使う。
+ * 以前は入力も一覧の表示も全部モーダルだった。
+ *
+ * 呼ぶ側は openModal / askModal / confirmModal のままでよい。
+ * どの面に出すかは、ここだけが決めている。
  */
 
 import { $, esc } from "./dom";
 import type { ApiError } from "./api";
 
+/** いま開いている面を閉じる関数。Esc と背景クリックが使う。 */
+let closeCurrent: (() => void) | null = null;
+
+/**
+ * 右のパネルを開く。読むもの・直すものはこちら。
+ *
+ * wide を立てると広く開く（書き出しのプレビューのように、
+ * 中身そのものに幅が要るとき）。
+ */
 export function openModal(
   title: string,
   sub: string,
   bodyHtml: string,
   footHtml?: string,
+  wide = false,
 ): void {
-  $("mTitle").innerHTML = `${esc(title)}<small>${esc(sub)}</small>`;
-  $("mBody").innerHTML = bodyHtml;
-  $("mFoot").innerHTML =
+  $("pTitle").innerHTML = `${esc(title)}<small>${esc(sub)}</small>`;
+  $("pBody").innerHTML = bodyHtml;
+  $("pFoot").innerHTML =
     footHtml ?? '<button class="ed-tool" data-x="close">閉じる</button>';
-  $("mask").classList.add("on");
 
-  $("mFoot")
-    .querySelector<HTMLElement>('[data-x="close"]')
-    ?.addEventListener("click", closeModal);
+  const panel = $("panel");
+  panel.classList.toggle("wide", wide);
+  panel.classList.add("on");
+  closeCurrent = closePanel;
+
+  for (const b of $("pFoot").querySelectorAll<HTMLElement>('[data-x="close"]')) {
+    b.addEventListener("click", closePanel);
+  }
+  $("pClose").onclick = closePanel;
+  $("pBody").querySelector<HTMLElement>("input,select,textarea,button")?.focus();
 }
 
-export function closeModal(): void {
+function closePanel(): void {
+  $("panel").classList.remove("on");
+  $("pBody").innerHTML = "";
+  closeCurrent = null;
+}
+
+/** 中央のダイアログ。取り消せない確認だけに使う。 */
+function openDialog(title: string, sub: string, bodyHtml: string, footHtml: string): void {
+  $("mTitle").innerHTML = `${esc(title)}<small>${esc(sub)}</small>`;
+  $("mBody").innerHTML = bodyHtml;
+  $("mFoot").innerHTML = footHtml;
+  $("mask").classList.add("on");
+  closeCurrent = closeDialog;
+}
+
+function closeDialog(): void {
   $("mask").classList.remove("on");
   $("mBody").innerHTML = "";
+  closeCurrent = null;
+}
+
+/** どちらの面でも、開いているものを閉じる。Esc と背景クリックから呼ぶ。 */
+export function closeModal(): void {
+  closeCurrent?.();
+}
+
+/** いずれかの面が開いているか。キー操作を横取りしてよいかの判断に使う。 */
+export function surfaceOpen(): boolean {
+  return closeCurrent !== null;
+}
+
+/**
+ * openModal で開いた面の中身と足元。
+ *
+ * 開いたあとにボタンを配線する呼び出し側が使う。
+ * 呼ぶ側が要素の id を直に知っていると、面を差し替えるたびに全部壊れる
+ * （実際、パネルへ移したときに 4 か所が壊れた）。ここを通す。
+ */
+export function surfaceBody(): HTMLElement {
+  return $("pBody");
+}
+export function surfaceFoot(): HTMLElement {
+  return $("pFoot");
 }
 
 // ---------------------------------------------------------------------------
@@ -90,8 +158,8 @@ export function askModal(o: AskOptions): Promise<Record<string, string> | null> 
         `<button class="ed-tool pri" data-x="ok">${esc(o.okLabel ?? "作成")}</button>`,
     );
 
-    const mb = $("mBody");
-    const mf = $("mFoot");
+    const mb = $("pBody");
+    const mf = $("pFoot");
 
     const ok = () => {
       const v: Record<string, string> = {};
@@ -138,9 +206,15 @@ export interface ConfirmOptions {
   danger?: boolean;
 }
 
+/**
+ * 確認。ここだけは中央のダイアログにする。
+ *
+ * 削除のように取り消せない操作は、背後の操作を止めて手を止めさせるのが正しい。
+ * 逆に言えば、止める必要のないものはパネルに出す。
+ */
 export function confirmModal(o: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => {
-    openModal(
+    openDialog(
       o.title,
       o.sub ?? "",
       `<div class="ins"><div class="cfm">${o.message}</div></div>`,

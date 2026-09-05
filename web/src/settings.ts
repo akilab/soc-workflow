@@ -15,9 +15,17 @@
 
 import { Api, ApiError } from "./api";
 import type { LaneInput, PhaseInput } from "./api";
-import { $, esc } from "./dom";
+import { esc } from "./dom";
 import type { DB, EventFlow, EventLane, Lane, Phase } from "./types";
-import { closeModal, confirmModal, openModal, showApiError, toast } from "./ui";
+import {
+  closeModal,
+  confirmModal,
+  openModal,
+  showApiError,
+  surfaceBody,
+  surfaceFoot,
+  toast,
+} from "./ui";
 
 /** 選べる色。フェーズと担当で同じ並びを使う。 */
 const COLORS = [
@@ -168,8 +176,8 @@ export class Settings {
   }
 
   private bind(k: Kind, items: (Phase | Lane)[]): void {
-    const body = $("mBody");
-    const foot = $("mFoot");
+    const body = surfaceBody();
+    const foot = surfaceFoot();
 
     // 名前と色は既存の項目を書き換えるので、その項目の中身を丸ごと送る。
     const save = async (i: number, patch: { name?: string; color?: string }) => {
@@ -347,8 +355,8 @@ export class EventLaneSettings {
   }
 
   private bind(evt: EventFlow, rows: EventLane[]): void {
-    const body = $("mBody");
-    const foot = $("mFoot");
+    const body = surfaceBody();
+    const foot = surfaceFoot();
 
     for (const b of body.querySelectorAll<HTMLElement>("[data-up]")) {
       b.addEventListener("click", () => {

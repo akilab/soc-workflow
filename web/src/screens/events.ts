@@ -301,13 +301,15 @@ export class EventsScreen {
     const url = this.api.exportUrl(key);
 
     openModal(
-      "書き出し",
+      "エクスポート",
       ev ? ev.title : `全 ${this.api.db.events.length} フロー`,
       '<p class="ins hint" style="margin:0 0 12px">下のプレビューは、実際に書き出される HTML を' +
         "そのまま表示しています。外部依存はありません。ファイルをコピーするだけで配れます。</p>" +
         `<iframe class="frame" src="${esc(url)}"></iframe>`,
       `<a class="ed-tool pri" href="${esc(this.api.downloadUrl(key))}" download>保存する</a>` +
         '<button class="ed-tool" data-x="close">閉じる</button>',
+      // プレビューは中身そのものに幅が要るので、広く開く。
+      true,
     );
   }
 

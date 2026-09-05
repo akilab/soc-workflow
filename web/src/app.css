@@ -1,6 +1,6 @@
 /* エディタのスタイル。モック（mock/soc-flow-editor-mock.html）から切り出したもの。
  *
- * 試走モードと書き出し HTML が使う viewer 側のスタイルは internal/export/viewer.css。
+ * テストモードと書き出し HTML が使う viewer 側のスタイルは internal/export/viewer.css。
  * あちらは配布物にそのまま埋め込まれるので、こちらとは混ぜない。
  */
 /* ==================================================================
@@ -443,7 +443,7 @@ body.dragging .clane:not(.drop){opacity:.35}
 .cwires.focus>path{opacity:.2}
 /* 選択・ホバー中の線だけ、進む向きに破線を流す。
    「常時動くものは置かない」原則があるので、選択している間だけに限る。
-   試走モードと書き出し HTML には入れない。 */
+   テストモードと書き出し HTML には入れない。 */
 .cwires>path.hot{stroke:var(--cur);stroke-width:2.8;opacity:1;
   stroke-dasharray:9 7;animation:wire-flow 900ms linear infinite}
 @keyframes wire-flow{from{stroke-dashoffset:0}to{stroke-dashoffset:-16}}
@@ -619,9 +619,9 @@ body.dragging .clane:not(.drop){opacity:.35}
 .issue span{display:block;font-size:var(--t3);color:var(--dim);line-height:1.7;margin-top:2px}
 .okmsg{color:var(--ok);font-size:var(--t5);padding:20px 0;text-align:center}
 
-/* ---------- 試走 ---------- */
+/* ---------- テスト ---------- */
 #runWrap{display:none}
-body.screen-run #runWrap{display:block}   /* これが無く、試走モードが真っ白だった */
+body.screen-run #runWrap{display:block}   /* これが無く、テストモードが真っ白だった */
 .runbar{margin:12px 20px 0;padding:9px 14px;border:1px dashed var(--dec);border-radius:var(--r2);
   font-size:var(--t4);color:var(--decFg);background:color-mix(in srgb, var(--dec) 7%, transparent);line-height:1.7}
 
@@ -870,3 +870,43 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .flowtbl td.acts button:hover{background:var(--panel3);color:var(--fg)}
 .flowtbl td.acts button.dg:hover{color:var(--s1)}
 .flowtbl .ew-rel{margin:0;font-size:var(--t3)}
+
+/* ================= 右のパネル（Fluent の Drawer） =================
+   見るもの・直すものはここ。背後の一覧が見えたままなので、
+   「どれを直しているか」を見失わない。
+   モーダルは背後を全部隠して手を止めるので、取り消せない確認だけに使う。 */
+.panel-wrap{position:fixed;inset:0;z-index:80;display:none}
+.panel-wrap.on{display:block}
+/* 背景は薄く敷くだけ。中央のダイアログほど強くしない——
+   こちらは「止めている」のではなく「横に開いている」ので。 */
+.panel-scrim{position:absolute;inset:0;background:rgba(0,0,0,.32)}
+.panel-body{position:absolute;top:0;right:0;bottom:0;width:min(520px,100vw);
+  background:var(--panel);border-left:1px solid var(--line);
+  box-shadow:-8px 0 28px var(--shadow);display:flex;flex-direction:column;
+  animation:panel-in .16s ease-out}
+.panel-wrap.wide .panel-body{width:min(1100px,100vw)}
+@keyframes panel-in{from{transform:translateX(16px);opacity:.6}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.panel-body{animation:none}}
+
+.panel-body > header{display:flex;align-items:flex-start;gap:12px;
+  padding:14px 16px 12px;border-bottom:1px solid var(--line);flex:none}
+.panel-body > header h2{margin:0;font-size:var(--t7);font-weight:600;flex:1;min-width:0}
+.panel-body > header h2 small{display:block;font-size:var(--t3);color:var(--faint);
+  font-weight:400;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-body .pbody{overflow:auto;padding:16px;flex:1;min-height:0}
+.panel-body > footer{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;
+  justify-content:flex-end;align-items:center;flex-wrap:wrap;flex:none}
+.panel-body > footer .fnote{margin-right:auto;font-size:var(--t3);color:var(--faint);line-height:1.6}
+
+/* 起動できなかったとき。画面が空のまま何も言わないのが一番困る。 */
+.fatal{background:var(--panel);border:1px solid var(--s1);border-left:3px solid var(--s1);
+  border-radius:var(--r3);padding:16px 18px;max-width:640px}
+.fatal b{display:block;font-size:var(--t6);font-weight:600;margin-bottom:6px}
+.fatal p{margin:4px 0;font-size:var(--t4);color:var(--dim);line-height:1.7}
+
+/* 確認ダイアログの「削除する」。
+   .ed-tool.dgr は一覧の中で控えめに置くための形（薄い灰）なので、
+   そのままダイアログに出すと無効なボタンに見える。
+   ここは押してもらう場所なので、危険な色ではっきり出す。 */
+.modal .ed-tool.dgr{border-color:var(--s1);color:var(--s1);font-weight:600}
+.modal .ed-tool.dgr:hover{background:var(--s1);color:#fff;border-color:var(--s1)}

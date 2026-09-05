@@ -30,6 +30,8 @@ import {
   confirmModal,
   openModal,
   showApiError,
+  surfaceBody,
+  surfaceFoot,
   toast,
 } from "./ui";
 
@@ -486,7 +488,7 @@ export class Inspector {
     return (
       '<div class="sect ct"><h4>連絡先 <button class="x" id="ct_add">＋</button></h4>' +
       rows +
-      '<p class="hint">試走モードと書き出し HTML では、グループのメンバーが' +
+      '<p class="hint">テストモードと書き出し HTML では、グループのメンバーが' +
       "<b>連絡順に</b>手順の中に表示されます。" +
       "担当が設定されているグループは、フロー図でその列へ矢印が伸びます。" +
       "グループとメンバーの編集は「連絡先」画面で行います。</p></div>"
@@ -515,7 +517,7 @@ export class Inspector {
 
     const html =
       '<p class="ins hint" style="margin:0 0 12px">この手順で連絡するグループを選びます。' +
-      "メンバーは連絡順に、試走モードと書き出し HTML で手順の中に表示されます。</p>" +
+      "メンバーは連絡順に、テストモードと書き出し HTML で手順の中に表示されます。</p>" +
       '<div class="ctpick">' +
       groups
         .map((g) => {
@@ -551,14 +553,14 @@ export class Inspector {
         '<button class="ed-tool pri" data-x="ok">決定</button>',
     );
 
-    const foot = $("mFoot");
+    const foot = surfaceFoot();
     foot
       .querySelector('[data-x="cancel"]')
       ?.addEventListener("click", closeModal);
     foot.querySelector('[data-x="ok"]')?.addEventListener("click", () => {
       const picked: string[] = [];
       for (const g of groups) {
-        const cb = $("mBody").querySelector<HTMLInputElement>(
+        const cb = surfaceBody().querySelector<HTMLInputElement>(
           `input[value="${CSS.escape(g.key)}"]`,
         );
         if (cb?.checked) picked.push(g.key);
