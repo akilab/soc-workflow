@@ -255,12 +255,15 @@ body.resizing{cursor:col-resize;user-select:none}
   background:var(--line);border-radius:var(--r1);transition:background .15s}
 .split:hover::after{background:var(--cur)}
 
+/* パネル。Defender の「検出とカテゴリ」「インシデント グラフ」「タスク」と同じ作り。
+   見出しは大文字送りの小さなラベルではなく、ふつうの太字にする。
+   Fluent のパネル見出しは読ませるもので、飾りではない。 */
 .pane{background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);height:100%;
   display:flex;flex-direction:column;overflow:hidden;min-height:0}
-.pane>h3{margin:0;padding:11px 14px 9px;font-size:var(--t2);letter-spacing:.15em;text-transform:uppercase;
-  color:var(--faint);font-weight:700;border-bottom:1px solid var(--line-soft);display:flex;
+.pane>h3{margin:0;padding:9px 12px;font-size:var(--t4);color:var(--fg);font-weight:600;
+  border-bottom:1px solid var(--line);display:flex;
   justify-content:space-between;align-items:center;gap:8px;flex:none}
-.pane>h3 span{letter-spacing:0;text-transform:none;font-size:var(--t2);color:var(--faint);font-weight:400;
+.pane>h3 span{font-size:var(--t3);color:var(--faint);font-weight:400;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pane .scroll{overflow:auto;flex:1;padding:10px 12px 16px;min-height:0}
 
@@ -338,7 +341,10 @@ body.resizing{cursor:col-resize;user-select:none}
   font-size:var(--t2);color:var(--faint);line-height:1.8}
 
 /* ---------- キャンバス（中央・上） ---------- */
-.canvas{position:relative;overflow:auto;flex:1 1 auto;padding:14px 16px 16px;min-height:0}
+/* キャンバス。点の地は Defender の「インシデント グラフ」と同じ。
+   「ここは図を置く面で、書類ではない」ことが、地の作りだけで伝わる。 */
+.canvas{position:relative;overflow:auto;flex:1 1 auto;padding:14px 16px 16px;min-height:0;
+  background-image:radial-gradient(var(--griddot) 1px,transparent 1px);background-size:16px 16px}
 /* 列＝担当（レーン）、行＝手順の順番。
    行が実施順そのものなので、線は必ず下へ進み、決して戻らない。
    線 i は行 i と行 i+1 のあいだの帯しか通らないため、交差は起こり得ない。 */
@@ -458,13 +464,13 @@ body.dragging .clane:not(.drop){opacity:.35}
 .cempty b{display:block;color:var(--dim);font-size:var(--t5);margin-bottom:4px}
 
 /* ---------- 右サイドバー: タブ ---------- */
-.tabs{display:flex;flex:none;border-bottom:1px solid var(--line-soft);padding:5px 7px 0;gap:4px}
-.tabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--faint);
-  font-family:var(--sans);font-size:var(--t3);font-weight:700;padding:8px 4px 9px;cursor:pointer;
-  letter-spacing:.05em;display:flex;align-items:center;justify-content:center;gap:6px;
+.tabs{display:flex;flex:none;border-bottom:1px solid var(--line);padding:0 6px;gap:2px}
+.tabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);
+  font-family:var(--sans);font-size:var(--t4);font-weight:400;padding:9px 4px 9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
   transition:color .15s,border-color .15s}
-.tabs button:hover{color:var(--dim)}
-.tabs button.on{color:var(--cur);border-bottom-color:var(--cur)}
+.tabs button:hover{color:var(--fg);background:var(--panel2)}
+.tabs button.on{color:var(--cur);border-bottom-color:var(--cur);font-weight:600}
 .tabs button i{font-style:normal;font-family:var(--mono);font-size:var(--t1);font-weight:700;
   background:var(--panel3);border:1px solid var(--line);border-radius:var(--r1);padding:0 5px;color:var(--faint)}
 .tabs button.on i{background:var(--cur-bg);border-color:var(--cur);color:var(--cur)}
@@ -516,14 +522,18 @@ body.dragging .clane:not(.drop){opacity:.35}
 .pal-empty{color:var(--faint);font-size:var(--t4);line-height:1.9;padding:10px 2px}
 
 /* ---------- インスペクタ（右・タブ内） ---------- */
-.ins label{display:block;font-size:var(--t2);letter-spacing:.1em;text-transform:uppercase;
-  color:var(--faint);font-weight:700;margin:12px 0 5px}
+/* 欄の名前。大文字送りをやめ、ふつうの文字にする。
+   和文には大文字が無いので、送りだけが効いて読みにくくなっていた。 */
+.ins label{display:block;font-size:var(--t3);color:var(--dim);font-weight:400;margin:14px 0 5px}
 .ins label:first-child{margin-top:0}
+/* 入力欄は Fluent の形。下辺だけが太くなって、いま触っている欄が分かる。 */
 .ins input[type=text],.ins textarea,.ins select{width:100%;background:var(--panel2);
-  border:1px solid var(--line);color:var(--fg);border-radius:var(--r2);padding:8px 10px;font-size:var(--t4);
+  border:1px solid var(--line);border-bottom:1px solid var(--faint);color:var(--fg);
+  border-radius:var(--r2) var(--r2) 0 0;padding:7px 10px;font-size:var(--t4);
   font-family:var(--sans);line-height:1.65}
 .ins textarea{resize:vertical;min-height:120px}
-.ins input:focus,.ins textarea:focus,.ins select:focus{outline:none;border-color:var(--cur)}
+.ins input:focus,.ins textarea:focus,.ins select:focus{outline:none;
+  border-bottom:2px solid var(--cur);padding-bottom:6px}
 .ins .row{display:flex;gap:8px}
 .ins .row>*{flex:1;min-width:0}
 .ins .hint{font-size:var(--t2);color:var(--faint);line-height:1.6;margin:5px 0 0}
@@ -562,7 +572,7 @@ body.dragging .clane:not(.drop){opacity:.35}
   box-shadow:0 24px 70px var(--shadow)}
 .modal>header{padding:15px 20px;border-bottom:1px solid var(--line);display:flex;
   align-items:center;justify-content:space-between;gap:16px}
-.modal>header h2{margin:0;font-size:var(--t7)}
+.modal>header h2{margin:0;font-size:var(--t7);font-weight:600}
 .modal>header h2 small{display:block;font-size:var(--t3);color:var(--faint);font-weight:400;margin-top:2px}
 .modal .mbody{overflow:auto;padding:18px 20px;flex:1}
 .modal>footer{padding:13px 20px;border-top:1px solid var(--line);display:flex;gap:10px;
@@ -574,8 +584,10 @@ body.dragging .clane:not(.drop){opacity:.35}
 .frame{width:100%;height:min(60vh,540px);border:1px solid var(--line);border-radius:var(--r3);background:var(--bg)}
 
 .tbl{width:100%;border-collapse:collapse;font-size:var(--t4)}
-.tbl th{text-align:left;font-size:var(--t2);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
-  border-bottom:1px solid var(--line);padding:7px 9px;font-weight:700;white-space:nowrap}
+/* 表の見出し。大文字送りをやめる（和文には効かず、欧文だけ間延びする）。
+   Fluent の表は見出しも本文と同じ書式で、太さだけで区別する。 */
+.tbl th{text-align:left;font-size:var(--t3);color:var(--dim);
+  border-bottom:1px solid var(--line-2,var(--line));padding:8px 9px;font-weight:600;white-space:nowrap}
 .tbl td{border-bottom:1px solid var(--line-soft);padding:9px;vertical-align:middle;line-height:1.65}
 .tbl tr:hover td{background:var(--panel2)}
 .tbl .num{font-family:var(--mono);text-align:right;white-space:nowrap}
@@ -625,9 +637,9 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   padding:7px 12px;font-size:var(--t4);font-family:var(--sans);width:240px}
 .tk-search:focus{outline:none;border-color:var(--cur)}
 
-.tk-g{margin-bottom:26px}
-.tk-g>h3{margin:0 0 10px;font-size:var(--t3);font-weight:700;letter-spacing:.07em;color:var(--pc);
-  display:flex;align-items:center;gap:9px;padding-bottom:6px;border-bottom:2px solid var(--pc)}
+.tk-g{margin-bottom:24px}
+.tk-g>h3{margin:0 0 6px;font-size:var(--t4);font-weight:600;color:var(--fg);
+  display:flex;align-items:center;gap:9px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .tk-g>h3 .dot{width:10px;height:10px;border-radius:var(--r1);background:var(--pc);flex:none}
 .tk-g>h3 u{text-decoration:none;font-family:var(--mono);font-size:var(--t2);color:var(--faint);font-weight:400}
 .tk-g>h3 button{margin-left:auto}
@@ -739,11 +751,15 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   border-radius:var(--r1);padding:0 6px;flex:none}
 
 /* ---------- 一覧の行（対応／連絡先） ---------- */
+/* 対応の行。囲みをやめて、罫線で区切る表にする。
+   カードで囲むと 48 件が 48 個の箱になって、上下に読めない。
+   フェーズの色は左端の細い帯だけに残す（見出しにも同じ色があるので、
+   行では「どの塊にいるか」を思い出させるだけでよい）。 */
 .rw{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) 130px minmax(0,1.1fr) 128px;
-  gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);
-  border-left:3px solid var(--pc,var(--line));border-radius:var(--r2);padding:12px 14px;margin-bottom:8px;
-  transition:border-color .15s,background .15s}
-.rw:hover{border-color:var(--hover);background:var(--panel2)}
+  gap:14px;align-items:center;background:none;border:none;
+  border-bottom:1px solid var(--line);border-left:2px solid var(--pc,var(--line));
+  border-radius:0;padding:9px 14px;margin:0;transition:background .12s}
+.rw:hover{background:var(--panel2)}
 @media(max-width:1100px){.rw{grid-template-columns:1fr 1fr}}
 
 /* 列の見出し。行と同じ格子に載せて、上下がそろって見えるようにする。
@@ -769,10 +785,12 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   border-top:1px solid var(--line-soft);padding-top:7px;margin-top:2px}
 
 /* ---------- 連絡先グループ ---------- */
-.cg{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--kc,var(--line));
-  border-radius:var(--r3);padding:14px 16px;margin-bottom:12px}
+/* 連絡先のグループ。こちらは中に順序付きのメンバーを持つので、
+   1 行の表にはできない。囲みは残しつつ、区分の色は左端の細い帯だけにする。 */
+.cg{background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--kc,var(--line));
+  border-radius:var(--r3);padding:12px 14px;margin-bottom:8px}
 .cg-h{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.cg-h b{font-size:var(--t6);font-weight:700}
+.cg-h b{font-size:var(--t6);font-weight:600}
 .cg-h .kind{font-size:var(--t3);color:var(--kc);border:1px solid var(--kc);border-radius:var(--r1);padding:1px 8px}
 .cg-h .cnt{font-family:var(--mono);font-size:var(--t3);color:var(--faint)}
 .cg-h .use{font-family:var(--mono);font-size:var(--t3);color:var(--dim);
