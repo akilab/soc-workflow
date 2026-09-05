@@ -193,7 +193,7 @@ export function renderCanvas(deps: CanvasDeps): void {
     el.addEventListener("dragstart", (e) => {
       e.dataTransfer?.setData("text/plain", `step:${st.id}`);
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-      setDragChip(e, st.title, phase?.color);
+      setDragChip(e, el);
       setDragLabel(st.title);
       dimSource(el);
       document.body.classList.add("dragging");

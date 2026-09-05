@@ -438,16 +438,6 @@ body.dragging .clane:not(.drop){opacity:.6}
   padding:2px 8px;border-radius:var(--r2);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;display:block;box-shadow:0 2px 6px var(--shadow)}
 
-/* 運んでいる絵。掴んだ瞬間に作って渡し、写し終えたら消す（dom.ts の setDragChip）。
-   画面の外に置くのは、写すまでのあいだ見せないため。 */
-.dragchip{position:fixed;top:-2000px;left:-2000px;pointer-events:none;
-  max-width:280px;padding:8px 12px 8px 10px;
-  background:var(--panel3);color:var(--fg);
-  border:2px solid var(--cur);border-left:5px solid var(--pc,var(--cur));
-  border-radius:var(--r2);font-family:var(--sans);font-size:var(--t4);font-weight:600;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  box-shadow:0 8px 20px rgba(0,0,0,.55)}
-
 /* 連絡の相手。矢印の行き先に置く札。
    手順のボックスは角のある四角にしたので、こちらは丸くしておく。
    形が違えば「手順ではない」ことが一目で分かる。 */
@@ -1039,3 +1029,15 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
    ここは押してもらう場所なので、危険な色ではっきり出す。 */
 .modal .ed-tool.dgr{border-color:var(--s1);color:var(--s1);font-weight:600}
 .modal .ed-tool.dgr:hover{background:var(--s1);color:#fff;border-color:var(--s1)}
+
+/* 運んでいる絵。掴んだ要素をそのまま複製したもの（dom.ts の setDragChip）。
+   別の札を組み立てて渡していたときは「元のものと別物になる」と言われた。
+   掴んだものがそのまま付いてくるのが正しいので、見た目は変えず、
+   地を 1 段明るくして枠と影だけを足す。OS 側で薄く合成されても残るように。
+
+   このファイルの最後に置いてあるのは、複製が元のクラス（.pal-t や .cnode）を
+   そのまま持っているため。あとに書かれたほうが勝つ。 */
+.dragghost{position:fixed!important;top:-2000px;left:-2000px;margin:0;
+  pointer-events:none;opacity:1;
+  background:var(--panel3);
+  box-shadow:inset 0 0 0 2px var(--cur),0 10px 24px rgba(0,0,0,.55)}

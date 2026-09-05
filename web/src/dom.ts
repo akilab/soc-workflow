@@ -90,24 +90,30 @@ export function undimSource(el: HTMLElement): void {
  * 運んでいる絵を、こちらで作って渡す。
  *
  * 何も渡さないと、ブラウザは掴んだ要素をそのまま写して絵にする。この絵は
- * OS 側で薄く合成されるうえ、元の札は地が濃くないので、暗い画面ではほとんど
- * 見えなかった（利用者の指摘。時機を直しても十分ではなかった）。
+ * OS 側で薄く合成されるので、暗い画面ではほとんど見えなかった（利用者の指摘）。
  *
- * 濃い地・太い枠・影を持った札を自分で作って渡せば、合成されても残る。
- * 渡した絵は dragstart が終わった時点で写されるので、そのあとは消してよい。
- * 画面の外に置くのは、写すまでのあいだ利用者に見せないため。
+ * 別の札を組み立てて渡してみたが、それだと**運んでいるものが元の姿と
+ * 別物になる**という指摘をもらった。掴んだものがそのまま付いてくるのが
+ * 正しいので、いまは掴んだ要素の複製を渡している。見た目はそのままで、
+ * 地と枠と影だけを足して（.dragghost）合成に負けないようにする。
+ *
+ * 掴んだ位置を絵の中の同じ場所に合わせるので、札の一部を摘まんで持ち上げた
+ * ような手触りになる。渡した絵は dragstart が終わった時点で写されるので、
+ * そのあとは消してよい。画面の外に置くのは、写すまで見せないため。
  */
-export function setDragChip(e: DragEvent, label: string, color?: string): void {
+export function setDragChip(e: DragEvent, el: HTMLElement): void {
   if (!e.dataTransfer) return;
-  const chip = document.createElement("div");
-  chip.className = "dragchip";
-  if (color) chip.style.setProperty("--pc", color);
-  chip.textContent = label;
-  document.body.appendChild(chip);
+  const box = el.getBoundingClientRect();
+  const ghost = el.cloneNode(true) as HTMLElement;
+  ghost.classList.add("dragghost");
+  ghost.classList.remove("drag");
+  // 元の札は伸び縮みする箱の中にいるので、複製にも同じ大きさを持たせる。
+  ghost.style.width = `${Math.round(box.width)}px`;
+  document.body.appendChild(ghost);
   try {
-    e.dataTransfer.setDragImage(chip, 16, 20);
+    e.dataTransfer.setDragImage(ghost, e.clientX - box.left, e.clientY - box.top);
   } catch {
     /* 使えない環境では、ブラウザ既定の絵に任せる */
   }
-  setTimeout(() => chip.remove(), 0);
+  setTimeout(() => ghost.remove(), 0);
 }

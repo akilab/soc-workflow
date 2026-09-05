@@ -188,7 +188,7 @@ export class Palette {
     el.addEventListener("dragstart", (e) => {
       e.dataTransfer?.setData("text/plain", `task:${t.key}`);
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
-      setDragChip(e, t.label, p.color);
+      setDragChip(e, el);
       setDragLabel(t.label);
       dimSource(el);
       document.body.classList.add("dragging");
