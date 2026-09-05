@@ -142,6 +142,11 @@ var actionLabel = map[string]string{
 	"DELETE /api/tasks/{key}": "対応の削除",
 	"PUT /api/tasks/order":    "対応の並べ替え",
 
+	"POST /api/links":         "リンクの追加",
+	"PUT /api/links/{key}":    "リンクの変更",
+	"DELETE /api/links/{key}": "リンクの削除",
+	"PUT /api/links/order":    "リンクの並べ替え",
+
 	"POST /api/contacts":         "連絡先の追加",
 	"PUT /api/contacts/{key}":    "連絡先の変更",
 	"DELETE /api/contacts/{key}": "連絡先の削除",

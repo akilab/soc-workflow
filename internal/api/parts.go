@@ -376,3 +376,116 @@ func remove[T any](items []T, match func(T) bool) []T {
 	}
 	return out
 }
+
+// ---------------------------------------------------------------------------
+// ランチャーのリンク（左上の点の集まりから開く、外部の画面への近道）
+// ---------------------------------------------------------------------------
+
+type linkBody struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+	Icon string `json:"icon"`
+}
+
+// linkIcons は選べるアイコン。ここに無いものは受け付けない。
+//
+// 好きな絵を持ち込めるようにすると、画面ごとに大きさも太さも色も変わり、
+// 並べたときに揃わなくなる。名前はスプライトの id（items/fluent/*.svg）。
+var linkIcons = map[string]bool{
+	"shield": true, "key": true, "device": true, "team": true,
+	"sparkle": true, "flowchart": true, "mail": true, "cloud": true,
+	"ticket": true, "book": true, "globe": true, "link": true,
+	"alert": true, "people": true, "search": true, "settings": true,
+}
+
+func (b linkBody) check() error {
+	if strings.TrimSpace(b.Name) == "" {
+		return errf(http.StatusBadRequest, "表示名が空です")
+	}
+	// http と https だけに絞る。javascript: や data: を入れられると、
+	// 押した人の画面で任意のものが動いてしまう。
+	u := strings.TrimSpace(b.URL)
+	if !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "https://") {
+		return errf(http.StatusBadRequest, "URL は http:// か https:// で始めてください")
+	}
+	if !linkIcons[b.Icon] {
+		return errf(http.StatusBadRequest, "選べないアイコンです: %s", b.Icon)
+	}
+	return nil
+}
+
+func (s *Server) createLink(w http.ResponseWriter, r *http.Request) {
+	var in linkBody
+	if !decode(w, r, &in) {
+		return
+	}
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		if err := in.check(); err != nil {
+			return nil, err
+		}
+		l := &model.AppLink{
+			Key:  uniqueKey("link", func(k string) bool { return findLink(db, k) != nil }),
+			Name: strings.TrimSpace(in.Name),
+			URL:  strings.TrimSpace(in.URL),
+			Icon: in.Icon,
+		}
+		db.Links = append(db.Links, l)
+		return l, nil
+	})
+}
+
+func (s *Server) updateLink(w http.ResponseWriter, r *http.Request) {
+	var in linkBody
+	if !decode(w, r, &in) {
+		return
+	}
+	key := r.PathValue("key")
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		l := findLink(db, key)
+		if l == nil {
+			return nil, notFound("リンク", key)
+		}
+		if err := in.check(); err != nil {
+			return nil, err
+		}
+		l.Name = strings.TrimSpace(in.Name)
+		l.URL = strings.TrimSpace(in.URL)
+		l.Icon = in.Icon
+		return l, nil
+	})
+}
+
+func (s *Server) deleteLink(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("key")
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		if findLink(db, key) == nil {
+			return nil, notFound("リンク", key)
+		}
+		db.Links = remove(db.Links, func(x *model.AppLink) bool { return x.Key == key })
+		return nil, nil
+	})
+}
+
+func (s *Server) orderLinks(w http.ResponseWriter, r *http.Request) {
+	var in orderBody
+	if !decode(w, r, &in) {
+		return
+	}
+	s.mutate(w, r, func(db *model.DB) (any, error) {
+		next, err := reorder(db.Links, in.Keys, func(l *model.AppLink) string { return l.Key })
+		if err != nil {
+			return nil, err
+		}
+		db.Links = next
+		return nil, nil
+	})
+}
+
+func findLink(db *model.DB, key string) *model.AppLink {
+	for _, l := range db.Links {
+		if l.Key == key {
+			return l
+		}
+	}
+	return nil
+}

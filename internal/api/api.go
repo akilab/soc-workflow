@@ -72,6 +72,11 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("PUT /api/contacts/{key}", s.updateContactGroup)
 	mux.HandleFunc("DELETE /api/contacts/{key}", s.deleteContactGroup)
 
+	mux.HandleFunc("POST /api/links", s.createLink)
+	mux.HandleFunc("PUT /api/links/order", s.orderLinks)
+	mux.HandleFunc("PUT /api/links/{key}", s.updateLink)
+	mux.HandleFunc("DELETE /api/links/{key}", s.deleteLink)
+
 	mux.HandleFunc("POST /api/events", s.createEvent)
 	mux.HandleFunc("PUT /api/events/order", s.orderEvents)
 	mux.HandleFunc("PUT /api/events/{key}", s.updateEvent)

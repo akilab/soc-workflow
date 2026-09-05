@@ -122,7 +122,7 @@ export interface AskField {
   placeholder?: string;
   hint?: string;
   required?: boolean;
-  type?: "text" | "select";
+  type?: "text" | "select" | "icon";
   options?: { v: string; l: string }[];
 }
 
@@ -137,6 +137,23 @@ export interface AskOptions {
 export function askModal(o: AskOptions): Promise<Record<string, string> | null> {
   const body = o.fields
     .map((f, i) => {
+      // 決めたものから選ぶ欄。選択肢が絵のときは、名前を並べた一覧より
+      // 絵をそのまま並べたほうが早い（選んだあとの姿がそのまま見える）。
+      if (f.type === "icon") {
+        const opts = (f.options ?? [])
+          .map(
+            (op) =>
+              `<button type="button" data-ic="${esc(op.v)}"` +
+              `${op.v === f.value ? ' class="on"' : ""} title="${esc(op.l)}">` +
+              `<svg class="ic lg"><use href="#ic-${esc(op.v)}"/></svg></button>`,
+          )
+          .join("");
+        return (
+          `<label>${esc(f.label)}</label>` +
+          `<div class="icpick" data-f="${i}" data-v="${esc(f.value ?? "")}">${opts}</div>` +
+          (f.hint ? `<p class="hint">${esc(f.hint)}</p>` : "")
+        );
+      }
       if (f.type === "select") {
         const opts = (f.options ?? [])
           .map(
@@ -172,12 +189,26 @@ export function askModal(o: AskOptions): Promise<Record<string, string> | null> 
     const mb = $("pBody");
     const mf = $("pFoot");
 
+    // 絵を選ぶ欄。選んだものは入れ物の data-v に持たせる。
+    for (const b of mb.querySelectorAll<HTMLElement>(".icpick button")) {
+      b.addEventListener("click", () => {
+        const box = b.parentElement;
+        if (!box) return;
+        for (const x of box.querySelectorAll(".on")) x.classList.remove("on");
+        b.classList.add("on");
+        box.dataset.v = b.dataset.ic ?? "";
+      });
+    }
+
     const ok = () => {
       const v: Record<string, string> = {};
       o.fields.forEach((f, i) => {
-        const input = mb.querySelector<HTMLInputElement | HTMLSelectElement>(
-          `[data-f="${i}"]`,
-        );
+        const el = mb.querySelector<HTMLElement>(`[data-f="${i}"]`);
+        if (f.type === "icon") {
+          v[f.k] = el?.dataset.v ?? "";
+          return;
+        }
+        const input = el as HTMLInputElement | HTMLSelectElement | null;
         v[f.k] = (input?.value ?? "").trim();
       });
       const miss = o.fields.find((f) => f.required && !v[f.k]);

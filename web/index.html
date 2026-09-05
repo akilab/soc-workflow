@@ -13,8 +13,15 @@
      画面によらず常に同じ。製品名と、好みの切り替えだけを置く。
      Defender ポータルと同じ位置・同じ役割にしてある。 -->
 <header class="app-top">
-  <button class="app-ico" id="appMenu" type="button" title="メニュー">
+  <!-- ランチャー。SOC の作業は 1 つの画面で完結しないので、よく開く先を
+       ここから始められるようにする。中身は組織ごとに違うので固定しない。 -->
+  <button class="app-ico" id="appMenu" type="button" title="リンク集">
     <svg class="ic lg"><use href="#ic-grid"/></svg></button>
+  <div class="launcher" id="launcher">
+    <h2>リンク集</h2>
+    <p>この画面から開く先。別のタブで開きます。</p>
+    <div class="lc-grid" id="launchGrid"></div>
+  </div>
   <h1 class="app-name">SOC <b>Workflow</b><span>対応フローの設計</span></h1>
   <div class="ed-spacer"></div>
   <button class="app-ico" data-th type="button"></button>

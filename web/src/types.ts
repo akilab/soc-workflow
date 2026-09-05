@@ -19,6 +19,23 @@ export interface DB {
   tasks: Task[];
   contactGroups: ContactGroup[];
   events: EventFlow[];
+  /** 左上のランチャーに並べる、外部の画面への近道。無いこともある。 */
+  links?: AppLink[];
+}
+
+/**
+ * ランチャーの 1 マス。外部の画面をひとつ指す。
+ *
+ * アイコンは自由に指定できない。決めた一覧（links.ts の ICONS）から選ぶ。
+ * 好きな絵を持ち込めるようにすると、画面ごとに大きさも太さも色も変わり、
+ * 並べたときに揃わなくなる。
+ */
+export interface AppLink {
+  key: string;
+  name: string;
+  /** http か https のみ。サーバ側でも同じ検査をしている。 */
+  url: string;
+  icon: string;
 }
 
 /**

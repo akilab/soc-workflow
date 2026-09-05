@@ -13,6 +13,7 @@ import { $, $as } from "./dom";
 import { ContactsScreen } from "./screens/contacts";
 import { EditScreen } from "./screens/edit";
 import { EventsScreen } from "./screens/events";
+import { Launcher } from "./links";
 import { TasksScreen } from "./screens/tasks";
 import { Settings } from "./settings";
 import { closeModal, showApiError, surfaceOpen, toast } from "./ui";
@@ -26,6 +27,7 @@ class App {
   private readonly contacts: ContactsScreen;
   private readonly tasks: TasksScreen;
   private readonly settings: Settings;
+  private readonly launcher: Launcher;
 
   /** いま出ている画面。データが入れ替わったとき、どちらを描き直すかを決める。 */
   private screen: Screen = "events";
@@ -43,6 +45,7 @@ class App {
     // 戻るのではなく行き先を選べばよい。
     this.contacts = new ContactsScreen({ api: this.api });
     this.settings = new Settings(this.api);
+    this.launcher = new Launcher(this.api);
     this.tasks = new TasksScreen({
       api: this.api,
       onPhases: () => this.settings.openPhases(),
@@ -99,6 +102,7 @@ class App {
 
   private render(): void {
     this.renderStatus();
+    this.launcher.render();
     if (this.screen === "edit") this.edit.render();
     else if (this.screen === "contacts") this.contacts.render();
     else if (this.screen === "tasks") this.tasks.render();

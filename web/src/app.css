@@ -540,6 +540,52 @@ body.dragging .clane:not(.drop){opacity:.6}
 #paneRight.tab-pal .ins{display:none}
 .palwrap{overflow:auto;flex:1;padding:10px 12px 16px;min-height:0}
 
+/* ---------- ランチャー（左上の点の集まり） ----------
+   Defender の同じ位置にあるものに倣う。上段のすぐ下に、左端から出す。
+   モーダルにはしない——行き先を選ぶだけで、背後の作業を止める必要がない。 */
+.launcher{position:absolute;top:calc(var(--top-h) - 4px);left:8px;z-index:70;
+  width:340px;padding:16px 18px 14px;border-radius:var(--r3);
+  background:var(--panel);border:1px solid var(--line-2);
+  box-shadow:0 12px 34px var(--shadow);
+  opacity:0;transform:translateY(-6px);pointer-events:none;
+  transition:opacity .14s,transform .14s}
+.launcher.on{opacity:1;transform:none;pointer-events:auto}
+.launcher h2{margin:0;font-size:var(--t6);font-weight:600}
+.launcher>p{margin:3px 0 14px;font-size:var(--t2);color:var(--faint)}
+.lc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+
+/* 1 マス。押すと開く。触れているあいだだけ、直すと消すが右上に出る。 */
+.lc-t{position:relative}
+.lc-t>button{width:100%;background:none;border:1px solid transparent;border-radius:var(--r2);
+  color:var(--fg);font-family:var(--sans);font-size:var(--t2);line-height:1.4;
+  padding:12px 6px 10px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:7px;text-align:center}
+.lc-t>button .ic{color:var(--cur)}
+.lc-t>button span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;word-break:break-word}
+.lc-t>button:hover{background:var(--panel2)}
+.lc-t>button:focus-visible{outline:2px solid var(--cur);outline-offset:-2px}
+.lc-ops{position:absolute;top:2px;right:2px;display:none;gap:0}
+.lc-t:hover .lc-ops,.lc-t:focus-within .lc-ops{display:flex}
+.lc-ops button{min-width:22px;height:22px}
+.lc-ops .ic{width:13px;height:13px}
+
+/* 追加のマス。点線で囲むのはここだけ——「まだ何も入っていない場所」を
+   示すためで、ボタンの飾りではない。 */
+.lc-new{background:none;border:1px dashed var(--line-2);border-radius:var(--r2);
+  color:var(--cur);font-family:var(--sans);font-size:var(--t2);font-weight:600;
+  padding:12px 6px 10px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:7px}
+.lc-new:hover{background:color-mix(in srgb, var(--cur) 12%, transparent);border-color:var(--cur)}
+
+/* 絵を選ぶ欄（ui.ts の askModal の type:"icon"）。 */
+.icpick{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.icpick button{background:var(--panel2);border:1px solid var(--line-2);border-radius:var(--r2);
+  color:var(--dim);height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.icpick button:hover{color:var(--fg);border-color:var(--hover)}
+.icpick button.on{color:var(--cur);border-color:var(--cur);
+  background:color-mix(in srgb, var(--cur) 16%, transparent)}
+
 /* ---------- 印（Fluent の Badge）の共通形 ----------
    面を敷いて、字は面より 1 段明るい色。色は --bc（面と枠）と --bf（字）で渡す。
    同じ形をこれまで画面ごとに書き足していたので、ここに 1 つ持つ。

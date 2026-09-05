@@ -9,6 +9,7 @@
  */
 
 import type {
+  AppLink,
   ContactGroup,
   ContactKind,
   ContactMember,
@@ -82,6 +83,12 @@ export interface TaskInput {
 export interface PhaseInput {
   name: string;
   color: string;
+}
+
+export interface LinkInput {
+  name: string;
+  url: string;
+  icon: string;
 }
 
 export interface LaneInput {
@@ -347,6 +354,18 @@ export class Api {
 
   orderPhases(keys: string[]) {
     return this.write<null>("PUT", "/api/phases/order", { keys } as OrderBody);
+  }
+
+  createLink(input: LinkInput) {
+    return this.write<AppLink>("POST", "/api/links", input);
+  }
+
+  updateLink(key: string, input: LinkInput) {
+    return this.write<AppLink>("PUT", `/api/links/${enc(key)}`, input);
+  }
+
+  deleteLink(key: string) {
+    return this.write<null>("DELETE", `/api/links/${enc(key)}`);
   }
 
   createContactGroup(input: ContactInput) {

@@ -41,6 +41,27 @@ type DB struct {
 
 	// フロー — 対応フロー 1 本にあたる
 	Events []*Event `json:"events"`
+
+	// Links は左上のランチャーに並べる、外部の画面への近道。
+	//
+	// フローの中身ではなく、この道具を使う人の作業環境の話。それでも
+	// localStorage ではなくここに置くのは、SOC の中で「対応のときに開く画面」は
+	// 人ではなくチームで決まっているため。端末を変えても、担当者が代わっても
+	// 同じものが並んでいてほしい。
+	Links []*AppLink `json:"links"`
+}
+
+// AppLink はランチャーの 1 マス。外部の画面をひとつ指す。
+//
+// アイコンは自由に指定できない。決めた一覧（web/src/links.ts）から選ぶ。
+// 好きな絵を持ち込めるようにすると、画面ごとに大きさも太さも色も変わり、
+// 並べたときに揃わなくなる。
+type AppLink struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+	// URL は http か https のみ。javascript: のような形は受け付けない。
+	URL  string `json:"url"`
+	Icon string `json:"icon"`
 }
 
 // Lane は担当。誰がその手順をやるか。フロー図では 1 つの列になる。
