@@ -135,7 +135,8 @@ export class TasksScreen {
     g.style.setProperty("--pc", p.color);
     g.innerHTML =
       `<h3><span class="dot"></span>${esc(p.name)}<u>${tasks.length}</u>` +
-      `<button class="ed-tool sm" data-add>＋ このフェーズに追加</button></h3>`;
+      '<button data-add><svg class="ic"><use href="#ic-add"/></svg>' +
+      "このフェーズに追加</button></h3>";
     g.querySelector("[data-add]")!.addEventListener("click", () => {
       void this.createTask(p.key);
     });
@@ -193,12 +194,13 @@ export class TasksScreen {
       `<span title="${esc(names || "どのフローでも使われていません")}">${
         evs.length ? esc(names) : "どのフローでも使われていません"
       }</span></div>` +
-      '<div class="acts"><button class="ed-tool sm" data-ed>編集</button>' +
-      '<button class="ed-tool sm dgr" data-rm' +
+      '<div class="acts rowops">' +
+      '<button data-ed title="編集"><svg class="ic"><use href="#ic-edit"/></svg></button>' +
+      '<button class="dgr" data-rm' +
       (evs.length
         ? ` disabled title="${evs.length} フローで使用中のため削除できません"`
-        : "") +
-      ">削除</button></div>";
+        : ' title="削除"') +
+      '><svg class="ic"><use href="#ic-delete"/></svg></button></div>';
 
     row
       .querySelector("[data-ed]")!

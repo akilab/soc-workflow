@@ -715,20 +715,24 @@ body.dragging .clane:not(.drop){opacity:.6}
   border-radius:var(--r2);padding:1px 7px}
 
 /* フェーズ設定 */
-.ph-name{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
+.ph-name{width:100%;background:var(--panel2);border:1px solid var(--line-2);color:var(--fg);
   border-radius:var(--r2);padding:6px 9px;font-size:var(--t4);font-family:var(--sans)}
-.ph-name:focus{outline:none;border-color:var(--cur)}
-.ph-sw{display:flex;gap:4px;flex-wrap:wrap}
-.ph-sw button{width:17px;height:17px;border-radius:var(--r1);border:1px solid var(--line);cursor:pointer;padding:0}
-.ph-sw button.on{box-shadow:0 0 0 2px var(--fg);border-color:var(--fg)}
-.ph-mv{display:flex;gap:4px}
-.ph-mv button{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:var(--r1);
-  width:24px;height:24px;cursor:pointer;font-size:var(--t2);line-height:1;padding:0}
-.ph-mv button:hover:not(:disabled){border-color:var(--cur);color:var(--cur)}
-.ph-mv button:disabled{opacity:.3;cursor:default}
+.ph-name:focus{outline:none;border-color:var(--cur);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--cur) 25%, transparent)}
+/* 色見本。1 行 10 色を 5 列 2 段に置く。1 つずつに灰色の枠を付けていたので、
+   50 個ぶんの枠が網目に見えて、肝心の色が読み取りにくかった。
+   枠は選んでいるものにだけ付ける。 */
+.ph-sw{display:grid;grid-template-columns:repeat(5,18px);gap:4px}
+.ph-sw button{width:18px;height:18px;border-radius:var(--r2);border:1px solid transparent;
+  cursor:pointer;padding:0}
+.ph-sw button:hover{box-shadow:0 0 0 2px var(--line-2)}
+.ph-sw button.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--fg)}
+.ph-mv{display:flex;gap:2px}
 .ph-preview{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 0;padding:11px 12px;
   background:var(--panel2);border:1px solid var(--line);border-radius:var(--r2);align-items:center}
-.ph-preview em{font-style:normal;font-size:var(--t3);font-weight:700;color:var(--pc);
+/* 並びの下見。字はどの色でも読めるよう本文の色にして、フェーズの色は
+   下の 2px 罫に持たせる（キャンバスの列見出しと同じ考え方）。 */
+.ph-preview em{font-style:normal;font-size:var(--t3);font-weight:600;color:var(--fg);
   border-bottom:2px solid var(--pc);padding:0 3px 3px}
 .ph-preview i{font-style:normal;color:var(--faint);font-size:var(--t2)}
 
@@ -759,33 +763,22 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 /* ================= 対応管理画面 ================= */
 .tk-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:11px}
-.tk-search{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:var(--r2);
+.tk-search{background:var(--panel2);border:1px solid var(--line-2);color:var(--fg);border-radius:var(--r2);
   padding:7px 12px;font-size:var(--t4);font-family:var(--sans);width:240px}
-.tk-search:focus{outline:none;border-color:var(--cur)}
+.tk-search:focus{outline:none;border-color:var(--cur);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--cur) 25%, transparent)}
 
 .tk-g{margin-bottom:24px}
 .tk-g>h3{margin:0 0 6px;font-size:var(--t4);font-weight:600;color:var(--fg);
   display:flex;align-items:center;gap:9px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .tk-g>h3 .dot{width:10px;height:10px;border-radius:var(--r1);background:var(--pc);flex:none}
-.tk-g>h3 u{text-decoration:none;font-family:var(--mono);font-size:var(--t2);color:var(--faint);font-weight:400}
-.tk-g>h3 button{margin-left:auto}
-
-.tk-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) 150px minmax(0,1.2fr) 78px;
-  gap:12px;align-items:start;background:var(--panel);border:1px solid var(--line);
-  border-left:3px solid var(--pc);border-radius:var(--r2);padding:11px 13px;margin-bottom:8px}
-@media(max-width:1100px){.tk-row{grid-template-columns:1fr 1fr;}}
-.tk-f label,.tk-use label{display:block;font-size:var(--t3);
-  color:var(--faint);font-weight:700;margin-bottom:4px}
-.tk-f input,.tk-f select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
-  border-radius:var(--r2);padding:7px 9px;font-size:var(--t4);font-family:var(--sans)}
-.tk-f input:focus,.tk-f select:focus{outline:none;border-color:var(--cur)}
-.tk-use b{display:block;font-family:var(--mono);font-size:var(--t4);color:var(--dim);padding-top:2px}
-.tk-use span{display:block;font-size:var(--t2);color:var(--faint);line-height:1.55;margin-top:2px}
-.tk-use.used b{color:var(--cur)}
-.tk-act{display:flex;align-items:flex-end;justify-content:flex-end;height:100%;padding-bottom:2px}
-.ed-tool.dgr{border-color:var(--line);color:var(--faint)}
-.ed-tool.dgr:hover:not(:disabled){border-color:var(--s1);color:var(--s1);background:var(--panel3)}
-.ed-tool:disabled{opacity:.35;cursor:default}
+.tk-g>h3 u{text-decoration:none;font-family:var(--sans);font-size:var(--t2);color:var(--faint);
+  font-weight:400;font-variant-numeric:tabular-nums}
+/* フェーズへの追加。見出しの中の操作なので枠は持たせない（Fluent の作法）。 */
+.tk-g>h3 button{margin-left:auto;background:none;border:1px solid transparent;color:var(--cur);
+  font-family:var(--sans);font-size:var(--t3);font-weight:600;padding:4px 8px;
+  border-radius:var(--r2);cursor:pointer;display:flex;align-items:center;gap:5px}
+.tk-g>h3 button:hover{background:color-mix(in srgb, var(--cur) 12%, transparent)}
 
 /* ================= 入力モーダル / トースト ================= */
 .formx label{margin-top:13px}
@@ -887,7 +880,6 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
   border-bottom:1px solid var(--line);border-left:2px solid var(--pc,var(--line));
   border-radius:0;padding:9px 14px;margin:0;transition:background .12s}
 .rw:hover{background:var(--panel2)}
-@media(max-width:1100px){.rw{grid-template-columns:1fr 1fr}}
 
 /* 列の見出し。行と同じ格子に載せて、上下がそろって見えるようにする。
    狭い画面では行が 2 列に畳まれるので、そのときは見出しを出さない
@@ -895,19 +887,26 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 .rw-h{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) 130px minmax(0,1.1fr) 128px;
   gap:14px;padding:6px 16px;font-size:var(--t3);
   color:var(--dim);font-weight:600;border-bottom:1px solid var(--line)}
-@media(max-width:1100px){.rw-h{display:none}}
+/* 狭い画面では列を畳まず、横に送る。畳むと 5 つの値が 2 列に折り重なって、
+   どれが何の値なのか読めなくなっていた（フロー一覧でも同じ結論を出している）。 */
+.tk-g{min-width:980px}
 
 .rw .v{font-size:var(--t5);line-height:1.5;word-break:break-word}
 .rw .v.mono{font-family:var(--mono);font-size:var(--t4);color:var(--cur)}
 .rw .v.dim{color:var(--dim);font-size:var(--t4)}
-.rw .badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--t3);
-  border:1px solid var(--bc,var(--line));color:var(--bc,var(--dim));border-radius:var(--r2);padding:2px 8px}
-.rw .badge i{font-style:normal;font-weight:700;font-size:var(--t2)}
-.rw .use b{display:block;font-family:var(--mono);font-size:var(--t4);color:var(--dim)}
-.rw .use.on b{color:var(--cur)}
+/* 担当と種類の印。ほかの画面と同じ形（面＋面より明るい字）。 */
+.rw .badge{display:inline-flex;align-items:center;gap:6px;height:18px;padding:0 6px;
+  font-size:var(--t2);font-weight:600;line-height:16px;border-radius:var(--r2);
+  color:var(--bc,var(--dim));background:color-mix(in srgb, var(--bc,var(--line-2)) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--bc,var(--line-2)) 42%, transparent)}
+.rw .badge i{font-style:normal;font-weight:600;font-size:var(--t2)}
+/* 使用数は押せないので、青にしない。青は押せるものの色にしておく。 */
+.rw .use b{display:block;font-size:var(--t4);font-weight:600;color:var(--fg);
+  font-variant-numeric:tabular-nums}
+.rw .use:not(.on) b{color:var(--faint);font-weight:400}
 .rw .use span{display:block;font-size:var(--t2);color:var(--faint);line-height:1.55;margin-top:2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rw .acts{display:flex;gap:7px;justify-content:flex-end}
+.rw .acts{display:flex;gap:2px;justify-content:flex-end}
 .rw .note{grid-column:1/-1;font-size:var(--t3);color:var(--faint);line-height:1.6;
   border-top:1px solid var(--line-soft);padding-top:7px;margin-top:2px}
 

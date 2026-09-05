@@ -141,14 +141,19 @@ export class Settings {
         return (
           "<tr>" +
           `<td class="num">${i + 1}</td>` +
-          '<td><div class="ph-mv">' +
-          `<button data-up="${i}"${i === 0 ? " disabled" : ""}>&#9650;</button>` +
-          `<button data-dn="${i}"${i === items.length - 1 ? " disabled" : ""}>&#9660;</button>` +
+          '<td><div class="ph-mv rowops">' +
+          `<button data-up="${i}"${i === 0 ? " disabled" : ""} title="上へ">` +
+          '<svg class="ic"><use href="#ic-chev-u"/></svg></button>' +
+          `<button data-dn="${i}"${i === items.length - 1 ? " disabled" : ""} title="下へ">` +
+          '<svg class="ic"><use href="#ic-chev-d"/></svg></button>' +
           "</div></td>" +
           `<td><input class="ph-name" data-nm="${i}" value="${esc(it.name)}"></td>` +
           `<td><div class="ph-sw">${swatches}</div></td>` +
           `<td class="num">${n}</td>` +
-          `<td><button class="ed-tool sm" data-del="${i}"${n ? " disabled" : ""}>削除</button></td>` +
+          '<td><div class="rowops">' +
+          `<button class="dgr" data-del="${i}"${n ? " disabled" : ""}` +
+          ` title="${n ? `${n} 件で使用中のため削除できません` : "削除"}">` +
+          '<svg class="ic"><use href="#ic-delete"/></svg></button></div></td>' +
           "</tr>"
         );
       })
