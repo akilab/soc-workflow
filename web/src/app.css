@@ -171,7 +171,7 @@ body.resizing{cursor:col-resize;user-select:none}
   margin-bottom:13px;background:var(--panel3)}
 .ew-bar i{display:block;height:100%}
 
-.ew-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:var(--t2);font-family:var(--mono);
+.ew-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:var(--t2);font-variant-numeric:tabular-nums;
   padding-top:11px;border-top:1px solid var(--line-soft)}
 .ew-meta span{border:1px solid var(--line);border-radius:var(--r1);padding:2px 8px;color:var(--dim)}
 .ew-meta span.ok{border-color:var(--ok);color:var(--ok)}
@@ -179,8 +179,9 @@ body.resizing{cursor:col-resize;user-select:none}
 
 /* 共通フローとの関係。一覧の時点で見えていないと、開くまで分からない。 */
 .ew-rel{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 9px;
-  font-size:var(--t2);font-family:var(--mono)}
-.ew-rel span{border:1px solid var(--line);border-radius:var(--r1);padding:2px 8px;color:var(--dim)}
+  font-size:var(--t2);font-variant-numeric:tabular-nums}
+.ew-rel span{display:inline-flex;align-items:center;height:18px;padding:0 6px;font-weight:600;
+  border:1px solid var(--line-2);border-radius:var(--r2);color:var(--dim)}
 .ew-rel .from{color:var(--cur);border-color:var(--cur);max-width:100%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ew-rel .base{color:var(--ok);border-color:var(--ok)}
@@ -202,7 +203,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .difftbl .d-same b{color:var(--dim);font-weight:400}
 
 /* 「共通との違い」ボタンの中に出す要約。 */
-.ed-tool u{text-decoration:none;font-family:var(--mono);font-size:var(--t1);
+.ed-tool u{text-decoration:none;font-variant-numeric:tabular-nums;font-size:var(--t2);
   color:var(--faint);margin-left:6px}
 .ed-tool.warn u{color:inherit}
 /* カードの操作。
@@ -294,7 +295,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .ol-row.d1{margin-left:6px}
 .ol-row.dec{border-left-color:var(--dec)}
 .ol-row.dec .ol-t{font-weight:600}
-.ol-no{flex:none;font-family:var(--mono);font-size:var(--t1);font-weight:700;color:var(--faint);
+.ol-no{flex:none;font-variant-numeric:tabular-nums;font-size:var(--t2);font-weight:600;color:var(--faint);
   min-width:16px;text-align:right;padding-top:2px}
 .ol-row.sel .ol-no{color:var(--cur)}
 .ol-pc{flex:none;width:7px;height:7px;border-radius:var(--r1);background:var(--pc,var(--line));margin-top:6px}
@@ -351,13 +352,13 @@ body.resizing{cursor:col-resize;user-select:none}
 .ol-q{display:flex;gap:6px;align-items:baseline;margin:3px 0 7px;font-size:var(--t2);
   color:var(--dim);line-height:1.55}
 .ol-q b{font-weight:400}
-.ol-q .qn{flex:none;font-family:var(--mono);font-size:var(--t1);font-weight:700;color:var(--dec);
+.ol-q .qn{flex:none;font-variant-numeric:tabular-nums;font-size:var(--t2);font-weight:600;color:var(--dec);
   border:1px solid var(--dec);border-radius:var(--r1);padding:0 4px;background:color-mix(in srgb, var(--dec) 12%, transparent)}
 .ol-grp{display:flex;gap:6px;align-items:center;margin:6px 0 3px;padding:3px 9px 3px 7px;
   font-size:var(--t2);font-weight:700;color:var(--oc);border-left:2px solid var(--oc);
   background:color-mix(in srgb, var(--oc) 9%, transparent);border-radius:0 6px 6px 0}
 .ol-grp::before{content:"";width:7px;height:7px;border-radius:var(--r1);background:var(--oc);flex:none}
-.ol-grp u{text-decoration:none;font-family:var(--mono);font-size:var(--t1);opacity:.75;font-weight:400}
+.ol-grp u{text-decoration:none;font-variant-numeric:tabular-nums;font-size:var(--t2);opacity:.75;font-weight:400}
 .ol-empty{color:var(--faint);font-size:var(--t4);line-height:1.9;padding:14px 4px}
 .ol-legend{margin-top:14px;padding-top:11px;border-top:1px solid var(--line-soft);
   font-size:var(--t2);color:var(--faint);line-height:1.8}
@@ -638,22 +639,26 @@ body.dragging .clane:not(.drop){opacity:.6}
 .ins .chk{display:flex;align-items:center;gap:8px;font-size:var(--t4);color:var(--dim);cursor:pointer;
   background:var(--panel2);border:1px solid var(--line);border-radius:var(--r2);padding:8px 10px}
 .ins .chk input{accent-color:var(--s1)}
-.ins .sect{border:1px solid var(--line);border-radius:var(--r2);padding:11px 12px;margin-top:13px;
-  background:color-mix(in srgb, var(--dec) 5%, transparent)}
-.ins .sect>h4{margin:0 0 8px;font-size:var(--t2);letter-spacing:.09em;color:var(--dec);font-weight:700;
+/* まとまり（連絡先・表示条件・判断）。地を色で染めるのをやめる。
+   薄くても色が付いていると「注意すべきもの」に見え、検証の帯と紛れる。
+   まとまりであることは枠と左の帯で示し、色は見出しの字だけに残す。 */
+.ins .sect{border:1px solid var(--line);border-left:2px solid var(--dec);
+  border-radius:0 var(--r2) var(--r2) 0;padding:11px 12px;margin-top:13px}
+.ins .sect>h4{margin:0 0 8px;font-size:var(--t3);color:var(--dec);font-weight:600;
   display:flex;justify-content:space-between;align-items:center}
 .ins .cond{display:flex;gap:6px;margin-bottom:6px;align-items:center}
 .ins .cond select{font-size:var(--t3);padding:6px 8px}
-.ins .x{flex:none;background:var(--panel2);border:1px solid var(--line);color:var(--faint);
-  border-radius:var(--r2);width:26px;height:30px;cursor:pointer;font-size:var(--t5);line-height:1}
-.ins .x:hover{border-color:var(--s1);color:var(--s1)}
-.ins .mini{background:var(--panel2);border:1px dashed var(--line);color:var(--faint);border-radius:var(--r2);
-  padding:6px 10px;font-size:var(--t3);cursor:pointer;font-family:var(--sans);width:100%}
-.ins .mini:hover{border-color:var(--dec);color:var(--dec)}
+.ins .x{flex:none;background:none;border:1px solid transparent;color:var(--faint);
+  border-radius:var(--r2);width:28px;height:28px;cursor:pointer;font-size:var(--t5);line-height:1;
+  display:inline-flex;align-items:center;justify-content:center}
+.ins .x:hover{background:color-mix(in srgb, var(--s1) 18%, transparent);color:var(--s1Fg)}
+.ins .mini{background:none;border:1px solid var(--line-2);color:var(--dec);border-radius:var(--r2);
+  padding:6px 10px;font-size:var(--t3);font-weight:600;cursor:pointer;font-family:var(--sans);width:100%}
+.ins .mini:hover{background:color-mix(in srgb, var(--dec) 12%, transparent);border-color:var(--dec)}
 .ins .mini:disabled{cursor:default;opacity:.55}
 .ins .opt{display:flex;gap:6px;margin-bottom:6px;align-items:center}
 .ins .opt i{width:9px;height:9px;border-radius:var(--r1);flex:none}
-.ins .del{width:100%;margin-top:15px;background:none;border:1px solid var(--line);color:var(--faint);
+.ins .del{width:100%;margin-top:15px;background:none;border:1px solid var(--line-2);color:var(--dim);
   border-radius:var(--r2);padding:8px;font-size:var(--t4);cursor:pointer;font-family:var(--sans)}
 .ins .del:hover{border-color:var(--s1);color:var(--s1)}
 .ins .none{color:var(--faint);font-size:var(--t4);line-height:1.85}
@@ -746,8 +751,11 @@ body.dragging .clane:not(.drop){opacity:.6}
 /* ---------- テスト ---------- */
 #runWrap{display:none}
 body.screen-run #runWrap{display:block}   /* これが無く、テストモードが真っ白だった */
-.runbar{margin:12px 20px 0;padding:9px 14px;border:1px dashed var(--dec);border-radius:var(--r2);
-  font-size:var(--t4);color:var(--decFg);background:color-mix(in srgb, var(--dec) 7%, transparent);line-height:1.7}
+.runbar{margin:12px 20px 0;padding:10px 14px;border-radius:var(--r2);
+  border:1px solid color-mix(in srgb, var(--dec) 38%, transparent);
+  background:color-mix(in srgb, var(--dec) 14%, transparent);
+  font-size:var(--t4);color:var(--fg);line-height:1.7}
+.runbar b{color:var(--decFg)}
 
 
 /* ================= 対応管理画面 ================= */
@@ -790,7 +798,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 .tk-bar select:focus{outline:none;border-color:var(--cur)}
 .tk-bar select.on{border-color:var(--cur);color:var(--cur)}
 .tk-bar .sp{flex:1}
-.tk-bar em{font-style:normal;font-size:var(--t3);color:var(--faint);font-family:var(--mono)}
+.tk-bar em{font-style:normal;font-size:var(--t3);color:var(--faint);font-variant-numeric:tabular-nums}
 /* 直したほうがよい数（担当が空の連絡先など）。数えて出さないと気付けない。 */
 .tk-bar em .warn{color:var(--s2);font-weight:700}
 
@@ -799,7 +807,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 .bulk>p{margin:0 0 14px;font-size:var(--t3);color:var(--faint);line-height:1.7}
 .bulk ol{margin:0 0 16px;padding-left:20px;font-size:var(--t4);color:var(--dim);line-height:1.85;
   max-height:220px;overflow:auto}
-.bulk ol li::marker{color:var(--faint);font-family:var(--mono);font-size:var(--t2)}
+.bulk ol li::marker{color:var(--faint);font-variant-numeric:tabular-nums;font-size:var(--t2)}
 .bulk .act{display:flex;flex-direction:column;gap:8px}
 .bulk .act button{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
   border-radius:var(--r2);padding:9px;font-size:var(--t4);cursor:pointer;font-family:var(--sans)}
@@ -818,7 +826,8 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 .cnode .f-ct{display:inline-flex;gap:3px;align-items:center}
 .cnode .f-ct i{font-style:normal;width:14px;height:14px;border-radius:var(--r1);font-size:var(--t1);
   display:inline-flex;align-items:center;justify-content:center;
-  background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
+  background:color-mix(in srgb, var(--vc) 20%, transparent);
+  border:1px solid color-mix(in srgb, var(--vc) 45%, transparent);color:var(--vc)}
 
 /* 保存できていないことを知らせる帯。トーストは 2.6 秒で消えるので、
    書いた内容が届いていないことに気づけるよう、消えない表示を出す。 */
@@ -840,10 +849,11 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
   background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
 .ins .ct-row i.ico,.ctp i.ico,.mem .ch i.ico,.cnode .f-ct i.ico{background:none;border:none}
 .ins .ct-row b{font-size:var(--t4);font-weight:700;white-space:nowrap}
-.ins .ct-row span{flex:1;min-width:0;font-family:var(--mono);font-size:var(--t2);color:var(--dim);
+.ins .ct-row span{flex:1;min-width:0;font-size:var(--t2);color:var(--dim);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ins .sect.ct{background:color-mix(in srgb, var(--s3) 5%, transparent)}
-.ins .sect.ct>h4{color:#5ad1e6}
+/* 連絡先のまとまり。左の帯と見出しの字だけで区別する（地は染めない）。 */
+.ins .sect.ct{border-left-color:var(--c6)}
+.ins .sect.ct>h4{color:var(--c6)}
 
 /* 連絡先を選ぶモーダル */
 .ctpick{display:flex;flex-direction:column;gap:6px}
@@ -856,7 +866,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
   display:flex;align-items:center;justify-content:center;
   background:color-mix(in srgb, var(--vc) 22%, transparent);border:1px solid var(--vc);color:var(--vc)}
 .ctp b{font-size:var(--t5);white-space:nowrap}
-.ctp span{flex:1;min-width:0;font-family:var(--mono);font-size:var(--t3);color:var(--dim)}
+.ctp span{flex:1;min-width:0;font-size:var(--t3);color:var(--dim)}
 .ctp em{font-style:normal;font-size:var(--t2);color:var(--kc);border:1px solid var(--kc);
   border-radius:var(--r1);padding:0 6px;flex:none}
 
@@ -882,7 +892,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 .tk-g{min-width:980px}
 
 .rw .v{font-size:var(--t5);line-height:1.5;word-break:break-word}
-.rw .v.mono{font-family:var(--mono);font-size:var(--t4);color:var(--cur)}
+.rw .v.mono{font-variant-numeric:tabular-nums;font-size:var(--t4);color:var(--cur)}
 .rw .v.dim{color:var(--dim);font-size:var(--t4)}
 /* 担当と種類の印。ほかの画面と同じ形（面＋面より明るい字）。 */
 .rw .badge{display:inline-flex;align-items:center;gap:6px;height:18px;padding:0 6px;

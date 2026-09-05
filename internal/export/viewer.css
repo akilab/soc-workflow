@@ -87,7 +87,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-now b{color:var(--fg)}
 .v-meters{display:flex;gap:26px;align-items:center}
 .v-meter .k{font-size:var(--t3);color:var(--faint);font-weight:400}
-.v-meter .val{font-family:var(--mono);font-size:var(--t8);line-height:1.25;font-weight:700}
+.v-meter .val{font-variant-numeric:tabular-nums;font-size:var(--t8);line-height:1.25;font-weight:600}
 .v-bar{height:7px;background:var(--line);border-radius:var(--r1);overflow:hidden;margin-top:6px;width:170px}
 .v-bar i{display:block;height:100%;background:var(--ok);width:0%;transition:width .3s}
 
@@ -107,7 +107,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-ev.on b{color:var(--cur)}
 .v-ev b{display:block;font-size:var(--t5);font-weight:700;line-height:1.5}
 .v-ev span.sub{display:block;font-size:var(--t3);color:var(--dim);line-height:1.55;margin-top:2px}
-.sev{flex:none;font-family:var(--mono);font-size:var(--t2);font-weight:700;padding:2px 7px;
+.sev{flex:none;font-variant-numeric:tabular-nums;font-size:var(--t2);font-weight:600;padding:2px 7px;
   border-radius:var(--r1);margin-top:2px;letter-spacing:.03em}
 .sev.S1{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
 .sev.S2{background:color-mix(in srgb, var(--s2) 16%, transparent);color:var(--s2);border:1px solid var(--s2)}
@@ -156,7 +156,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
   background:color-mix(in srgb, var(--lc) 16%, transparent)}
 .v-node .n{font-size:var(--t4);display:block;line-height:1.45;font-weight:600}
 .v-node .t{font-size:var(--t2);color:var(--faint);display:block;line-height:1.4;margin-top:2px}
-.v-node .mk{position:absolute;top:7px;right:9px;font-family:var(--mono);font-size:var(--t3);font-weight:700}
+.v-node .mk{position:absolute;top:7px;right:9px;font-size:var(--t3);font-weight:700}
 
 /* 連絡の相手。矢印の行き先に置く札。
    手順のボックスは角のある四角にしたので、こちらは丸くしておく。
@@ -184,7 +184,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-wires path.w.pend{stroke:var(--wire);stroke-dasharray:5 4;stroke-linecap:round}
 .v-wires circle{fill:var(--bg);stroke:var(--cur);stroke-width:1.6}
 .v-wires circle.done{stroke:var(--ok)} .v-wires circle.pend{stroke:var(--faint)}
-.v-wires text{fill:var(--cur);font-family:var(--mono);font-size:var(--t2);font-weight:700;
+.v-wires text{fill:var(--cur);font-family:var(--sans);font-size:var(--t2);font-weight:600;
   text-anchor:middle;dominant-baseline:central}
 .v-wires text.done{fill:var(--ok)} .v-wires text.pend{fill:var(--faint)}
 
@@ -210,7 +210,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-s.current{background:var(--cur-bg);border-top-color:transparent;box-shadow:inset 4px 0 0 var(--cur)}
 .v-s .chk{flex:none;width:28px;height:28px;border-radius:var(--r2);border:2px solid var(--line);
   background:var(--panel2);cursor:pointer;display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:var(--t4);font-weight:700;color:var(--faint);margin-top:2px}
+  font-size:var(--t4);font-weight:700;color:var(--faint);margin-top:2px}
 .v-s .chk:hover{border-color:var(--cur);color:var(--cur)}
 .v-s.current .chk{border-color:var(--cur);color:var(--cur)}
 .v-s.done .chk{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
@@ -257,19 +257,26 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-cg:first-of-type{border-top:none;padding-top:0}
 .v-cgh{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
 .v-cgh .nm{font-size:var(--t5);font-weight:700;color:var(--fg)}
-.v-cgh em{font-style:normal;font-size:var(--t2);color:var(--kc);border:1px solid var(--kc);
-  border-radius:var(--r1);padding:0 6px}
-.v-cgh u{text-decoration:none;font-family:var(--mono);font-size:var(--t1);color:var(--faint)}
+.v-cgh em{font-style:normal;display:inline-flex;align-items:center;height:18px;padding:0 6px;
+  font-size:var(--t2);font-weight:600;border-radius:var(--r2);color:var(--kc);
+  background:color-mix(in srgb, var(--kc) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--kc) 42%, transparent)}
+.v-cgh u{text-decoration:none;font-variant-numeric:tabular-nums;font-size:var(--t2);color:var(--faint)}
 .v-cgn{font-size:var(--t3);color:var(--dim);line-height:1.65;margin:0 0 6px}
 .v-cm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:3px 0}
 .v-cm .no{flex:none;width:19px;height:19px;border-radius:50%;background:var(--panel3);
-  border:1px solid var(--line);font-family:var(--mono);font-size:var(--t1);font-weight:700;
+  border:1px solid var(--line-2);font-variant-numeric:tabular-nums;font-size:var(--t2);font-weight:600;
   color:var(--dim);display:flex;align-items:center;justify-content:center}
 .v-cm.first .no{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
 .v-cm .who{font-size:var(--t4);font-weight:600;min-width:74px}
-.v-cm .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:var(--t4);
-  color:var(--fg);background:var(--panel3);border:1px solid var(--vc);border-radius:var(--r2);
-  padding:1px 8px 1px 3px;user-select:all}
+/* 電話番号やアカウント。手段の色（--vc）は絵と枠で示し、字は本文の色にする。
+   番号そのものを色で塗ると、読む対象と色分けの意味が混ざる（エディタ側の
+   .mem .ch と同じ判断）。けたは tabular-nums でそろう。 */
+.v-cm .ch{display:inline-flex;align-items:center;gap:5px;font-size:var(--t4);
+  font-variant-numeric:tabular-nums;color:var(--fg);
+  background:color-mix(in srgb, var(--vc) 12%, transparent);
+  border:1px solid color-mix(in srgb, var(--vc) 40%, transparent);border-radius:var(--r2);
+  padding:2px 9px 2px 4px;user-select:all}
 .v-cm .ch i{font-style:normal;width:17px;height:17px;border-radius:var(--r1);font-size:var(--t1);font-weight:700;
   display:flex;align-items:center;justify-content:center;
   background:color-mix(in srgb, var(--vc) 24%, transparent);color:var(--vc);user-select:none}
@@ -292,7 +299,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 
 .v-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:var(--t3);color:var(--dim)}
 .v-legend span{display:flex;align-items:center;gap:6px}
-.v-legend i{font-family:var(--mono);font-weight:700;font-size:var(--t4);font-style:normal}
+.v-legend i{font-weight:700;font-size:var(--t4);font-style:normal}
 .v-note{margin:18px 0 0;font-size:var(--t4);color:var(--faint);line-height:1.75}
 .v-empty{color:var(--faint);font-size:var(--t5);margin:18px 0 6px}
 
