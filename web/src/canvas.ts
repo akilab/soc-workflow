@@ -22,6 +22,8 @@ import { condSentence, optColor, optLabel } from "./branch";
 import { $, dimSource, endCarry, esc, startCarry, undimSource } from "./dom";
 import { groupVias, stepContacts, viaMark } from "./contacts";
 import { eventLanes, taskOf } from "./flow";
+import { layoutFlow } from "./layout";
+import type { FlowLayout } from "./layout";
 import { milestoneTag } from "./sla";
 import type { DB, EventFlow, Lane, Step } from "./types";
 
@@ -143,32 +145,48 @@ export function renderCanvas(deps: CanvasDeps): void {
   clearDropGeometry(); // 置き直したので、測り置きは捨てる
   applyZoom();
   const lanes = eventLanes(db, evt);
-  grid.style.gridTemplateColumns = `repeat(${Math.max(lanes.length, 1)}, minmax(160px, 1fr))`;
 
-  // レーンの帯と見出し。全行にまたがる。
+  // 置き方は layout.ts が決める。分岐の枝は横に並び、同じ担当に 2 本以上
+  // 並ぶときはその担当の列が割れる。書き出し HTML も同じ規則で描く。
+  const L = layoutFlow(evt, lanes);
+  grid.style.gridTemplateColumns = `repeat(${Math.max(L.cols, 1)}, minmax(160px, 1fr))`;
+
+  // レーンの帯と見出し。割れた列ぶんをまたぐ。
   lanes.forEach((l, li) => {
+    const span = L.need[l.key] ?? 1;
     const bg = document.createElement("div");
     bg.className = "clane" + (li === lanes.length - 1 ? " last" : "");
     bg.style.setProperty("--lc", l.color);
-    bg.style.gridColumn = String(li + 1);
+    bg.style.gridColumn = `${(L.base[l.key] ?? 0) + 1} / span ${span}`;
     // 1/-1 は使えない。-1 は「明示的に定義された行」の終端を指すが、
     // grid-template-rows を書いていないので全部が暗黙行になり、
     // 見出し行で止まってしまう。終端を数えて入れる。
-    bg.style.gridRow = `1 / ${evt.steps.length + 2}`;
+    bg.style.gridRow = `1 / ${L.rows + 2}`;
     grid.appendChild(bg);
 
     const h = document.createElement("div");
     h.className = "clane-h";
     h.style.setProperty("--lc", l.color);
-    h.style.gridColumn = String(li + 1);
+    h.style.gridColumn = `${(L.base[l.key] ?? 0) + 1} / span ${span}`;
     const n = evt.steps.filter((s) => s.lane === l.key).length;
     h.innerHTML = `${esc(l.name)}<u>${n || ""}</u>`;
     grid.appendChild(h);
   });
 
+  // 分岐の帯。どこからどこまでが 1 つの分かれ道かを地色で示す。
+  for (const b of L.bands) {
+    const band = document.createElement("div");
+    band.className = "cband";
+    band.style.gridColumn = `1 / span ${Math.max(L.cols, 1)}`;
+    band.style.gridRow = `${b.from} / ${b.to + 1}`;
+    grid.appendChild(band);
+  }
+
   const nodes: (Node | undefined)[] = [];
 
-  evt.steps.forEach((st, i) => {
+  L.placed.forEach((p) => {
+    const st = p.step;
+    const i = p.index;
     const li = Math.max(0, lanes.findIndex((l) => l.key === st.lane));
     const t = taskOf(db, st.task);
     const phase = db.phases.find((p) => p.key === t?.phase);
@@ -181,9 +199,12 @@ export function renderCanvas(deps: CanvasDeps): void {
       (t?.kind === "wait" ? " wait" : "");
     el.style.setProperty("--pc", phase?.color ?? "var(--line)");
     el.style.setProperty("--lc", lanes[li]?.color ?? "var(--line)");
-    el.style.gridColumn = String(li + 1);
-    el.style.gridRow = String(i + 2);
-    el.innerHTML = nodeHTML(db, evt, st, i, phase?.name ?? "", lanes[li]?.name ?? "");
+    el.style.gridColumn = `${p.col + 1} / span ${p.span}`;
+    el.style.gridRow = String(p.row);
+    // 落とし先の判定で「この箱は手順の何番目か」を知るために持たせる。
+    // 枝を横に並べたので、置いた順と配列の順が一致しなくなった。
+    el.dataset.i = String(i);
+    el.innerHTML = nodeHTML(db, evt, st, i, phase?.name ?? "", lanes[li]?.name ?? "", p.value);
 
     el.addEventListener("click", (e) => deps.onPick(st.id, e));
     // 選ばなくても辿れるように、ホバー中はその手順に繋がる線だけを強調する。
@@ -223,8 +244,8 @@ export function renderCanvas(deps: CanvasDeps): void {
       const chip = document.createElement("div");
       chip.className = "cct";
       chip.style.setProperty("--lc", lane.color);
-      chip.style.gridColumn = String(lanes.indexOf(lane) + 1);
-      chip.style.gridRow = String(i + 2);
+      chip.style.gridColumn = String((L.base[lane.key] ?? 0) + 1);
+      chip.style.gridRow = String(p.row);
       chip.innerHTML = names.map((n) => esc(n)).join("<br>");
       chip.title = `${st.title} → ${names.join("、")}`;
       grid.appendChild(chip);
@@ -245,7 +266,7 @@ export function renderCanvas(deps: CanvasDeps): void {
   grid.appendChild(wires);
 
   // 置いてもらってから測る。
-  requestAnimationFrame(() => paintWires(nodes, deps.selected));
+  requestAnimationFrame(() => paintWires(L, nodes, deps.selected));
 }
 
 /** ボックス 1 つの中身。 */
@@ -256,6 +277,8 @@ function nodeHTML(
   i: number,
   phaseName: string,
   laneName: string,
+  /** 分岐の中なら、どの答えの枝か。列の見出しではなくボックスに出す。 */
+  value?: string,
 ): string {
   let flags = "";
 
@@ -303,7 +326,17 @@ function nodeHTML(
 
   // 分類（フェーズ・担当）は手順そのものの性質と別の行に置く。同じ行に並べると
   // 「! エスカレ ［Tier1］」が「Tier1 にエスカレする」と読み違えられる。
+  // 枝の答え。どの分かれ道の、どちらに属する手順かをボックス自身に持たせる。
+  // 列は担当のままなので、答えは列見出しでは示せない。
+  let ans = "";
+  if (value) {
+    const key = (st.conditions ?? [])[0]?.key ?? "";
+    const c = { key, value };
+    ans = `<i class="ans" style="--bc:${optColor(evt, c)}">${esc(optLabel(evt, c))}</i>`;
+  }
+
   const cls =
+    ans +
     (phaseName ? `<i class="ph">${esc(phaseName)}</i>` : "") +
     (laneName ? `<i class="who">${esc(laneName)}</i>` : "");
 
@@ -368,7 +401,11 @@ const ARROW =
 
 const HEAD = 7; // 矢印の長さ。線の終点をこのぶん手前で止める
 
-function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
+function paintWires(
+  L: FlowLayout,
+  nodes: (Node | undefined)[],
+  selected: string[],
+): void {
   const grid = $("cgrid");
   const wires = $("cwires");
   const box = grid.getBoundingClientRect();
@@ -380,16 +417,20 @@ function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
 
   wires.setAttribute("viewBox", `0 0 ${grid.clientWidth} ${grid.clientHeight}`);
 
-  const seq = nodes.filter((n): n is Node => !!n);
   let out =
     "<defs>" +
     `<marker id="eah"${ARROW}><path d="M0,0 L10,4 L0,8 z"/></marker>` +
     `<marker id="eah-hot"${ARROW}><path d="M0,0 L10,4 L0,8 z"/></marker>` +
     "</defs>";
 
-  for (let k = 0; k < seq.length - 1; k++) {
-    const ra = seq[k].el.getBoundingClientRect();
-    const rb = seq[k + 1].el.getBoundingClientRect();
+  // 繋ぐ組は layout.ts が決める。分岐へ入るときは枝の数だけ分かれ、
+  // 出るときは枝の数だけ戻る。
+  for (const [from, to] of L.pairs) {
+    const na = nodes[from.index];
+    const nb = nodes[to.index];
+    if (!na || !nb) continue;
+    const ra = na.el.getBoundingClientRect();
+    const rb = nb.el.getBoundingClientRect();
     // 規則: 下から出て、上から入る
     const ax = gx(ra.left - box.left + ra.width / 2);
     const ay = gx(ra.bottom - box.top);
@@ -400,13 +441,15 @@ function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
     if (Math.abs(ax - bx) < 2) {
       d = `M ${ax} ${ay} L ${bx} ${by}`; // 同じ列。まっすぐ下へ
     } else {
-      const my = (ay + by) / 2; // 横へ移るのは行と行のあいだだけ
+      // 横へ移るのは行と行のあいだだけ。同じ帯に何本も入るときも高さを
+      // 共有する——ずらすと線が何本にも見え、交差も増えた（モックで実測）。
+      const my = (ay + by) / 2;
       d = ortho([[ax, ay], [ax, my], [bx, my], [bx, by]], 10);
     }
 
     // どの手順どうしを繋いだ線かを持たせておき、強調に使う。
     out +=
-      `<path d="${d}" data-a="${esc(seq[k].id)}" data-b="${esc(seq[k + 1].id)}"` +
+      `<path d="${d}" data-a="${esc(na.id)}" data-b="${esc(nb.id)}"` +
       ' marker-end="url(#eah)"/>';
   }
 
@@ -430,7 +473,7 @@ function paintWires(nodes: (Node | undefined)[], selected: string[]): void {
 
   wires.innerHTML = out;
   hotWires(selected);
-  setHint(seq.length);
+  setHint(L.placed.length);
 }
 
 /**
@@ -489,7 +532,8 @@ interface DropGeom {
   /** 図の縮尺。ここでも測り置きにする（下記のとおり、読むと計算が走るため）。 */
   z: number;
   lanes: { left: number; right: number; width: number }[];
-  nodes: { top: number; mid: number; bottom: number }[];
+  /** 見かけの上から順。i は手順の配列での位置。 */
+  nodes: { top: number; mid: number; bottom: number; i: number }[];
 }
 
 let geom: DropGeom | null = null;
@@ -519,10 +563,19 @@ function dropGeom(grid: HTMLElement): DropGeom {
       const r = el.getBoundingClientRect();
       return { left: r.left, right: r.right, width: r.width };
     }),
-    nodes: [...grid.querySelectorAll<HTMLElement>(".cnode")].map((el) => {
-      const r = el.getBoundingClientRect();
-      return { top: r.top, mid: r.top + r.height / 2, bottom: r.bottom };
-    }),
+    // 枝を横に並べたので、置いた順は配列の順ではない。落とし先は「見かけの
+    // 上から何番目か」で決めるので、測ったあとに縦位置で並べ直す。
+    nodes: [...grid.querySelectorAll<HTMLElement>(".cnode")]
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          top: r.top,
+          mid: r.top + r.height / 2,
+          bottom: r.bottom,
+          i: Number(el.dataset.i ?? 0),
+        };
+      })
+      .sort((a, b) => a.top - b.top),
   };
   return geom;
 }
@@ -535,11 +588,12 @@ export function dropSpotAt(lanes: Lane[], x: number, y: number): DropSpot | null
   const li = g.lanes.findIndex((l) => x >= l.left && x < l.right);
   if (li < 0 || !lanes[li]) return null;
 
-  // 手順の順に並んだボックスの、上下どちら側に落ちたかで挿入位置を決める。
+  // 上から順に見て、最初に「その箱の真ん中より上」になったところへ入れる。
+  // 入れる位置は配列での位置で返す（枝を横に並べたので、見かけの順とは違う）。
   let index = g.nodes.length;
-  for (let i = 0; i < g.nodes.length; i++) {
-    if (y < g.nodes[i].mid) {
-      index = i;
+  for (const n of g.nodes) {
+    if (y < n.mid) {
+      index = n.i;
       break;
     }
   }
@@ -554,6 +608,7 @@ export function dropSpotAt(lanes: Lane[], x: number, y: number): DropSpot | null
  * 何を運んでいるかは、こちらが描く線の側にも書いておく。
  */
 let dragLabel = "";
+
 
 export function setDragLabel(text: string): void {
   dragLabel = text;
@@ -661,8 +716,11 @@ export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
   const g = dropGeom(grid);
   // 線は図の中に置くので、測った見かけの値を縮尺で割り戻す（paintWires と同じ）。
   const gx = (v: number) => v / g.z;
-  const target = g.nodes[spot.index];
-  const prev = g.nodes[spot.index - 1];
+  // 線を引く高さは、入れる位置の箱の上端。配列での位置から、測り置きの中の
+  // その箱を引く（並べ直してあるので添字では引けない）。
+  const at = g.nodes.findIndex((n) => n.i === spot.index);
+  const target = at >= 0 ? g.nodes[at] : undefined;
+  const prev = at > 0 ? g.nodes[at - 1] : g.nodes[g.nodes.length - 1];
   // 入る位置の上の境目。末尾なら最後のボックスの下。
   const y = target
     ? gx(target.top - g.box.top) - 9

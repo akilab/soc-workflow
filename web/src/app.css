@@ -1138,3 +1138,14 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
   border:1px solid color-mix(in srgb, var(--cur) 40%, transparent)}
 .ins .sect.ms{border-left-color:var(--cur)}
 .ins .sect.ms>h4{color:var(--cur)}
+
+/* 分岐の帯。どこからどこまでが 1 つの分かれ道かを地色で示す。
+   枝を横に並べたので、帯が無いと「どこまでが分かれ道か」が読めない。 */
+.cband{z-index:0;border-radius:var(--r3);pointer-events:none;
+  background:color-mix(in srgb, var(--dec) 7%, transparent);
+  outline:1px dashed color-mix(in srgb, var(--dec) 35%, transparent);outline-offset:-1px}
+/* 枝の答え。どの分かれ道のどちら側かを、ボックス自身に持たせる。 */
+.cnode .cls .ans{font-style:normal;display:inline-flex;align-items:center;height:18px;
+  padding:0 6px;font-size:var(--t2);font-weight:600;border-radius:var(--r2);
+  color:var(--bc);background:color-mix(in srgb, var(--bc) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--bc) 42%, transparent)}

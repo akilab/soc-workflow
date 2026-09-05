@@ -80,12 +80,6 @@ svg.wires circle.hit{fill:var(--err)}
 <header>
   <h1>分岐を横に並べる — 描画モック</h1>
   <select id="pick"></select>
-  <label style="font-size:13px;color:var(--dim)">
-    <input type="checkbox" id="stagger"> 帯の中で線をずらす
-  </label>
-  <label style="font-size:13px;color:var(--dim)">
-    <input type="checkbox" id="bylane" checked> 枝を担当の並びで置く
-  </label>
   <div class="stat">
     <span>列 <b id="nCols">-</b></span>
     <span>行 <b id="nRows">-</b></span>
@@ -95,7 +89,7 @@ svg.wires circle.hit{fill:var(--err)}
 </header>
 
 <p class="note">
-  枝はいちばん左から順に並べる。同じ担当に 2 本以上が並ぶときは、その担当の列を割る。
+  枝は<b>いちばん左で使う担当の順</b>に並べる。同じ担当に 2 本以上が並ぶときは、その担当の列を割る。
   枝の長さが違っても、次の手順へは<b>それぞれの枝の最後から</b>線を引く。
   <b>交差は線分の総当たりで数えている</b>（端点を共有するものは除く）。赤い線と点が交差箇所。
 </p>
@@ -145,7 +139,7 @@ function blocksOf(ev){
     /* 枝を置く順。既定は判断の選択肢の順（設計した人が並べた順）。
        「担当の並びで置く」を選ぶと、その枝がいちばん左で使う担当の順にする。
        枝の中で担当をまたぐ動きが、ほかの枝の線を横切らなくなる。 */
-    if(document.getElementById("bylane") && document.getElementById("bylane").checked){
+    {
       var idx = {};
       LANES.forEach(function(l, n){ idx[l.key] = n; });
       order = order.slice().sort(function(a, b){
@@ -329,7 +323,6 @@ function wires(L, els){
   var box = grid.getBoundingClientRect();
   svg.setAttribute("viewBox", "0 0 " + grid.clientWidth + " " + grid.clientHeight);
 
-  var stagger = document.getElementById("stagger").checked;
   var list = pairs(L), segs = [], d = [];
 
   list.forEach(function(pr, idx){
@@ -337,10 +330,10 @@ function wires(L, els){
     var z = els[pr[1].index].getBoundingClientRect();
     var ax = a.left - box.left + a.width / 2, ay = a.bottom - box.top;
     var zx = z.left - box.left + z.width / 2, zy = z.top - box.top - 7;
-    /* 同じ帯に何本も入るときは、横に走る高さをずらす。ずらさないと
-       重なって 1 本に見え、交差しているのかどうかも分からない。 */
+    /* 帯の中では同じ高さを共有する。ずらすと線が何本にも見えて汚く、
+       交差も増えた（実測でずらすと 0 → 3 になった）。同じ高さなら、
+       分かれ道の横線が 1 本の幹に見える。 */
     var my = (ay + zy) / 2;
-    if(stagger) my = ay + (zy - ay) * (0.35 + 0.3 * ((idx % 3) / 2));
     var pts = Math.abs(ax - zx) < 2 ? [[ax, ay], [zx, zy]]
       : [[ax, ay], [ax, my], [zx, my], [zx, zy]];
     for(var k = 0; k + 1 < pts.length; k++) segs.push({ a:pts[k], b:pts[k + 1], i:idx });
@@ -393,12 +386,6 @@ DATA.events.forEach(function(ev, i){
   pick.appendChild(o);
 });
 pick.addEventListener("change", function(){ render(DATA.events[pick.value]); });
-document.getElementById("stagger").addEventListener("change", function(){
-  render(DATA.events[pick.value]);
-});
-document.getElementById("bylane").addEventListener("change", function(){
-  render(DATA.events[pick.value]);
-});
 render(DATA.events[0]);
 </script>
 </body>
