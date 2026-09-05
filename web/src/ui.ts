@@ -123,7 +123,8 @@ export interface AskField {
   hint?: string;
   required?: boolean;
   type?: "text" | "select" | "icon";
-  options?: { v: string; l: string }[];
+  /** icon を入れると、選択肢をその絵で出す（絵はそのまま HTML として入る）。 */
+  options?: { v: string; l: string; icon?: string }[];
 }
 
 export interface AskOptions {
@@ -145,7 +146,7 @@ export function askModal(o: AskOptions): Promise<Record<string, string> | null> 
             (op) =>
               `<button type="button" data-ic="${esc(op.v)}"` +
               `${op.v === f.value ? ' class="on"' : ""} title="${esc(op.l)}">` +
-              `<svg class="ic lg"><use href="#ic-${esc(op.v)}"/></svg></button>`,
+              `${op.icon ?? `<svg class="ic lg"><use href="#ic-${esc(op.v)}"/></svg>`}</button>`,
           )
           .join("");
         return (

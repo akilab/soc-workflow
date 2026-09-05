@@ -55,6 +55,9 @@ function ensureViaSprite(){
      viewer.js より先に読み込まれている。無くても致命的ではないので、
      読めていなければ黙って飛ばす（連絡手段のアイコンは出したい）。 */
   if(typeof UI_SPRITE !== "undefined") inject("ui-sprite", UI_SPRITE);
+  /* 製品アイコン（brand.js）。エディタだけが読む。配る HTML には入れていない
+     ので、ここでも「あれば入れる」だけにしておく。 */
+  if(typeof BRAND_SPRITE !== "undefined") inject("brand-sprite", BRAND_SPRITE);
 }
 function inject(id, markup){
   if(!markup || document.getElementById(id)) return;

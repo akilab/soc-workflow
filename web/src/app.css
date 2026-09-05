@@ -1097,3 +1097,8 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
   pointer-events:none;opacity:1;
   background:var(--panel3);
   box-shadow:inset 0 0 0 2px var(--cur),0 10px 24px rgba(0,0,0,.55)}
+
+/* 製品アイコン（色付き）。単色のアイコン（.ic）と違い、文字色を拾わせない。
+   大きさだけ揃えて、中身は元の絵のままにする。 */
+.bic{width:16px;height:16px;vertical-align:-3px;flex:none}
+.bic.lg{width:24px;height:24px}

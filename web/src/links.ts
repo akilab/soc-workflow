@@ -9,9 +9,12 @@
  *
  * **アイコンは自由に指定できない。** ここに並べたものから選ぶ。好きな絵を
  * 持ち込めるようにすると、画面ごとに大きさも太さも色も変わり、並べたときに
- * 揃わなくなる。Microsoft の各サービスは製品そのものの絵ではなく、
- * 同じ体系（Fluent のアイコン）から意味の近いものを当ててある。
- * 製品の絵を使いたくなったら items/ に置いてもらえば差し替えられる。
+ * 揃わなくなる。
+ *
+ * Microsoft の各サービスは、色付きの製品アイコンを出す（items/brand）。
+ * ここだけは単色にしない——ランチャーは「どのサービスか」を絵で見分ける場所で、
+ * 実物と同じ絵が並んでいるほうが速い。それ以外（チケット・手順書など）は
+ * 画面のほかの部分と同じ単色のアイコンにしてある。
  */
 
 import { Api, ApiError } from "./api";
@@ -19,27 +22,50 @@ import { $, esc, onAction } from "./dom";
 import type { AppLink } from "./types";
 import { askModal, confirmModal, showApiError, toast } from "./ui";
 
-/** 選べるアイコン。値はスプライトの id、l は選ぶときに出す言葉。 */
-export const ICONS: { v: string; l: string }[] = [
-  { v: "shield", l: "Defender / セキュリティ" },
-  { v: "key", l: "Entra ID / 認証" },
-  { v: "device", l: "Intune / 端末" },
-  { v: "team", l: "Teams / チャット" },
-  { v: "sparkle", l: "Copilot / AI" },
-  { v: "flowchart", l: "Logic Apps / 自動化" },
-  { v: "mail", l: "Outlook / メール" },
-  { v: "cloud", l: "Azure / クラウド" },
-  { v: "ticket", l: "チケット" },
-  { v: "book", l: "手順書・ナレッジ" },
-  { v: "search", l: "検索・ハンティング" },
-  { v: "alert", l: "アラート・監視" },
-  { v: "people", l: "名簿・組織" },
-  { v: "settings", l: "管理・設定" },
-  { v: "globe", l: "外部サイト" },
-  { v: "link", l: "その他のリンク" },
+/**
+ * 選べるアイコン。
+ *
+ * v はサーバに保存する名前。brand があれば色付きの製品アイコン
+ * （items/brand のスプライト）を出し、無ければ UI と同じ単色のアイコンを出す。
+ *
+ * 製品アイコンがまだ無いもの（Entra ID・Sentinel・Logic Apps）は、単色の
+ * まま置いてある。items/brand に SVG を足して brand: を書けば色付きになる。
+ */
+export const ICONS: { v: string; l: string; icon: string; brand?: string }[] = [
+  { v: "defender", l: "Defender", icon: "shield", brand: "defender" },
+  { v: "intune", l: "Intune", icon: "device", brand: "intune" },
+  { v: "teams", l: "Teams", icon: "team", brand: "teams" },
+  { v: "outlook", l: "Outlook", icon: "mail", brand: "outlook" },
+  { v: "copilot", l: "Copilot", icon: "sparkle", brand: "copilot" },
+  { v: "azure", l: "Azure", icon: "cloud", brand: "azure" },
+  { v: "m365", l: "Microsoft 365", icon: "grid", brand: "m365" },
+  { v: "entra", l: "Entra ID / 認証", icon: "key" },
+  { v: "sentinel", l: "Sentinel / SIEM", icon: "alert" },
+  { v: "logicapps", l: "Logic Apps / 自動化", icon: "flowchart" },
+  { v: "ticket", l: "チケット", icon: "ticket" },
+  { v: "book", l: "手順書・ナレッジ", icon: "book" },
+  { v: "search", l: "検索・ハンティング", icon: "search" },
+  { v: "people", l: "名簿・組織", icon: "people" },
+  { v: "settings", l: "管理・設定", icon: "settings" },
+  { v: "globe", l: "外部サイト", icon: "globe" },
+  { v: "link", l: "その他のリンク", icon: "link" },
 ];
 
 const DEFAULT_ICON = "link";
+
+/**
+ * アイコン 1 つぶんの絵。
+ *
+ * 製品アイコンは色を持っているので、文字色を拾わせない（.bic）。
+ * 単色のアイコンはこれまでどおり文字色を拾う（.ic）。
+ */
+export function iconHTML(v: string, big = false): string {
+  const it = ICONS.find((i) => i.v === v) ?? ICONS[ICONS.length - 1];
+  const size = big ? " lg" : "";
+  return it.brand
+    ? `<svg class="bic${size}"><use href="#br-${esc(it.brand)}"/></svg>`
+    : `<svg class="ic${size}"><use href="#ic-${esc(it.icon)}"/></svg>`;
+}
 
 export class Launcher {
   private readonly api: Api;
@@ -171,7 +197,7 @@ function tile(l: AppLink): string {
   return (
     `<div class="lc-t"><button data-a="open" data-key="${k}" type="button"` +
     ` title="${esc(l.url)}">` +
-    `<svg class="ic lg"><use href="#ic-${esc(icon)}"/></svg>` +
+    iconHTML(icon, true) +
     `<span>${esc(l.name)}</span></button>` +
     '<span class="lc-ops rowops">' +
     `<button data-a="edit" data-key="${k}" type="button" title="直す">` +
@@ -198,8 +224,8 @@ async function ask(
         label: "アイコン",
         type: "icon",
         value: now?.icon ?? DEFAULT_ICON,
-        options: ICONS,
-        hint: "決めたものから選びます。並べたときに大きさと太さを揃えるためです。",
+        options: ICONS.map((i) => ({ v: i.v, l: i.l, icon: iconHTML(i.v, true) })),
+        hint: "決めたものから選びます。Microsoft のサービスは製品のアイコン、それ以外はこの画面と同じ単色のアイコンです。",
       },
       {
         k: "name",

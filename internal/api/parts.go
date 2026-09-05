@@ -392,10 +392,14 @@ type linkBody struct {
 // 好きな絵を持ち込めるようにすると、画面ごとに大きさも太さも色も変わり、
 // 並べたときに揃わなくなる。名前はスプライトの id（items/fluent/*.svg）。
 var linkIcons = map[string]bool{
-	"shield": true, "key": true, "device": true, "team": true,
-	"sparkle": true, "flowchart": true, "mail": true, "cloud": true,
-	"ticket": true, "book": true, "globe": true, "link": true,
-	"alert": true, "people": true, "search": true, "settings": true,
+	// Microsoft のサービス（色付きの製品アイコン。items/brand）
+	"defender": true, "intune": true, "teams": true, "outlook": true,
+	"copilot": true, "azure": true, "m365": true,
+	// 製品アイコンをまだ置いていないもの（単色で出る）
+	"entra": true, "sentinel": true, "logicapps": true,
+	// それ以外（画面のほかの部分と同じ単色のアイコン）
+	"ticket": true, "book": true, "search": true, "people": true,
+	"settings": true, "globe": true, "link": true,
 }
 
 func (b linkBody) check() error {
