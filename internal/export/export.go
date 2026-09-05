@@ -24,6 +24,14 @@ var viewerCSS string
 //go:embed viewer.js
 var viewerJS string
 
+// icons.js は UI アイコンの SVG スプライト（Fluent UI System Icons・MIT）。
+//
+// 書き出し HTML は外部参照ゼロが決めごとなので、アイコンも埋め込むしかない。
+// viewer.js より先に読ませる（viewer.js が UI_SPRITE を使う）。
+//
+//go:embed icons.js
+var iconsJS string
+
 // payload は HTML に埋め込むデータ。viewer.js の mountViewer が受け取る形。
 //
 // 部品（担当・フェーズ・対応・連絡先）は全部入れる。フローを 1 件に絞っても、
@@ -73,12 +81,13 @@ func HTML(db *model.DB, events []*model.Event, title string) ([]byte, error) {
 <div id="root"></div>
 <script>
 %s
+%s
 var DATA=%s;
 mountViewer(document.getElementById("root"), DATA, {storageKey:"soc-flow-run/"+location.pathname});
 </script>
 </body>
 </html>
-`, html.EscapeString(title), viewerCSS, viewerJS, data)
+`, html.EscapeString(title), viewerCSS, iconsJS, viewerJS, data)
 
 	return b.Bytes(), nil
 }

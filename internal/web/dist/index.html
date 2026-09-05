@@ -228,6 +228,9 @@
 
 <!-- viewer は書き出し HTML と同じものを、素の script として先に読む。
      モジュールにすると書き出し側で使えなくなるため（web/src/viewer.d.ts）。 -->
+<!-- UI アイコンのスプライト。viewer.js より先に読む（viewer.js が使う）。
+     書き出し HTML では export.go が同じものを埋め込む。 -->
+<script src="icons.js"></script>
 <script src="viewer.js"></script>
 <script src="app.js"></script>
 </body>

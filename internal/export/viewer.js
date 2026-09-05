@@ -50,10 +50,22 @@ function initTheme(){
   });
 }
 function ensureViaSprite(){
-  if(document.getElementById("via-sprite")) return;
+  inject("via-sprite", VIA_SPRITE);
+  /* UI アイコン（icons.js）。書き出し HTML でもエディタでも、
+     viewer.js より先に読み込まれている。無くても致命的ではないので、
+     読めていなければ黙って飛ばす（連絡手段のアイコンは出したい）。 */
+  if(typeof UI_SPRITE !== "undefined") inject("ui-sprite", UI_SPRITE);
+}
+function inject(id, markup){
+  if(!markup || document.getElementById(id)) return;
   var d = document.createElement("div");
-  d.innerHTML = VIA_SPRITE;
+  d.innerHTML = markup;
   document.body.insertBefore(d.firstChild, document.body.firstChild);
+}
+/* UI アイコン 1 つ。置いた場所の文字色を拾う。 */
+function icon(name, cls){
+  return '<svg class="ic' + (cls ? " " + cls : "") + '" aria-hidden="true">'
+    + '<use href="#ic-' + name + '"/></svg>';
 }
 /* 手段のバッジ中身。SVG があればそれ、無ければ文字。 */
 function viaMark(v){

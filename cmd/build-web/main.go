@@ -36,6 +36,7 @@ const (
 var copies = map[string]string{
 	"web/index.html":             "index.html",
 	"internal/export/viewer.css": "viewer.css",
+	"internal/export/icons.js":   "icons.js",
 	"internal/export/viewer.js":  "viewer.js",
 }
 

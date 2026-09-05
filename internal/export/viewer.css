@@ -341,3 +341,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 :root[data-theme="light"] .vico{color:var(--vc)}
 
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+
+/* ================= UI アイコン =================
+   Fluent UI System Icons（MIT）。icons.js のスプライトを <use> で参照する。
+   fill は currentColor なので、置いた場所の文字色をそのまま拾う。 */
+.ic{width:16px;height:16px;flex:none;fill:currentColor;vertical-align:-3px}
+.ic.lg{width:20px;height:20px}
+.ic.sm{width:12px;height:12px;vertical-align:-2px}
