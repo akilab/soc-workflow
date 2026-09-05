@@ -156,9 +156,9 @@ export class EditScreen {
     this.sel.prune(evt);
     this.applyWidths();
 
-    $("edTitle").innerHTML =
-      `<span class="sev ${esc(evt.severity)}">${esc(evt.severity)}</span>` +
-      `<b>${esc(evt.title)}</b>`;
+    $("edTitle").textContent = evt.title;
+    $("crumbNow").textContent = evt.title;
+    this.renderMeta(evt);
 
     renderOutline({
       db: this.api.db,
@@ -193,7 +193,9 @@ export class EditScreen {
     if (!d) return;
 
     b.classList.toggle("warn", d.outdated);
-    b.innerHTML = `共通との違い<u>${esc(diffSummary(d))}</u>` + (d.outdated ? " !" : "");
+    b.innerHTML =
+      '<svg class="ic"><use href="#ic-branch"/></svg>共通との違い' +
+      `<u>${esc(diffSummary(d))}</u>`;
     b.title = d.outdated
       ? "元のフローがこのあと更新されています"
       : `「${d.base?.title ?? ""}」との違いを見る`;
@@ -226,8 +228,47 @@ export class EditScreen {
   private renderCheckBadge(evt: EventFlow): void {
     const r = validate(this.api.db, evt);
     const b = $("btnCheck");
-    b.className = "ed-tool" + (r.issues.length ? " warn" : " good");
-    b.textContent = r.issues.length ? `検証 ${r.issues.length} 件` : "検証 OK";
+    const word = r.issues.length ? `検証 ${r.issues.length} 件` : "検証 OK";
+    b.innerHTML =
+      `<svg class="ic"><use href="#ic-${r.issues.length ? "warn" : "check"}"/></svg>` +
+      esc(word);
+    b.classList.toggle("warn", r.issues.length > 0);
+  }
+
+  /**
+   * 見出しの下のメタの帯。
+   *
+   * 開いた瞬間に「このフローが何なのか」が 1 行で分かるようにする。
+   * Defender でインシデントを開いたときの
+   * 「低 │ Active │ 未割り当て │ 最終更新時刻」と同じ役割。
+   */
+  private renderMeta(evt: EventFlow): void {
+    const db = this.api.db;
+    const r = validate(db, evt);
+    const d = diffFrom(db, evt);
+
+    const cell = (ico: string, text: string, cls = "") =>
+      `<span class="${cls}"><svg class="ic"><use href="#ic-${ico}"/></svg>${esc(text)}</span>`;
+
+    let html =
+      `<span><span class="sev ${esc(evt.severity)}">${esc(evt.severity)}</span></span>` +
+      cell("list", `${evt.steps.length} 手順`) +
+      cell("branch", `${r.paths.length} 経路`) +
+      (r.issues.length
+        ? cell("warn", `検証 ${r.issues.length} 件`, "ng")
+        : cell("check", "検証 OK", "ok"));
+
+    if (d?.base) {
+      html += cell(
+        "branch",
+        `${d.base.title} から作成・${diffSummary(d)}` + (d.outdated ? "（元が更新）" : ""),
+        d.outdated ? "ng" : "",
+      );
+    }
+    // 「いつの版か」は、書き出して配ったものと見比べるときに効く。
+    html += cell("clock", `最終更新 ${fmtWhen(evt.updatedAt)}`);
+
+    $("edMeta").innerHTML = html;
   }
 
   // -------------------------------------------------------------------------
@@ -239,7 +280,7 @@ export class EditScreen {
     // 送る前に viewer を立ち上げると、書きかけの内容が反映されない。
     if (m === "run") void this.inspector.flush();
     this.mode = m;
-    for (const b of document.querySelectorAll<HTMLElement>(".ed-modes button")) {
+    for (const b of document.querySelectorAll<HTMLElement>(".ed-tabs button")) {
       b.classList.toggle("on", b.dataset.mode === m);
     }
     document.body.className = m === "run" ? "screen-run" : "screen-edit";
@@ -461,12 +502,15 @@ export class EditScreen {
   // -------------------------------------------------------------------------
 
   private bind(): void {
-    $("btnBack").addEventListener("click", () => {
-      void this.inspector.flush().then(() => {
-        this.stopRun();
-        this.onBack();
+    // 道筋の「フロー」と、その下の戻る矢印。どちらも同じ場所へ帰る。
+    for (const id of ["btnBack", "btnBack2"]) {
+      $(id).addEventListener("click", () => {
+        void this.inspector.flush().then(() => {
+          this.stopRun();
+          this.onBack();
+        });
       });
-    });
+    }
     $("btnLanes").addEventListener("click", () => {
       const evt = this.evt;
       if (evt) this.laneSettings.open(evt);
@@ -476,7 +520,7 @@ export class EditScreen {
     $("btnPaths").addEventListener("click", () => this.showPaths());
     $("btnExport").addEventListener("click", () => this.showExport());
 
-    for (const b of document.querySelectorAll<HTMLElement>(".ed-modes button")) {
+    for (const b of document.querySelectorAll<HTMLElement>(".ed-tabs button")) {
       b.addEventListener("click", () => this.setMode(b.dataset.mode as Mode));
     }
 
@@ -654,6 +698,17 @@ export class EditScreen {
  * 別々に書くと、下限を上げたときに読み込み側だけ古いままになり、
  * 「前に狭くしたときの幅」が残り続ける。1 か所にまとめる。
  */
+/** 「2026年9月5日 11:40」。秒までは要らない。 */
+function fmtWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const p = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ` +
+    `${p(d.getHours())}:${p(d.getMinutes())}`
+  );
+}
+
 function clampPane(side: keyof typeof PANE_LIMITS, v: number): number {
   const { min, max } = PANE_LIMITS[side];
   return Math.max(min, Math.min(max, v));

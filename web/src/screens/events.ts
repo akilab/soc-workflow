@@ -18,6 +18,9 @@ export interface EventsScreenDeps {
   onOpen: (key: string) => void;
 }
 
+/** 重大度の言い方。Defender と同じく、記号だけでなく言葉も出す。 */
+const SEV_WORD: Record<Severity, string> = { S1: "高", S2: "中", S3: "低" };
+
 export class EventsScreen {
   private readonly api: Api;
   private readonly onOpen: (key: string) => void;
@@ -31,11 +34,18 @@ export class EventsScreen {
   render(): void {
     const db = this.api.db;
     const grid = $("ewGrid");
-    $("ewCount").textContent = `${db.events.length} 件`;
+    $("ewCount").textContent = `${db.events.length} 件のフロー`;
 
-    grid.innerHTML =
-      db.events.map((ev) => this.card(ev)).join("") +
-      '<button class="ew-new" data-a="new"><u>＋</u>新しいフローを作る</button>';
+    // 一覧は表にする。カードより上下に並べて比べやすく、Defender の一覧と同じ形。
+    grid.innerHTML = db.events.length
+      ? '<table class="tbl flowtbl"><thead><tr>' +
+        "<th>フロー名</th><th>重大度</th><th>手順</th><th>経路</th>" +
+        "<th>フェーズ分布</th><th>検証</th><th>元にしたフロー</th><th></th>" +
+        "</tr></thead><tbody>" +
+        db.events.map((ev) => this.row(ev)).join("") +
+        "</tbody></table>"
+      : '<p class="pal-empty">フローがまだありません。' +
+        "上の「作成」から作ってください。</p>";
 
     $("ewNote").innerHTML =
       "<b>対応はフローをまたいで再利用される部品です。</b>" +
@@ -43,8 +53,8 @@ export class EventsScreen {
       "データはこの端末の JSON ファイルにのみ保存され、外部には送信されません。";
   }
 
-  /** フロー 1 件のカード。 */
-  private card(ev: EventFlow): string {
+  /** フロー 1 件の行。 */
+  private row(ev: EventFlow): string {
     const db = this.api.db;
     const v = validate(db, ev);
     const dist = phaseDist(db, ev);
@@ -63,29 +73,41 @@ export class EventsScreen {
       )
       .join("");
 
+    const k = esc(ev.key);
+    // 重大度は Defender と同じ 3 目盛り。色だけに頼らず言葉も添える。
+    const sev =
+      '<span class="sevm ' +
+      esc(ev.severity) +
+      '"><i></i><i></i><i></i></span>' +
+      `<span>${SEV_WORD[ev.severity] ?? ""} (${esc(ev.severity)})</span>`;
+
     return (
-      `<div class="ew-card" data-a="open" data-key="${esc(ev.key)}">` +
-      `<div class="ew-hd"><span class="sev ${esc(ev.severity)}">${esc(ev.severity)}</span>` +
-      `<b>${esc(ev.title)}</b></div>` +
-      this.relation(ev) +
-      `<p class="ew-sub">${esc(ev.sub || "（説明なし）")}</p>` +
-      `<div class="ew-bar">${bar}</div>` +
-      '<div class="ew-meta">' +
-      `<span>${ev.steps.length} 手順</span>` +
-      `<span>${v.paths.length} 経路</span>` +
-      `<span class="${v.issues.length ? "ng" : "ok"}">` +
-      `${v.issues.length ? `検証 ${v.issues.length} 件` : "検証 OK"}</span></div>` +
-      '<div class="ew-acts">' +
-      // 「開く」は置かない。カードそのものが押せるので、同じことを 2 つ並べても
+      `<tr data-a="open" data-key="${k}">` +
+      `<td class="name"><b>${esc(ev.title)}</b>` +
+      `<span class="sub">${esc(ev.sub || "（説明なし）")}</span></td>` +
+      `<td><span class="sevcell">${sev}</span></td>` +
+      `<td class="num">${ev.steps.length}</td>` +
+      `<td class="num">${v.paths.length}</td>` +
+      `<td><span class="ew-bar">${bar}</span></td>` +
+      `<td><span class="state ${v.issues.length ? "ng" : "ok"}">` +
+      `<svg class="ic"><use href="#ic-${v.issues.length ? "warn" : "check"}"/></svg>` +
+      `${v.issues.length ? `${v.issues.length} 件` : "OK"}</span></td>` +
+      `<td>${this.relation(ev)}</td>` +
+      '<td class="acts">' +
+      // 「開く」は置かない。行そのものが押せるので、同じことを 2 つ並べても
       // 選ぶ手間が増えるだけになる。ここに残すのは、押さないと分からない操作だけ。
-      `<button data-a="dup" data-key="${esc(ev.key)}">複製</button>` +
+      `<button data-a="dup" data-key="${k}" title="複製">` +
+      '<svg class="ic"><use href="#ic-copy"/></svg></button>' +
       // 派生の派生は作れないので、元になれるものにだけ出す。
       (ev.base
         ? ""
-        : `<button data-a="derive" data-key="${esc(ev.key)}">顧客別を作る</button>`) +
-      `<button data-a="exp" data-key="${esc(ev.key)}">書き出し</button>` +
-      `<button data-a="del" data-key="${esc(ev.key)}" class="dg">削除</button>` +
-      "</div></div>"
+        : `<button data-a="derive" data-key="${k}" title="顧客別を作る">` +
+          '<svg class="ic"><use href="#ic-branch"/></svg></button>') +
+      `<button data-a="exp" data-key="${k}" title="エクスポート">` +
+      '<svg class="ic"><use href="#ic-export"/></svg></button>' +
+      `<button data-a="del" data-key="${k}" class="dg" title="削除">` +
+      '<svg class="ic"><use href="#ic-delete"/></svg></button>' +
+      "</td></tr>"
     );
   }
 
@@ -152,6 +174,7 @@ export class EventsScreen {
     });
 
     $("ewExportAll").addEventListener("click", () => this.showExport());
+    $("ewNew").addEventListener("click", () => void this.create());
   }
 
   // -------------------------------------------------------------------------

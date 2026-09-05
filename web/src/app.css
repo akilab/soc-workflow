@@ -15,15 +15,87 @@
      中央 … フローキャンバス
      右   … インスペクタ ⇄ 対応パレット（タブで切り替え）
    ================================================================== */
+/* ==================================================================
+   アプリの骨格 — 上段バー ＋ 左の帯 ＋ 中身
+   Microsoft Defender ポータルと同じ組み方。左の帯が常に見えていることで、
+   アプリ全体の地図になる（機能が増えても迷子にならない）。
+   ================================================================== */
+:root{--top-h:48px; --rail-w:56px}
+html,body{height:100%}
+body{margin:0;overflow:hidden}
+
+.app-top{height:var(--top-h);background:var(--panel);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;padding:0 10px;position:relative;z-index:40}
+.app-name{margin:0;font-size:var(--t6);font-weight:600;white-space:nowrap;letter-spacing:.01em}
+.app-name b{color:var(--cur)}
+.app-name span{color:var(--faint);font-weight:400;font-size:var(--t4);margin-left:10px;
+  padding-left:10px;border-left:1px solid var(--line)}
+.app-ico{width:32px;height:32px;border:none;background:none;color:var(--dim);
+  border-radius:var(--r2);cursor:pointer;display:grid;place-items:center;flex:none;
+  font-family:var(--sans);font-size:var(--t3);white-space:nowrap;padding:0 6px;width:auto;min-width:32px}
+.app-ico:hover{background:var(--panel2);color:var(--fg)}
+
+.app-shell{display:flex;height:calc(100vh - var(--top-h))}
+/* 左の帯。アイコンと短い文字。現在地には青い縦線が付く。 */
+.app-rail{width:var(--rail-w);background:var(--panel);border-right:1px solid var(--line);
+  padding:6px 0;display:flex;flex-direction:column;gap:2px;flex:none}
+.app-rail button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 2px 7px;background:none;border:none;color:var(--faint);cursor:pointer;
+  font-family:var(--sans);font-size:var(--t1);line-height:1.2;text-align:center}
+.app-rail button:hover{background:var(--panel2);color:var(--dim)}
+.app-rail button.on{color:var(--fg);background:var(--panel2)}
+.app-rail button.on::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;
+  border-radius:0 var(--r1) var(--r1) 0;background:var(--cur)}
+
+.app-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+
+/* 一覧系の画面。中身だけが縦にスクロールする。 */
+.pg{flex:1;overflow:auto;padding:16px 24px 40px}
+.pg-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
+.pg-title{margin:0;font-size:var(--t8);font-weight:600;letter-spacing:-.01em}
+.pg-count{font-size:var(--t3);color:var(--faint)}
+/* 見出し脇の控えめな操作。行き先ではなく設定なので、帯には置かない。 */
+.lnk{background:none;border:none;color:var(--cur);font-family:var(--sans);font-size:var(--t3);
+  cursor:pointer;display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--r2)}
+.lnk:hover{background:var(--panel2)}
+
+/* 操作の帯（Fluent の CommandBar）。枠を持たせない。
+   全部を枠付きボタンにすると、読むものと操作の区別が消える。 */
+.cmdbar{display:flex;align-items:center;gap:2px;padding-bottom:7px;margin-bottom:12px;
+  border-bottom:1px solid var(--line);flex-wrap:wrap}
+.cmdbar button{background:none;border:none;color:var(--fg);font-family:var(--sans);font-size:var(--t4);
+  padding:6px 10px;border-radius:var(--r2);cursor:pointer;display:flex;align-items:center;gap:7px;
+  white-space:nowrap}
+/* display:flex は [hidden] の display:none より強い（クラス > 属性の既定）。
+   これが無いと、隠したはずのボタン（顧客別フローのときだけ出す「共通との違い」）が
+   常に出てしまう。 */
+.cmdbar button[hidden]{display:none}
+.cmdbar button:hover:not(:disabled){background:var(--panel2)}
+.cmdbar button .ic{color:var(--cur)}
+.cmdbar button:disabled{color:var(--faint);cursor:default}
+.cmdbar button:disabled .ic{color:var(--faint)}
+.cmdbar button.pri{background:var(--cur);color:var(--onCur);font-weight:600;padding:6px 14px}
+.cmdbar button.pri:hover{filter:brightness(1.1);background:var(--cur)}
+.cmdbar button.pri .ic{color:var(--onCur)}
+.cmdbar select{background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+  border-radius:var(--r2);padding:5px 8px;font-size:var(--t3);font-family:var(--sans)}
+.cmdbar select:focus{outline:none;border-color:var(--cur)}
+.cmd-sep{width:1px;height:20px;background:var(--line);margin:0 6px;flex:none}
+.cmd-count{font-size:var(--t3);color:var(--faint);padding:0 8px;font-variant-numeric:tabular-nums}
+.cmd-search{display:flex;align-items:center;gap:7px;background:var(--panel2);
+  border:1px solid var(--line);border-radius:var(--r2);padding:4px 9px;color:var(--faint);min-width:220px}
+.cmd-search:focus-within{border-color:var(--cur)}
+.cmd-search input{background:none;border:none;outline:none;color:var(--fg);font-family:var(--sans);
+  font-size:var(--t3);width:100%}
+
 #scEvents,#scEdit,#scTasks,#scContacts{display:none}
-body.screen-events   #scEvents{display:block}
-body.screen-tasks    #scTasks{display:block}
-body.screen-contacts #scContacts{display:block}
-body.screen-edit  #scEdit{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-body.screen-edit{overflow:hidden}
-body.screen-run   #scEdit{display:block}
+body.screen-events   #scEvents{display:flex;flex-direction:column;min-height:0;flex:1}
+body.screen-tasks    #scTasks{display:flex;flex-direction:column;min-height:0;flex:1}
+body.screen-contacts #scContacts{display:flex;flex-direction:column;min-height:0;flex:1}
+body.screen-edit  #scEdit{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+body.screen-run   #scEdit{display:flex;flex-direction:column;flex:1;min-height:0;overflow:auto}
 body.screen-edit  #runWrap{display:none}
-body.screen-run   .ed-body{display:none}
+body.screen-run   .ed-body,body.screen-run .ed-cmd{display:none}
 body.resizing{cursor:col-resize;user-select:none}
 
 /* ---------- 共通の部品 ---------- */
@@ -139,18 +211,42 @@ body.resizing{cursor:col-resize;user-select:none}
 .ew-new:hover{border-color:var(--ok);color:var(--ok)}
 .ew-new u{text-decoration:none;font-size:var(--t8);line-height:1}
 
-/* ================= 編集ビュー ================= */
-.ed-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--line);padding:10px 18px;display:flex;align-items:center;gap:13px;flex:none}
-.ed-back{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:var(--r2);
-  padding:7px 13px;font-size:var(--t4);cursor:pointer;font-family:var(--sans);white-space:nowrap}
-.ed-back:hover{border-color:var(--cur);color:var(--cur)}
-.ed-title{display:flex;align-items:center;gap:9px;min-width:0}
-.ed-title b{font-size:var(--t6);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ed-modes{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r2);padding:3px}
-.ed-modes button{background:none;border:none;color:var(--dim);font-family:var(--sans);font-size:var(--t4);
-  padding:6px 17px;border-radius:var(--r2);cursor:pointer;font-weight:600}
-.ed-modes button.on{background:var(--cur);color:var(--onCur);font-weight:700}
+/* ================= 編集ビュー =================
+   見出しまわりは 道筋 → 題名 → メタの帯 → タブ の順。
+   Defender でインシデントを開いたときと同じ並びにしてある。 */
+.ed-head{padding:12px 20px 0;flex:none}
+
+/* 道筋。「← フロー一覧」という矢印だけのボタンをやめ、いまどこにいるかを出す。 */
+.crumb{display:flex;align-items:center;gap:5px;font-size:var(--t3);color:var(--faint);margin-bottom:3px}
+.crumb button{background:none;border:none;color:var(--cur);font-family:var(--sans);
+  font-size:var(--t3);cursor:pointer;padding:0}
+.crumb button:hover{text-decoration:underline}
+.crumb .ic{color:var(--faint)}
+
+.ed-titlerow{display:flex;align-items:center;gap:8px;min-width:0}
+.ed-title{margin:0;font-size:var(--t8);font-weight:600;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+
+/* メタの帯。開いた瞬間にこのフローの素性が 1 行で分かる。
+   Defender の「低 │ Active │ 未割り当て │ 最終更新時刻」と同じ作り。 */
+.ed-meta{display:flex;align-items:center;flex-wrap:wrap;margin:8px 0 10px;
+  font-size:var(--t3);color:var(--dim);min-height:20px}
+.ed-meta > span{display:flex;align-items:center;gap:6px;padding:0 12px}
+.ed-meta > span:first-child{padding-left:0}
+.ed-meta > span + span{border-left:1px solid var(--line)}
+.ed-meta .ic{color:var(--faint)}
+.ed-meta .ok{color:var(--ok)} .ed-meta .ok .ic{color:var(--ok)}
+.ed-meta .ng{color:var(--s2)} .ed-meta .ng .ic{color:var(--s2)}
+
+/* 編集 / テスト。Defender と同じ下線の動くタブ。 */
+.ed-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:0 -20px;padding:0 20px}
+.ed-tabs button{background:none;border:none;color:var(--dim);font-family:var(--sans);font-size:var(--t4);
+  padding:9px 12px 10px;cursor:pointer;position:relative;display:flex;align-items:center;gap:7px}
+.ed-tabs button:hover{color:var(--fg);background:var(--panel2)}
+.ed-tabs button.on{color:var(--cur);font-weight:600}
+.ed-tabs button.on::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;
+  background:var(--cur);border-radius:1px}
+.ed-cmd{padding:7px 20px;margin:0;border-bottom:1px solid var(--line)}
 
 .ed-body{display:grid;grid-template-columns:var(--wl,290px) 7px minmax(0,1fr) 7px var(--wr,324px);
   gap:0;padding:12px 16px 14px;flex:1 1 auto;min-height:0}
@@ -725,3 +821,38 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .pal-t .k-fin{display:inline-block;font-style:normal;vertical-align:1px;
   margin-right:5px;font-size:var(--t1);font-weight:700;letter-spacing:.04em;line-height:1.6;
   color:var(--ok);border:1px solid var(--ok);border-radius:var(--r1);padding:0 4px}
+
+/* ================= フロー一覧の表 =================
+   Defender のインシデント一覧と同じ作り。行に罫線、囲みも角丸も無し。 */
+.flowtbl{min-width:1000px}
+.flowtbl thead th{white-space:nowrap}
+.flowtbl tbody tr{cursor:pointer}
+.flowtbl td.name b{font-size:var(--t4);font-weight:600;display:block;line-height:1.45}
+.flowtbl td.name .sub{display:block;font-size:var(--t3);color:var(--faint);
+  line-height:1.5;margin-top:1px}
+.flowtbl td.num{font-variant-numeric:tabular-nums;text-align:right;color:var(--dim)}
+.flowtbl .ew-bar{display:flex;height:8px;width:140px;border-radius:var(--r1);
+  overflow:hidden;background:var(--panel3)}
+.flowtbl .ew-bar i{display:block;height:100%}
+
+/* 重大度の 3 目盛り。Defender と同じ形。色だけに頼らず言葉も添える。 */
+.sevcell{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:var(--t3);color:var(--dim)}
+.sevm{display:flex;gap:2px;flex:none}
+.sevm i{width:4px;height:11px;background:var(--line);border-radius:1px;display:block}
+.sevm.S1 i{background:var(--s1)}
+.sevm.S2 i:nth-child(-n+2){background:var(--s2)}
+.sevm.S3 i:nth-child(1){background:var(--s3)}
+
+/* 状態（検証）。記号と言葉の両方を出す。 */
+.state{display:inline-flex;align-items:center;gap:6px;font-size:var(--t3);color:var(--dim);white-space:nowrap}
+.state.ok,.state.ok .ic{color:var(--ok)}
+.state.ng,.state.ng .ic{color:var(--s2)}
+
+/* 行の操作。アイコンだけにして、行の中身を邪魔しない。 */
+.flowtbl td.acts{white-space:nowrap;text-align:right}
+.flowtbl td.acts button{background:none;border:none;color:var(--faint);cursor:pointer;
+  width:28px;height:28px;border-radius:var(--r2);display:inline-grid;place-items:center}
+.flowtbl tbody tr:hover td.acts button{color:var(--dim)}
+.flowtbl td.acts button:hover{background:var(--panel3);color:var(--fg)}
+.flowtbl td.acts button.dg:hover{color:var(--s1)}
+.flowtbl .ew-rel{margin:0;font-size:var(--t3)}

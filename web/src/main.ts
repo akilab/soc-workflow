@@ -39,14 +39,12 @@ class App {
       api: this.api,
       onBack: () => this.show("events"),
     });
-    this.contacts = new ContactsScreen({
-      api: this.api,
-      onBack: () => this.show("events"),
-    });
+    // 一覧系の画面には「戻る」を持たせない。左の帯がいつでも出ているので、
+    // 戻るのではなく行き先を選べばよい。
+    this.contacts = new ContactsScreen({ api: this.api });
     this.settings = new Settings(this.api);
     this.tasks = new TasksScreen({
       api: this.api,
-      onBack: () => this.show("events"),
       onPhases: () => this.settings.openPhases(),
     });
 
@@ -79,19 +77,35 @@ class App {
   private show(screen: Screen): void {
     this.screen = screen;
     document.body.className = `screen-${screen}`;
+    this.syncRail(screen);
     this.render();
   }
 
   private openEvent(key: string): void {
     this.screen = "edit";
-    this.edit.open(key); // body の class は編集ビュー側が決める（試走で切り替わるため）
+    this.syncRail("edit");
+    this.edit.open(key); // body の class は編集ビュー側が決める（テストで切り替わるため）
+  }
+
+  /**
+   * 左の帯の現在地。
+   *
+   * フローを編集しているあいだも「フロー」を光らせたままにする。
+   * 編集はフローの中にいる状態で、別の場所へ移ったわけではない。
+   */
+  private syncRail(screen: Screen): void {
+    const at = screen === "edit" ? "events" : screen;
+    for (const b of document.querySelectorAll<HTMLElement>("#appRail button")) {
+      b.classList.toggle("on", b.dataset.nav === at);
+    }
   }
 
   private bindGlobal(): void {
+    for (const b of document.querySelectorAll<HTMLElement>("#appRail button")) {
+      b.addEventListener("click", () => this.show(b.dataset.nav as Screen));
+    }
     $("ewPhases").addEventListener("click", () => this.settings.openPhases());
     $("ewLanes").addEventListener("click", () => this.settings.openLanes());
-    $("ewContacts").addEventListener("click", () => this.show("contacts"));
-    $("ewTasks").addEventListener("click", () => this.show("tasks"));
     $("mClose").addEventListener("click", closeModal);
     $("mask").addEventListener("click", (e) => {
       if (e.target === $("mask")) closeModal(); // 外側を押したら閉じる

@@ -24,7 +24,6 @@ import type { AskField } from "../ui";
 
 export interface TasksDeps {
   api: Api;
-  onBack: () => void;
   /** フェーズ設定を開く。フェーズを足したくなる場は、たいていこの画面。 */
   onPhases: () => void;
 }
@@ -42,7 +41,6 @@ export class TasksScreen {
   constructor(deps: TasksDeps) {
     this.api = deps.api;
 
-    $("tkBack").addEventListener("click", deps.onBack);
     $("tkPhases").addEventListener("click", deps.onPhases);
     $("tkNew").addEventListener("click", () => void this.createTask());
 

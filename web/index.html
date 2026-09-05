@@ -9,25 +9,52 @@
 </head>
 <body class="screen-events">
 
+<!-- ================= 製品の上段 =================
+     画面によらず常に同じ。製品名と、好みの切り替えだけを置く。
+     Defender ポータルと同じ位置・同じ役割にしてある。 -->
+<header class="app-top">
+  <button class="app-ico" id="appMenu" type="button" title="メニュー">
+    <svg class="ic lg"><use href="#ic-grid"/></svg></button>
+  <h1 class="app-name">SOC <b>Workflow</b><span>対応フローの設計</span></h1>
+  <div class="ed-spacer"></div>
+  <button class="app-ico" data-th type="button"></button>
+</header>
+
+<div class="app-shell">
+  <!-- ================= 左の帯 =================
+       行き先は 3 つだけ。ここが常に見えていることで、
+       アプリ全体の地図になる（フェーズ・担当の設定は行き先ではないので、
+       フロー画面の見出し脇に置いてある）。 -->
+  <nav class="app-rail" id="appRail">
+    <button type="button" data-nav="events">
+      <svg class="ic lg"><use href="#ic-flow"/></svg>フロー</button>
+    <button type="button" data-nav="tasks">
+      <svg class="ic lg"><use href="#ic-task"/></svg>対応</button>
+    <button type="button" data-nav="contacts">
+      <svg class="ic lg"><use href="#ic-people"/></svg>連絡先</button>
+  </nav>
+
+  <div class="app-main">
+
 <!-- ================= フロー一覧 ================= -->
 <div id="scEvents">
-  <div class="ew-top">
-    <h1 class="brand">SOC <b>Workflow</b></h1>
-    <div class="ed-spacer"></div>
-    <!-- 並びは使う頻度の順。中身を書く場所（対応・連絡先）が先、
-         組み立ての土台（フェーズ・担当）が次、その先に操作。 -->
-    <button class="ed-tool" id="ewTasks">対応一覧</button>
-    <button class="ed-tool" id="ewContacts">連絡先</button>
-    <div class="ed-sep"></div>
-    <button class="ed-tool" id="ewPhases">フェーズ設定</button>
-    <button class="ed-tool" id="ewLanes">担当設定</button>
-    <div class="ed-sep"></div>
-    <button class="ed-tool" id="ewExportAll">全フローを書き出し</button>
-    <button class="ed-tool quiet" data-th type="button"></button>
-  </div>
-  <div class="ew-body">
-    <h2 class="ew-h">対応フロー <span id="ewCount"></span></h2>
-    <div class="ew-grid" id="ewGrid"></div>
+  <div class="pg">
+    <div class="pg-head">
+      <h2 class="pg-title">フロー</h2>
+      <div class="ed-spacer"></div>
+      <button class="lnk" id="ewPhases"><svg class="ic"><use href="#ic-layer"/></svg>フェーズ設定</button>
+      <button class="lnk" id="ewLanes"><svg class="ic"><use href="#ic-org"/></svg>担当設定</button>
+    </div>
+
+    <!-- 操作の帯。枠を持たせない。読むものと操作が見分けられる。 -->
+    <div class="cmdbar">
+      <button id="ewNew"><svg class="ic"><use href="#ic-add"/></svg>作成</button>
+      <button id="ewExportAll"><svg class="ic"><use href="#ic-export"/></svg>エクスポート</button>
+      <div class="ed-spacer"></div>
+      <span class="cmd-count" id="ewCount"></span>
+    </div>
+
+    <div id="ewGrid"></div>
     <p class="ed-note" id="ewNote"></p>
   </div>
 </div>
@@ -35,32 +62,49 @@
 <!-- ================= 編集ビュー ================= -->
 <div id="scEdit">
 
-  <div class="ed-top">
-    <button class="ed-back" id="btnBack">← フロー一覧</button>
-    <div class="ed-title" id="edTitle"></div>
+  <!-- 見出しまわり。道筋 → 題名 → メタの帯 → タブ の順。
+       Defender でインシデントを開いたときと同じ並びにしてある。 -->
+  <div class="ed-head">
+    <nav class="crumb">
+      <button type="button" id="btnBack">フロー</button>
+      <svg class="ic sm"><use href="#ic-chev-r"/></svg>
+      <span id="crumbNow"></span>
+    </nav>
+
+    <div class="ed-titlerow">
+      <button class="app-ico" id="btnBack2" type="button" title="フローへ戻る">
+        <svg class="ic lg"><use href="#ic-back"/></svg></button>
+      <h2 class="ed-title" id="edTitle"></h2>
+      <div class="ed-spacer"></div>
+      <!-- このフローの設定 -->
+      <button class="lnk" id="btnLanes"><svg class="ic"><use href="#ic-org"/></svg>担当</button>
+    </div>
+
+    <!-- メタの帯。開いた瞬間にこのフローの素性が 1 行で分かる。 -->
+    <div class="ed-meta" id="edMeta"></div>
+
+    <div class="ed-tabs">
+      <button data-mode="edit" class="on"><svg class="ic"><use href="#ic-edit"/></svg>編集</button>
+      <button data-mode="run"><svg class="ic"><use href="#ic-play"/></svg>テスト</button>
+    </div>
+  </div>
+
+  <!-- 操作の帯 -->
+  <div class="cmdbar ed-cmd">
     <!-- 取り消し・やり直し。試して戻せることが、この道具の使い方そのものなので
          見えるところに置く。キーボードは Ctrl+Z / Ctrl+Shift+Z で全画面から使える。 -->
-    <div class="ed-undo">
-      <button class="ed-tool" id="btnUndo" type="button" disabled>↶</button>
-      <button class="ed-tool" id="btnRedo" type="button" disabled>↷</button>
-    </div>
-    <div class="ed-spacer"></div>
-    <!-- このフローの設定 -->
-    <button class="ed-tool" id="btnLanes">担当</button>
-    <div class="ed-sep"></div>
+    <button id="btnUndo" type="button" disabled>
+      <svg class="ic"><use href="#ic-undo"/></svg>元に戻す</button>
+    <button id="btnRedo" type="button" disabled>
+      <svg class="ic"><use href="#ic-redo"/></svg>やり直し</button>
+    <div class="cmd-sep"></div>
     <!-- 中身を読むもの。押すと今の状態が分かる。
          「共通との違い」は顧客別フローのときだけ出す（screens/edit.ts が出し入れする）。 -->
-    <button class="ed-tool" id="btnDiff" hidden>共通との違い</button>
-    <button class="ed-tool" id="btnCheck">検証</button>
-    <button class="ed-tool" id="btnPaths">経路一覧</button>
-    <div class="ed-sep"></div>
-    <!-- 見え方の切り替えと、持ち出し -->
-    <div class="ed-modes">
-      <button data-mode="edit" class="on">編集</button>
-      <button data-mode="run">試走</button>
-    </div>
-    <button class="ed-tool pri" id="btnExport">書き出し</button>
-    <button class="ed-tool quiet" data-th type="button"></button>
+    <button id="btnDiff" hidden><svg class="ic"><use href="#ic-branch"/></svg>共通との違い</button>
+    <button id="btnCheck"><svg class="ic"><use href="#ic-check"/></svg>検証</button>
+    <button id="btnPaths"><svg class="ic"><use href="#ic-list"/></svg>経路一覧</button>
+    <div class="ed-spacer"></div>
+    <button class="pri" id="btnExport"><svg class="ic"><use href="#ic-export"/></svg>エクスポート</button>
   </div>
 
   <div class="ed-body" id="edBody">
@@ -114,7 +158,7 @@
 
   <div id="runWrap">
     <div class="runbar">
-      <b>試走モード</b> — 対応者と同じ画面です。ここで見えているものが、そのまま書き出される単一 HTML になります。
+      <b>テスト</b> — 対応者と同じ画面です。ここで見えているものが、そのまま書き出される単一 HTML になります。
       ここで付けた進捗と回答は、編集モードに戻ると破棄されます。
     </div>
     <div id="runRoot"></div>
@@ -124,18 +168,21 @@
 
 <!-- 対応一覧 -->
 <div id="scTasks">
-  <div class="tk-top">
-    <button class="ed-back" id="tkBack">← フロー一覧</button>
-    <h1 class="sc-name">対応一覧</h1>
-    <div class="ed-spacer"></div>
-    <input class="tk-search" id="tkSearch" type="text" placeholder="対応を検索…">
-    <button class="ed-tool" id="tkPhases">フェーズ設定</button>
-    <button class="ed-tool pri" id="tkNew">＋ 新しい対応</button>
-    <button class="ed-tool quiet" data-th type="button"></button>
-  </div>
-  <div class="ew-body">
-    <h2 class="ew-h">対応 <span id="tkCount"></span></h2>
-    <div class="tk-bar">
+  <div class="pg">
+    <div class="pg-head">
+      <h2 class="pg-title">対応</h2>
+      <span class="pg-count" id="tkCount"></span>
+      <div class="ed-spacer"></div>
+      <button class="lnk" id="tkPhases"><svg class="ic"><use href="#ic-layer"/></svg>フェーズ設定</button>
+    </div>
+
+    <div class="cmdbar">
+      <button id="tkNew"><svg class="ic"><use href="#ic-add"/></svg>作成</button>
+      <div class="cmd-sep"></div>
+      <label class="cmd-search">
+        <svg class="ic"><use href="#ic-search"/></svg>
+        <input id="tkSearch" type="text" placeholder="対応を検索">
+      </label>
       <select id="tkSort" title="並び順">
         <option value="use">使用の多い順</option>
         <option value="def">定義順</option>
@@ -146,9 +193,10 @@
         <option value="used">どこかで使用中</option>
         <option value="unused">未使用</option>
       </select>
-      <span class="sp"></span>
-      <em id="tkStat"></em>
+      <div class="ed-spacer"></div>
+      <span class="cmd-count" id="tkStat"></span>
     </div>
+
     <div id="tkList"></div>
     <p class="ed-note">
       <b>対応はフローをまたいで再利用される部品です。</b>
@@ -165,20 +213,20 @@
 
 <!-- 連絡先 -->
 <div id="scContacts">
-  <div class="tk-top">
-    <button class="ed-back" id="ctBack">← フロー一覧</button>
-    <!-- .brand は製品名（SOC Workflow）専用。後半を色で強調する書式なので、
-         熟語を途中で割ることになる画面名には使わない。 -->
-    <h1 class="sc-name">連絡先</h1>
-    <div class="ed-spacer"></div>
-    <input class="tk-search" id="ctSearch" type="text"
-           placeholder="名前・電話・アカウントで検索…">
-    <button class="ed-tool pri" id="ctNew">＋ 新しいグループ</button>
-    <button class="ed-tool quiet" data-th type="button"></button>
-  </div>
-  <div class="ew-body">
-    <h2 class="ew-h">連絡先 <span id="ctCount"></span></h2>
-    <div class="tk-bar">
+  <div class="pg">
+    <div class="pg-head">
+      <h2 class="pg-title">連絡先</h2>
+      <span class="pg-count" id="ctCount"></span>
+      <div class="ed-spacer"></div>
+    </div>
+
+    <div class="cmdbar">
+      <button id="ctNew"><svg class="ic"><use href="#ic-add"/></svg>作成</button>
+      <div class="cmd-sep"></div>
+      <label class="cmd-search">
+        <svg class="ic"><use href="#ic-search"/></svg>
+        <input id="ctSearch" type="text" placeholder="名前・電話・アカウントで検索">
+      </label>
       <select id="ctKindF" title="区分">
         <option value="all">すべての区分</option>
         <option value="esc">エスカレーション先</option>
@@ -194,9 +242,10 @@
         <option value="mail">メール</option>
       </select>
       <select id="ctLaneF" title="担当"></select>
-      <span class="sp"></span>
-      <em id="ctStat"></em>
+      <div class="ed-spacer"></div>
+      <span class="cmd-count" id="ctStat"></span>
     </div>
+
     <div id="ctList"></div>
     <p class="ed-note">
       <b>連絡先はグループごとに、連絡順のメンバーを持ちます。</b>
@@ -212,6 +261,9 @@
     </p>
   </div>
 </div>
+
+  </div><!-- /.app-main -->
+</div><!-- /.app-shell -->
 
 <!-- 通知・モーダル -->
 <div class="toast" id="toast"></div>

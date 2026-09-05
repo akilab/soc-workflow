@@ -23,7 +23,6 @@ import { askModal, confirmModal, showApiError, toast } from "../ui";
 
 export interface ContactsDeps {
   api: Api;
-  onBack: () => void;
 }
 
 /** 空のメンバー。欄を増やしたときに入れ忘れないよう、1 か所で作る。 */
@@ -43,7 +42,6 @@ export class ContactsScreen {
   constructor(deps: ContactsDeps) {
     this.api = deps.api;
 
-    $("ctBack").addEventListener("click", deps.onBack);
     $("ctNew").addEventListener("click", () => void this.createGroup());
 
     const search = $as<HTMLInputElement>("ctSearch");
