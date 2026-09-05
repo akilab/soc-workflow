@@ -41,17 +41,19 @@
   <div class="pg">
     <div class="pg-head">
       <h2 class="pg-title">フロー</h2>
-      <div class="ed-spacer"></div>
-      <button class="lnk" id="ewPhases"><svg class="ic"><use href="#ic-layer"/></svg>フェーズ設定</button>
-      <button class="lnk" id="ewLanes"><svg class="ic"><use href="#ic-org"/></svg>担当設定</button>
+      <span class="pg-count" id="ewCount"></span>
     </div>
 
-    <!-- 操作の帯。枠を持たせない。読むものと操作が見分けられる。 -->
+    <!-- 操作の帯。枠を持たせない。読むものと操作が見分けられる。
+         見出しの脇にも操作を置くと、探す場所が 2 か所になる。
+         区切りの左が「この一覧に対する操作」、右が「全体の設定」。 -->
     <div class="cmdbar">
       <button id="ewNew"><svg class="ic"><use href="#ic-add"/></svg>作成</button>
       <button id="ewExportAll"><svg class="ic"><use href="#ic-export"/></svg>エクスポート</button>
+      <div class="cmd-sep"></div>
+      <button id="ewPhases"><svg class="ic"><use href="#ic-layer"/></svg>フェーズ設定</button>
+      <button id="ewLanes"><svg class="ic"><use href="#ic-org"/></svg>担当設定</button>
       <div class="ed-spacer"></div>
-      <span class="cmd-count" id="ewCount"></span>
     </div>
 
     <div id="ewGrid"></div>
@@ -75,9 +77,6 @@
       <button class="app-ico" id="btnBack2" type="button" title="フローへ戻る">
         <svg class="ic lg"><use href="#ic-back"/></svg></button>
       <h2 class="ed-title" id="edTitle"></h2>
-      <div class="ed-spacer"></div>
-      <!-- このフローの設定 -->
-      <button class="lnk" id="btnLanes"><svg class="ic"><use href="#ic-org"/></svg>担当</button>
     </div>
 
     <!-- メタの帯。開いた瞬間にこのフローの素性が 1 行で分かる。 -->
@@ -97,6 +96,9 @@
       <svg class="ic"><use href="#ic-undo"/></svg>元に戻す</button>
     <button id="btnRedo" type="button" disabled>
       <svg class="ic"><use href="#ic-redo"/></svg>やり直し</button>
+    <div class="cmd-sep"></div>
+    <!-- このフローの設定 -->
+    <button id="btnLanes"><svg class="ic"><use href="#ic-org"/></svg>担当</button>
     <div class="cmd-sep"></div>
     <!-- 中身を読むもの。押すと今の状態が分かる。
          「共通との違い」は顧客別フローのときだけ出す（screens/edit.ts が出し入れする）。 -->
@@ -172,12 +174,11 @@
     <div class="pg-head">
       <h2 class="pg-title">対応</h2>
       <span class="pg-count" id="tkCount"></span>
-      <div class="ed-spacer"></div>
-      <button class="lnk" id="tkPhases"><svg class="ic"><use href="#ic-layer"/></svg>フェーズ設定</button>
     </div>
 
     <div class="cmdbar">
       <button id="tkNew"><svg class="ic"><use href="#ic-add"/></svg>作成</button>
+      <button id="tkPhases"><svg class="ic"><use href="#ic-layer"/></svg>フェーズ設定</button>
       <div class="cmd-sep"></div>
       <label class="cmd-search">
         <svg class="ic"><use href="#ic-search"/></svg>

@@ -67,10 +67,9 @@ body{margin:0;overflow:hidden}
 .pg-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
 .pg-title{margin:0;font-size:var(--t8);font-weight:600;letter-spacing:-.01em}
 .pg-count{font-size:var(--t3);color:var(--faint)}
-/* 見出し脇の控えめな操作。行き先ではなく設定なので、帯には置かない。 */
-.lnk{background:none;border:none;color:var(--cur);font-family:var(--sans);font-size:var(--t3);
-  cursor:pointer;display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--r2)}
-.lnk:hover{background:var(--panel2)}
+/* 見出しの脇に操作は置かない。
+   帯にまだ余白があるのに見出し脇にも並べると、探す場所が 2 か所になる。
+   設定も帯へ入れ、区切りで「この一覧への操作」と分けている。 */
 
 /* 操作の帯（Fluent の CommandBar）。枠を持たせない。
    全部を枠付きボタンにすると、読むものと操作の区別が消える。 */
