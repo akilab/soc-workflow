@@ -414,12 +414,12 @@ export class Inspector {
       `<input type="text" id="s_sla" placeholder="15分 / 即時" value="${esc(st.sla)}"></div></div>` +
       '<p class="hint">担当を変えると、フロー図でこの手順が別の列へ移ります。<br>' +
       "目標時間はこの手順ひとつぶんです。約束した時間（SLA）は別に持ちます。</p>" +
-      milestoneField(this.db, st) +
       '<label class="chk" style="margin-top:12px"><input type="checkbox" id="s_esc"' +
       `${st.escalate ? " checked" : ""}>エスカレーション判断が必要</label>` +
       this.contactsHTML(st) +
       this.conditionsHTML(evt, st) +
       this.decisionHTML(st) +
+      milestoneField(this.db, st) +
       '<button class="del" id="s_dup">この手順を複製する</button>' +
       '<button class="del" id="s_del">この手順を削除する</button>';
 
@@ -440,6 +440,19 @@ export class Inspector {
     });
 
     // --- 選び直し。すぐ送る ---
+    // 到達点の印。押したときに付き、× で外す（判断ステップと同じ形）。
+    on<HTMLElement>("s_msAdd", "click", () => {
+      const first = (this.db.slas ?? [])[0];
+      if (!first) return;
+      this.apply(evt.key, st, () => {
+        st.milestone = first.key;
+      });
+    });
+    on<HTMLElement>("s_msDel", "click", () => {
+      this.apply(evt.key, st, () => {
+        st.milestone = "";
+      });
+    });
     on<HTMLSelectElement>("s_ms", "change", (el) => {
       this.apply(evt.key, st, () => {
         st.milestone = el.value;

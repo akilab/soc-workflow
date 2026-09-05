@@ -12,11 +12,17 @@
  *   フローの SLA … このフローだけの上書き。顧客ごとに違う約束を持つ
  *
  * 担当（Lane / EventLane）と同じ形にしてある。役割で参照して、フローで束ねる。
+ *
+ * **時間の判定はしない。** 一度は経路ごとに積み上げて超過を出す作りにしたが、
+ * 実務では「初動 2 時間」程度しか約束が無く、厳密な計算をしながらフローを
+ * 作ることはない、という指摘を受けて外した。計算が要らないどころか、
+ * **計算があると邪魔**で、道具が使われなくなる。約束は書いて示すもので、
+ * 検算するものではない。
  */
 
 import { Api, ApiError } from "./api";
 import { esc } from "./dom";
-import { fmtMin, parseSla } from "./flow";
+import { fmtMin, parseSla, slaTarget } from "./flow";
 import type { EventFlow, EventSLA, SLA } from "./types";
 import {
   closeModal,
@@ -74,8 +80,10 @@ export class SLASettings {
       '<p class="ins hint" style="margin:0 0 12px">' +
         "<b>SLA は「検知から○○まで、何分以内」という約束です。</b>" +
         "手順ひとつずつの目標時間とは別のものとして持ちます。<br>" +
-        "測る範囲は<b>フローの始まりから、到達点の印を付けた手順まで</b>。" +
-        "印は手順のインスペクタで付けます。<br>" +
+        "どの手順までが約束の範囲かは、その手順に<b>到達点の印</b>を付けて示します" +
+        "（手順のインスペクタの下のほう）。印を付けると図に出ます。<br>" +
+        "<b>時間の判定はしません。</b>約束を書いておくためのもので、" +
+        "目標時間を足して超過を出すことはしません。<br>" +
         "顧客ごとに違う約束は、フローごとに上書きできます（編集ビューの「SLA」）。" +
         "</p>" +
         (items.length
@@ -266,10 +274,27 @@ export class SLASettings {
   }
 }
 
-/** 到達点の印を選ぶ欄。インスペクタから使う。 */
-export function milestoneField(db: { slas?: SLA[] }, st: { milestone?: string }): string {
+/**
+ * 到達点の印。インスペクタの下のほうに置く。
+ *
+ * ほとんどの手順には要らない印なので、欄として常に出さない。判断ステップと
+ * 同じで、押したときだけ現れる形にしてある（利用者の指摘——「ほとんどの項目に
+ * 不要な項目になるのが気になる」）。
+ */
+export function milestoneField(
+  db: { slas?: SLA[] },
+  st: { milestone?: string },
+): string {
   const all = db.slas ?? [];
-  if (!all.length) return "";
+  if (!all.length) return ""; // 約束が 1 つも無ければ、印の付けようがない
+
+  if (!st.milestone) {
+    return (
+      '<button class="mini" id="s_msAdd" style="margin-top:13px">' +
+      "&#9873; この手順を SLA の到達点にする</button>"
+    );
+  }
+
   const opts = all
     .map(
       (x) =>
@@ -278,19 +303,25 @@ export function milestoneField(db: { slas?: SLA[] }, st: { milestone?: string })
     )
     .join("");
   return (
-    "<label>SLA の到達点</label>" +
-    `<select id="s_ms"><option value="">なし</option>${opts}</select>` +
-    '<p class="hint">この手順に印を付けると、フローの始まりからここまでの' +
-    "目標時間の合計が、その SLA の実績として経路一覧に出ます。</p>"
+    '<div class="sect ms"><h4>SLA の到達点 ' +
+    '<button class="x" id="s_msDel" title="外す">&times;</button></h4>' +
+    `<select id="s_ms">${opts}</select>` +
+    '<p class="hint">この手順に「ここまでが約束の範囲」という印が付きます。' +
+    "図とアウトラインに出ます。時間の判定はしません。</p></div>"
   );
 }
 
-/** 経路一覧などで使う、達成しているかの見た目。 */
-export function slaCell(target: number, actual: number, over: boolean): string {
+/** 図やアウトラインに出す、到達点の印。 */
+export function milestoneTag(
+  db: { slas?: SLA[] },
+  evt: EventFlow,
+  st: { milestone?: string },
+): string {
+  if (!st.milestone) return "";
+  const x = (db.slas ?? []).find((y) => y.key === st.milestone);
+  if (!x) return "";
   return (
-    `<span class="state ${over ? "ng" : "ok"}">` +
-    `<svg class="ic"><use href="#ic-${over ? "warn" : "check"}"/></svg>` +
-    `${esc(fmtMin(actual))}</span>` +
-    `<span class="sla-of">/ ${esc(fmtMin(target))}</span>`
+    `<span class="f-ms" title="${esc(x.name)} — ここまでが約束の範囲です">` +
+    `&#9873; ${esc(x.name)} ${esc(fmtMin(slaTarget(evt, x)))}</span>`
   );
 }
