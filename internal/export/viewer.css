@@ -38,6 +38,10 @@
   --shadow:rgba(0,0,0,.5);
   --decFg:#bfa0ff;          /* 判断色の文字（地の明暗で変える） */
   --custFg:#f08cae;         /* 顧客連絡の文字 */
+  /* 印の文字色。地が濃いところでは、面の色（--s1 など）をそのまま文字に
+     使うと沈む。Fluent の Badge と同じく、面より 1 段明るい色を字にあてる。 */
+  --s1Fg:#f1707b;           /* 重大・エスカレの文字 */
+  --okFg:#7fd07f;           /* 完了・終了の文字 */
   --sbar:#4a4a4a;           /* スクロールバーのつまみ */
   --sbarOn:#6a6a6a;         /* 同、触れているとき */
   --griddot:#1e1e1e;        /* キャンバスの点。Defender のグラフと同じ地 */
@@ -217,17 +221,26 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-s.skipped{opacity:.34}
 .v-s.skipped .ttl{text-decoration:line-through}
 
-.tag{display:inline-block;font-size:var(--t3);font-weight:700;padding:2px 9px;border-radius:var(--r-pill);
-  margin-left:8px;vertical-align:middle;white-space:nowrap}
-.tag.now{background:var(--cur);color:var(--onCur);border:1px solid var(--cur)}
-.tag.sla{background:var(--panel3);color:var(--dim);border:1px solid var(--line);font-family:var(--mono)}
-.tag.esc{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
-.tag.cond{background:color-mix(in srgb, var(--dec) 16%, transparent);color:var(--decFg);border:1px solid var(--dec)}
-.tag.tier{background:transparent;color:var(--tc);border:1px solid var(--tc);font-family:var(--mono)}
+/* 印（Fluent の Badge）。面を敷いて、字は面より 1 段明るい色にする。
+   枠だけで色を出すと、地が濃いところで字が沈む。枠は形を保つためだけの
+   薄いものにして、色の役目は面と字に持たせる。 */
+.tag{display:inline-block;font-size:var(--t3);font-weight:600;padding:1px 8px;border-radius:var(--r2);
+  margin-left:8px;vertical-align:middle;white-space:nowrap;border:1px solid transparent}
+.tag.now{background:var(--cur);color:var(--onCur)}
+.tag.sla{background:var(--panel3);color:var(--dim);border-color:var(--line-2)}
+.tag.esc{background:color-mix(in srgb, var(--s1) 20%, transparent);color:var(--s1Fg);
+  border-color:color-mix(in srgb, var(--s1) 42%, transparent)}
+.tag.cond{background:color-mix(in srgb, var(--dec) 18%, transparent);color:var(--decFg);
+  border-color:color-mix(in srgb, var(--dec) 42%, transparent)}
+.tag.tier{background:color-mix(in srgb, var(--tc) 16%, transparent);color:var(--tc);
+  border-color:color-mix(in srgb, var(--tc) 40%, transparent)}
 /* 終了（クローズ）。作業ではなく、この経路がここで終わることを示す。 */
-.tag.close{background:color-mix(in srgb, var(--ok) 16%, transparent);color:var(--ok);border:1px solid var(--ok)}
-.tag.wait{color:var(--faint);border:1px dashed var(--faint)}
-.tag.cust{background:color-mix(in srgb, var(--c1) 18%, transparent);color:var(--custFg);border:1px solid #ff5c8a}
+.tag.close{background:color-mix(in srgb, var(--ok) 20%, transparent);color:var(--okFg);
+  border-color:color-mix(in srgb, var(--ok) 42%, transparent)}
+/* 待ちだけは破線のまま。「動いていない」ことを形でも示す。 */
+.tag.wait{color:var(--faint);border:1px dashed var(--line-2);background:var(--panel3)}
+.tag.cust{background:color-mix(in srgb, var(--c1) 20%, transparent);color:var(--custFg);
+  border-color:color-mix(in srgb, var(--c1) 44%, transparent)}
 
 /* 連絡先 — 手順の中に置く。別紙を探させない。
    グループ単位で、連絡順に並べる。 */
@@ -327,6 +340,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
   --shadow:rgba(0,0,0,.13);
   --decFg:#5b21b6;
   --custFg:#b3175a;
+  --s1Fg:#a4262c;
+  --okFg:#0b6a0b;
   --sbar:#c8c6c4;
   --sbarOn:#a19f9d;
   --griddot:#e8e6e4;
@@ -359,6 +374,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
   --shadow:rgba(0,0,0,.13);
   --decFg:#5b21b6;
   --custFg:#b3175a;
+  --s1Fg:#a4262c;
+  --okFg:#0b6a0b;
   --sbar:#c8c6c4;
   --sbarOn:#a19f9d;
   --griddot:#e8e6e4;

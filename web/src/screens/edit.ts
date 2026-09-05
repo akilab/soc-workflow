@@ -68,11 +68,13 @@ const WIDTH_KEY = "soc-flow-panes";
  * キャンバスに 1107px 残り、横スクロールは出ない。
  */
 const PANE_LIMITS = {
-  left: { min: 440, max: 620 },
+  // 下限は実測。印を Fluent の Badge にして幅が増えたので取り直した
+  // （440px では担当バッジが 14px はみ出して横スクロールが出ていた）。
+  left: { min: 460, max: 620 },
   right: { min: 300, max: 560 },
 };
 
-const DEFAULT_WIDTHS: PaneWidths = { left: 440, right: 324 };
+const DEFAULT_WIDTHS: PaneWidths = { left: 460, right: 324 };
 
 export interface EditScreenDeps {
   api: Api;

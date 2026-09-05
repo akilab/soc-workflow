@@ -20,7 +20,7 @@
    Microsoft Defender ポータルと同じ組み方。左の帯が常に見えていることで、
    アプリ全体の地図になる（機能が増えても迷子にならない）。
    ================================================================== */
-:root{--top-h:48px; --rail-w:56px; --status-h:26px}
+:root{--top-h:48px; --rail-w:64px; --status-h:26px}
 html,body{height:100%}
 body{margin:0;overflow:hidden}
 
@@ -52,13 +52,20 @@ body{margin:0;overflow:hidden}
 /* 左の帯。アイコンと短い文字。現在地には青い縦線が付く。 */
 .app-rail{width:var(--rail-w);background:var(--panel);border-right:1px solid var(--line);
   padding:6px 0;display:flex;flex-direction:column;gap:2px;flex:none}
-.app-rail button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;
-  padding:8px 2px 7px;background:none;border:none;color:var(--faint);cursor:pointer;
-  font-family:var(--sans);font-size:var(--t1);line-height:1.2;text-align:center}
-.app-rail button:hover{background:var(--panel2);color:var(--dim)}
-.app-rail button.on{color:var(--fg);background:var(--panel2)}
-.app-rail button.on::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;
-  border-radius:0 var(--r1) var(--r1) 0;background:var(--cur)}
+/* 行き先は 3 つしかないので、絵だけにせず字も出す。字は 10px では読めない
+   （利用者の指摘）。11px・本文の色まで上げ、いま居るところは青で示す。 */
+.app-rail button{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:9px 2px 8px;background:none;border:none;color:var(--dim);cursor:pointer;
+  font-family:var(--sans);font-size:11px;line-height:1.2;text-align:center;letter-spacing:.01em}
+.app-rail button:hover{background:var(--panel2);color:var(--fg)}
+.app-rail button:focus-visible{outline:2px solid var(--cur);outline-offset:-2px}
+/* いま居るところ。Defender と同じで、左の細い棒・青い絵・濃い字の 3 つで示す。
+   地の濃さだけで示していたときは、明るい画面でほとんど分からなかった。 */
+.app-rail button.on{color:var(--fg);font-weight:600;
+  background:color-mix(in srgb, var(--cur) 12%, transparent)}
+.app-rail button.on .ic{color:var(--cur)}
+.app-rail button.on::before{content:"";position:absolute;left:0;top:5px;bottom:5px;width:3px;
+  border-radius:0 var(--r-pill) var(--r-pill) 0;background:var(--cur)}
 
 .app-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 
@@ -286,33 +293,39 @@ body.resizing{cursor:col-resize;user-select:none}
 /* 行の右側は 3 つのまとまりに分ける。左から 数量 → ラベル → 担当。
    これまでは生成順に混ぜていたので、同じ見た目のラベルが数量の左右に
    分かれて、行ごとに位置が違って見えていた。 */
-.ol-q{flex:none;display:flex;gap:4px;justify-content:flex-end;
-  font-family:var(--mono);font-size:var(--t1);padding-top:3px}
-.ol-f{flex:none;display:flex;gap:4px;font-family:var(--mono);font-size:var(--t1);padding-top:3px}
-/* ラベルの幅は文言で決まるので一定。使わない行には空の枠を置いて位置を保つ。 */
+.ol-q{flex:none;display:flex;gap:5px;justify-content:flex-end;
+  font-family:var(--sans);font-size:var(--t2);padding-top:2px}
+.ol-f{flex:none;display:flex;gap:5px;font-family:var(--sans);font-size:var(--t2);padding-top:2px}
+/* 印の形（Fluent の Badge）。
+   面と字を別の色にして、字は面より 1 段明るいものにする。細い枠 1 本で
+   色を出していたときは、10px の等幅と相まって「そこに何か書いてある」
+   ことしか読めなかった。地を敷いて字を太らせるほうが小さくても読める。 */
+.ol-f>span,.ol-lane .tier{flex:none;box-sizing:border-box;white-space:nowrap;
+  text-align:center;height:18px;line-height:16px;padding:0 6px;font-weight:600;
+  border:1px solid transparent;border-radius:var(--r2)}
 /* ラベルの幅は文言で決まるので固定。折り返させない——折り返すと
    その行だけ倍の高さになり、そろえるために固定幅にした意味が無くなる。
-   文字を 9.5px から 10px にしたときに 58px では 2px 足りず、実際に
-   「！エスカ／レ」と割れた。実測（10px で 60px 必要）に合わせて広げる。 */
-.ol-f>span{flex:none;text-align:center;box-sizing:border-box;white-space:nowrap}
-.ol-f .cust{width:62px}
+   等幅 10px から本文書体 12px にしたので、実測に合わせて取り直した
+   （「お客様連絡」で 74px、「エスカレ」で 62px）。 */
+.ol-f .cust{width:74px}
 .ol-f .esc{width:62px}
-.ol-row .fin,.ol-row .wait{width:33px}
+.ol-row .fin,.ol-row .wait{width:44px}
 .ol-f .ghost{border-color:transparent;background:none;visibility:hidden}
 /* 担当だけは行の右端に固定する。可変幅のバッジより右に置くことで、
    行をまたいで縦にそろい、「自分の手順はどれか」を目で追える列になる。
    最小幅を持たせているのは、短い名前のときに列として細すぎないため。
    長い名前（Tier3・CSIRT や 高橋工務店）は切り詰めずに伸ばす。 */
-.ol-lane{flex:none;display:flex;justify-content:flex-end;min-width:38px;
-  margin-left:4px;font-family:var(--mono);font-size:var(--t1);padding-top:3px;
+.ol-lane{flex:none;display:flex;justify-content:flex-end;min-width:44px;
+  margin-left:5px;font-family:var(--sans);font-size:var(--t2);padding-top:2px;
   width:var(--ol-lane-w, auto)}
 /* 印の見た目の規則。
    枠あり … この手順の性質（有る／無い）: 担当・エスカレ・お客様連絡・終了・待ち
    枠なし … 数量: SLA・N分岐
    足した順に見た目がばらばらになっていたので、規則を決めて両方の画面に通した。 */
-.ol-f .sla{color:var(--dim)}
-.ol-f .esc{color:var(--s1);border:1px solid var(--s1);border-radius:var(--r1);
-  padding:0 4px;font-weight:700}
+/* SLA と分岐数は数量なので、面を敷かない（枠ありは性質、枠なしは数量）。 */
+.ol-f .sla{color:var(--dim);font-weight:400}
+.ol-f .esc{color:var(--s1Fg);background:color-mix(in srgb, var(--s1) 20%, transparent);
+  border-color:color-mix(in srgb, var(--s1) 42%, transparent)}
 
 /* 分岐ブロック — 判断ステップの下に、その判断が支配する範囲をレールで囲む。
    「どこからどこまでが分岐か」と「どの質問への答えか」を同時に見せる。 */
@@ -365,14 +378,15 @@ body.dragging .clane:not(.drop){opacity:.35}
 .cnode.close{box-shadow:inset 0 0 0 2px var(--panel2), inset 0 0 0 3px var(--ok)}
 .cnode .f-fin{color:var(--ok);border:1px solid var(--ok);border-radius:var(--r1);
   padding:0 5px;font-weight:700}
-.ol-row .fin{font-size:var(--t1);font-weight:700;letter-spacing:.04em;
-  color:var(--ok);border:1px solid var(--ok);border-radius:var(--r1);padding:0 4px}
+.ol-row .fin{color:var(--okFg);background:color-mix(in srgb, var(--ok) 20%, transparent);
+  border-color:color-mix(in srgb, var(--ok) 42%, transparent)}
 /* 待ち。自分たちの作業ではないので、破線で「動いていない」ことを示す。 */
 .cnode.wait{border-style:dashed}
 .cnode .f-wait{color:var(--dim);border:1px dashed var(--dim);border-radius:var(--r1);
   padding:0 5px;font-weight:700}
-.ol-row .wait{font-size:var(--t1);font-weight:700;letter-spacing:.04em;
-  color:var(--dim);border:1px dashed var(--dim);border-radius:var(--r1);padding:0 4px}
+/* 待ちだけは枠を破線のままにする。「動いていない」ことを形でも示す。 */
+.ol-row .wait{color:var(--dim);background:var(--panel3);
+  border:1px dashed var(--line-2)}
 .pal-t .k-wait{display:inline-block;font-style:normal;vertical-align:1px;
   margin-right:5px;font-size:var(--t1);font-weight:700;letter-spacing:.04em;line-height:1.6;
   color:var(--dim);border:1px dashed var(--dim);border-radius:var(--r1);padding:0 4px}
@@ -695,9 +709,10 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 .ol-row.sel-multi{background:color-mix(in srgb, var(--cur) 9%, transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cur) 30%, transparent)}
 
 /* ---------- 担当（Tier）と連絡先 ---------- */
-.ol-lane .tier{color:var(--tc);border:1px solid var(--tc);border-radius:var(--r1);padding:0 3px;font-size:var(--t1)}
-.ol-f .cust{color:var(--custFg);border:1px solid #ff5c8a;border-radius:var(--r1);
-  padding:0 4px;font-weight:700}
+.ol-lane .tier{color:var(--tc);background:color-mix(in srgb, var(--tc) 16%, transparent);
+  border-color:color-mix(in srgb, var(--tc) 40%, transparent)}
+.ol-f .cust{color:var(--custFg);background:color-mix(in srgb, var(--c1) 20%, transparent);
+  border-color:color-mix(in srgb, var(--c1) 44%, transparent)}
 /* 担当を示すバッジは要らなくなった。列そのものが担当を表すため。
    「! エスカレ ［Tier1］」と並んで「Tier1 にエスカレする」と読み違えられる
    問題も、これで構造ごと消えた。 */

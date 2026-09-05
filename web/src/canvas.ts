@@ -179,7 +179,7 @@ function nodeHTML(
       `${st.conditions.length > 1 ? " 他" : ""}</span>`;
   }
   if (st.escalate) {
-    flags += '<span class="f-esc" title="エスカレーション判断">! エスカレ</span>';
+    flags += '<span class="f-esc" title="エスカレーション判断">エスカレ</span>';
   }
 
   const groups = stepContacts(db, st);
