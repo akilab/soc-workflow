@@ -51,7 +51,18 @@ export function openModal(
     b.addEventListener("click", closePanel);
   }
   $("pClose").onclick = closePanel;
-  $("pBody").querySelector<HTMLElement>("input,select,textarea,button")?.focus();
+
+  // 打ち込む欄があるときだけ、そこに合わせる。
+  //
+  // 以前は最初の入力要素なら何でも focus していたが、「連絡先を選ぶ」のように
+  // チェックボックスが並ぶパネルでは、それが下の方まで送られて先頭の説明文が
+  // 見えない状態で開いていた（preventScroll を付けても、開いた直後の
+  // 送り込みは残る）。選ぶだけの面は、上から読ませる。
+  const first = $("pBody").querySelector<HTMLElement>(
+    'input[type="text"],select,textarea',
+  );
+  first?.focus({ preventScroll: true });
+  $("pBody").scrollTop = 0;
 }
 
 function closePanel(): void {

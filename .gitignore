@@ -9,6 +9,7 @@ __pycache__/
 # Go のビルド成果物
 /soc-workflow
 /soc-workflow.exe
+/soc-workflow.exe~
 /dist/
 
 # 実行時に作られるデータ（種データは internal/store/seed.json が正本）
