@@ -161,8 +161,11 @@ td.name .sub{display:block;font-weight:400;font-size:var(--t-sm);color:var(--fg-
 .sev.l .bars i:nth-child(1){background:var(--sev-l)}
 .sev span{font-size:var(--t-sm);color:var(--fg-2)}
 
-/* フェーズの帯 */
-.pbar{display:flex;gap:1px;height:6px;width:130px;border-radius:1px;overflow:hidden;background:var(--surface-3)}
+/* フェーズの帯。
+   隙間（gap）を入れない。区画の幅は flex で決まるので小数になり、
+   隙間が画素の途中に落ちて「濃く出る所」と「消える所」が混ざる。
+   これがガタガタに見える正体。色が違えば隙間が無くても境目は読める。 */
+.pbar{display:flex;height:8px;width:130px;border-radius:2px;overflow:hidden;background:var(--surface-3)}
 .pbar i{display:block;height:100%}
 
 .state{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-sm);color:var(--fg-2)}
