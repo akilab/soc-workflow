@@ -7,7 +7,7 @@
 
 import { optColor, optLabel, outlineRows, decisionOf, decisionStepNo } from "./branch";
 import type { GroupRow, StepRow } from "./branch";
-import { $, esc } from "./dom";
+import { $, dimSource, esc, undimSource } from "./dom";
 import { eventLanes, taskOf } from "./flow";
 import { stepContacts } from "./contacts";
 import type { DB, EventFlow } from "./types";
@@ -233,13 +233,13 @@ function stepEl(
 
   el.addEventListener("dragstart", (e) => {
     dragging = st.id;
-    el.classList.add("drag");
+    dimSource(el);
     e.dataTransfer?.setData("text/plain", `step:${st.id}`);
     if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
   });
   el.addEventListener("dragend", () => {
     dragging = null;
-    el.classList.remove("drag");
+    undimSource(el);
     for (const x of box.querySelectorAll(".ol-row")) x.classList.remove("over");
   });
   el.addEventListener("dragover", (e) => {

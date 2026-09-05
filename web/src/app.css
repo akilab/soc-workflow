@@ -287,7 +287,9 @@ body.resizing{cursor:col-resize;user-select:none}
   user-select:none}
 .ol-row:hover{background:var(--panel2)}
 .ol-row.sel{background:var(--cur-bg);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cur) 40%, transparent)}
-.ol-row.drag{opacity:.35}
+/* 掴んでいる元の行。運んでいる絵のほうが主役なので薄くするが、
+   何を掴んだか分からなくなるほど消さない（.35 では消えていた）。 */
+.ol-row.drag{opacity:.5}
 .ol-row.over{box-shadow:inset 0 2px 0 var(--cur)}
 .ol-row.d1{margin-left:6px}
 .ol-row.dec{border-left-color:var(--dec)}
@@ -394,9 +396,11 @@ body.resizing{cursor:col-resize;user-select:none}
   background:var(--panel)}
 .clane-h u{text-decoration:none;font-family:var(--sans);font-size:var(--t2);
   font-weight:400;color:var(--faint)}
-body.dragging .clane.drop{background:color-mix(in srgb, var(--cur) 7%, transparent);
-  box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--cur) 40%, transparent)}
-body.dragging .clane:not(.drop){opacity:.35}
+/* 落とす先の列。薄めるのは「そこではない」ことを示すためであって、
+   図を読めなくするためではない。目立たせる側を強くして、沈める側は戻す。 */
+body.dragging .clane.drop{background:color-mix(in srgb, var(--cur) 13%, transparent);
+  box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--cur) 60%, transparent)}
+body.dragging .clane:not(.drop){opacity:.6}
 
 /* 終了（クローズ）。作業ではなく、この経路がここで終わることを示す。
    枠を二重にして、ほかのボックスと形で区別する。 */
@@ -417,11 +421,11 @@ body.dragging .clane:not(.drop){opacity:.35}
   color:var(--dim);background:var(--panel3);border:1px dashed var(--line-2);border-radius:var(--r2)}
 
 /* 掴んで動かしている最中のボックス。 */
-.cnode.drag{opacity:.35}
+.cnode.drag{opacity:.5}
 
 /* パレットから落とすとき、または手順を動かすときに、どこへ入るかを示す線。 */
-.cdrop{position:absolute;z-index:4;height:2px;background:var(--cur);
-  box-shadow:0 0 0 1px color-mix(in srgb, var(--cur) 40%, transparent);
+.cdrop{position:absolute;z-index:4;height:3px;background:var(--cur);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--cur) 55%, transparent);
   pointer-events:none}
 .cdrop::before,.cdrop::after{content:"";position:absolute;top:-3px;width:8px;height:8px;
   background:var(--cur);border-radius:50%}
@@ -594,7 +598,7 @@ body.dragging .clane:not(.drop){opacity:.35}
   transition:border-color .15s,background .15s}
 .pal-t:hover{background:var(--panel3);border-color:var(--hover)}
 .pal-t:active{cursor:grabbing}
-.pal-t.drag{opacity:.4}
+.pal-t.drag{opacity:.5}
 .pal-t b{display:block;font-size:var(--t4);font-weight:600;line-height:1.45;padding-right:58px}
 .pal-t span.nt{display:block;font-size:var(--t2);color:var(--faint);line-height:1.4;margin-top:1px}
 .pal-t .use{position:absolute;top:6px;right:7px;display:flex;gap:4px;align-items:center}

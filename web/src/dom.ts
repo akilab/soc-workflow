@@ -61,3 +61,27 @@ export function onAction(
     handler(hit.dataset.a ?? "", hit, ev);
   });
 }
+
+/**
+ * 掴んでいる元の札に「運んでいる最中」の印を付ける。
+ *
+ * ブラウザは dragstart の処理が終わった時点の見た目を写して、それを
+ * カーソルに付いてくる絵にする。だから dragstart の中で先に薄くすると、
+ * **運んでいる絵まで薄くなる**。実際、対応パレットの札を掴むと
+ * 「見えるか見えないか」になっていた（利用者の指摘）。
+ *
+ * 1 拍おいてから付ければ、絵は元の濃さのまま写り、置いてきた元の札だけが
+ * 薄くなる。掴んだ直後に取り消された場合に備えて、dragend 側（undimSource）
+ * が先に走ったときは付けない。
+ */
+export function dimSource(el: HTMLElement): void {
+  el.dataset.dragging = "1";
+  setTimeout(() => {
+    if (el.dataset.dragging) el.classList.add("drag");
+  }, 0);
+}
+
+export function undimSource(el: HTMLElement): void {
+  delete el.dataset.dragging;
+  el.classList.remove("drag");
+}

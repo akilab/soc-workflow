@@ -19,7 +19,7 @@
  */
 
 import { condSentence, optColor, optLabel } from "./branch";
-import { $, esc } from "./dom";
+import { $, dimSource, esc, undimSource } from "./dom";
 import { groupVias, stepContacts, viaMark } from "./contacts";
 import { eventLanes, taskOf } from "./flow";
 import type { DB, EventFlow, Lane, Step } from "./types";
@@ -193,11 +193,11 @@ export function renderCanvas(deps: CanvasDeps): void {
     el.addEventListener("dragstart", (e) => {
       e.dataTransfer?.setData("text/plain", `step:${st.id}`);
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-      el.classList.add("drag");
+      dimSource(el);
       document.body.classList.add("dragging");
     });
     el.addEventListener("dragend", () => {
-      el.classList.remove("drag");
+      undimSource(el);
       document.body.classList.remove("dragging");
     });
 
