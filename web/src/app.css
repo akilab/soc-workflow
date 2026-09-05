@@ -550,9 +550,28 @@ body.dragging .clane:not(.drop){opacity:.6}
   opacity:0;transform:translateY(-6px);pointer-events:none;
   transition:opacity .14s,transform .14s}
 .launcher.on{opacity:1;transform:none;pointer-events:auto}
-.launcher h2{margin:0;font-size:var(--t6);font-weight:600}
-.launcher>p{margin:3px 0 14px;font-size:var(--t2);color:var(--faint)}
+.lc-head h2{margin:0;font-size:var(--t6);font-weight:600;display:flex;align-items:center;gap:6px}
+.lc-head p{margin:3px 0 14px;font-size:var(--t2);color:var(--faint)}
+/* 一覧へ戻る。見出しの中に置いて、入力の面から出る道を 1 つにする。 */
+.lc-back{background:none;border:1px solid transparent;border-radius:var(--r2);
+  color:var(--faint);width:24px;height:24px;margin-left:-4px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center}
+.lc-back:hover{background:var(--panel2);color:var(--fg)}
 .lc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+
+/* 追加・変更の入力。右のパネルへ移さず、この面の中で切り替える。 */
+.lc-form label{display:block;font-size:var(--t3);color:var(--dim);margin:12px 0 5px}
+.lc-form label:first-child{margin-top:0}
+.lc-form input{width:100%;box-sizing:border-box;background:var(--panel2);
+  border:1px solid var(--line-2);border-bottom:1px solid var(--faint);color:var(--fg);
+  border-radius:var(--r2) var(--r2) 0 0;padding:7px 10px;font-size:var(--t4);
+  font-family:var(--sans)}
+.lc-form input:focus{outline:none;border-bottom:2px solid var(--cur);padding-bottom:6px}
+.lc-form .icpick{grid-template-columns:repeat(6,1fr)}
+.lc-err{margin:10px 0 0;padding:7px 10px;border-radius:var(--r2);font-size:var(--t3);
+  color:var(--s1Fg);background:color-mix(in srgb, var(--s1) 16%, transparent);
+  border:1px solid color-mix(in srgb, var(--s1) 40%, transparent);line-height:1.6}
+.lc-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 
 /* 1 マス。押すと開く。触れているあいだだけ、直すと消すが右上に出る。 */
 .lc-t{position:relative}

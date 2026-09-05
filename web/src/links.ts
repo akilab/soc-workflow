@@ -7,6 +7,11 @@
  *
  * 並べるものは組織ごとに違うので、固定しない。作る・直す・消すができる。
  *
+ * 追加と変更の入力は、右のパネルではなく**この面の中で切り替える**。3 欄の
+ * 入力に、背後を暗くして作業を止めるほどの重さはない。目線も左上で始まって
+ * 左上で終わる（Defender のワッフルも、開いた先で右パネルは出さない）。
+ * 消すときだけは中央のダイアログで手を止める——取り消せないため。
+ *
  * **アイコンは自由に指定できない。** ここに並べたものから選ぶ。好きな絵を
  * 持ち込めるようにすると、画面ごとに大きさも太さも色も変わり、並べたときに
  * 揃わなくなる。
@@ -18,9 +23,9 @@
  */
 
 import { Api, ApiError } from "./api";
-import { $, esc, onAction } from "./dom";
+import { $, $as, esc, onAction } from "./dom";
 import type { AppLink } from "./types";
-import { askModal, confirmModal, showApiError, toast } from "./ui";
+import { confirmModal, showApiError, toast } from "./ui";
 
 /**
  * 選べるアイコン。
@@ -71,6 +76,14 @@ export class Launcher {
   private readonly api: Api;
   private open = false;
 
+  /** いま出しているもの。一覧か、入力か。 */
+  private view: "grid" | "form" = "grid";
+  /** 直しているリンク。追加のときは null。 */
+  private editing: AppLink | null = null;
+  /** 入力の途中の値。描き直しても消えないよう、ここに持つ。 */
+  private draft = { icon: DEFAULT_ICON, name: "", url: "" };
+  private error = "";
+
   constructor(api: Api) {
     this.api = api;
     this.bind();
@@ -78,11 +91,54 @@ export class Launcher {
 
   /** 中身を描き直す。データが入れ替わるたびに呼ばれる。 */
   render(): void {
+    if (this.view === "form") this.renderForm();
+    else this.renderGrid();
+  }
+
+  private renderGrid(): void {
     const links = this.api.db.links ?? [];
-    $("launchGrid").innerHTML =
+    $("launchHead").innerHTML =
+      "<h2>リンク集</h2><p>この画面から開く先。別のタブで開きます。</p>";
+    const body = $("launchBody");
+    body.className = "lc-grid";
+    body.innerHTML =
       links.map((l) => tile(l)).join("") +
       '<button class="lc-new" data-a="new" type="button">' +
       '<svg class="ic lg"><use href="#ic-add"/></svg>新規</button>';
+  }
+
+  private renderForm(): void {
+    const d = this.draft;
+    $("launchHead").innerHTML =
+      '<h2><button class="lc-back" data-a="back" type="button" title="一覧へ戻る">' +
+      '<svg class="ic"><use href="#ic-back"/></svg></button>' +
+      `${this.editing ? "リンクを直す" : "リンクを追加"}</h2>` +
+      `<p>${this.editing ? esc(this.editing.name) : "この画面から開けるようにします"}</p>`;
+
+    const body = $("launchBody");
+    body.className = "lc-form";
+    body.innerHTML =
+      "<label>アイコン</label>" +
+      '<div class="icpick">' +
+      ICONS.map(
+        (i) =>
+          `<button type="button" data-a="icon" data-key="${esc(i.v)}"` +
+          `${i.v === d.icon ? ' class="on"' : ""} title="${esc(i.l)}">` +
+          `${iconHTML(i.v, true)}</button>`,
+      ).join("") +
+      "</div>" +
+      '<label for="lcName">表示名</label>' +
+      `<input id="lcName" type="text" value="${esc(d.name)}" placeholder="Defender">` +
+      '<label for="lcUrl">URL</label>' +
+      `<input id="lcUrl" type="text" value="${esc(d.url)}"` +
+      ' placeholder="https://security.microsoft.com/">' +
+      (this.error ? `<p class="lc-err">${esc(this.error)}</p>` : "") +
+      '<div class="lc-foot">' +
+      '<button class="ed-tool sm" data-a="back" type="button">キャンセル</button>' +
+      '<button class="ed-tool sm pri" data-a="save" type="button">' +
+      `${this.editing ? "保存する" : "追加する"}</button></div>`;
+
+    $as<HTMLInputElement>("lcName").focus();
   }
 
   private bind(): void {
@@ -97,29 +153,88 @@ export class Launcher {
       if (!$("launcher").contains(e.target as Node)) this.toggle(false);
     });
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && this.open) this.toggle(false);
+      if (e.key !== "Escape" || !this.open) return;
+      // 入力の途中なら、まず一覧へ戻る。いきなり閉じると打った内容が消える。
+      if (this.view === "form") this.toGrid();
+      else this.toggle(false);
     });
 
-    onAction($("launchGrid"), (action, target, ev) => {
+    // 打った内容は、描き直しても消えないよう手元に写しておく。
+    const body = $("launchBody");
+    body.addEventListener("input", (e) => {
+      const t = e.target as HTMLInputElement;
+      if (t.id === "lcName") this.draft.name = t.value;
+      if (t.id === "lcUrl") this.draft.url = t.value;
+    });
+    body.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && this.view === "form") {
+        e.preventDefault();
+        void this.save();
+      }
+    });
+
+    onAction($("launcher"), (action, target, ev) => {
       ev.stopPropagation();
       const key = target.dataset.key ?? "";
-      if (action === "new") {
-        void this.create();
-      } else if (action === "open") {
-        this.openLink(key);
-      } else if (action === "edit") {
-        void this.edit(key);
-      } else if (action === "del") {
-        void this.remove(key);
+      switch (action) {
+        case "new":
+          this.toForm(null);
+          break;
+        case "open":
+          this.openLink(key);
+          break;
+        case "edit":
+          this.toForm(this.find(key));
+          break;
+        case "del":
+          void this.remove(key);
+          break;
+        case "icon":
+          this.draft.icon = key;
+          for (const b of body.querySelectorAll(".icpick .on")) {
+            b.classList.remove("on");
+          }
+          target.classList.add("on");
+          break;
+        case "back":
+          this.toGrid();
+          break;
+        case "save":
+          void this.save();
+          break;
       }
     });
   }
 
+  private find(key: string): AppLink | null {
+    return (this.api.db.links ?? []).find((x) => x.key === key) ?? null;
+  }
+
   private toggle(on: boolean): void {
     this.open = on;
+    if (!on) this.view = "grid";
     $("launcher").classList.toggle("on", on);
     $("appMenu").classList.toggle("on", on);
     if (on) this.render();
+  }
+
+  private toForm(l: AppLink | null): void {
+    this.editing = l;
+    this.error = "";
+    this.draft = {
+      icon: l?.icon ?? DEFAULT_ICON,
+      name: l?.name ?? "",
+      url: l?.url ?? "",
+    };
+    this.view = "form";
+    this.render();
+  }
+
+  private toGrid(): void {
+    this.view = "grid";
+    this.editing = null;
+    this.error = "";
+    this.render();
   }
 
   /**
@@ -129,41 +244,53 @@ export class Launcher {
    * （window.opener 経由で書き換えられる。外部の画面を開く以上は必ず付ける）。
    */
   private openLink(key: string): void {
-    const l = (this.api.db.links ?? []).find((x) => x.key === key);
+    const l = this.find(key);
     if (!l) return;
     window.open(l.url, "_blank", "noopener,noreferrer");
     this.toggle(false);
   }
 
-  private async create(): Promise<void> {
-    const v = await ask("リンクを追加", "この画面から開けるようにします");
-    if (!v) return;
+  /**
+   * 追加と変更。
+   *
+   * 断られた理由は、この面の中に出す。閉じてから知らせても直しようがない。
+   */
+  private async save(): Promise<void> {
+    const name = this.draft.name.trim();
+    const url = this.draft.url.trim();
+    if (!name) {
+      this.fail("表示名を入れてください");
+      return;
+    }
+    if (!/^https?:\/\//.test(url)) {
+      this.fail("URL は http:// か https:// で始めてください");
+      return;
+    }
+
     try {
-      await this.api.createLink({ name: v.name, url: v.url, icon: v.icon });
-      toast(`「${v.name}」を追加しました`);
-      this.toggle(true);
+      const input = { name, url, icon: this.draft.icon };
+      if (this.editing) {
+        await this.api.updateLink(this.editing.key, input);
+        toast("直しました");
+      } else {
+        await this.api.createLink(input);
+        toast(`「${name}」を追加しました`);
+      }
+      this.toGrid();
     } catch (e) {
-      this.fail(e, "リンクの追加");
+      this.fail(e instanceof ApiError ? e.message : String(e));
     }
   }
 
-  private async edit(key: string): Promise<void> {
-    const l = (this.api.db.links ?? []).find((x) => x.key === key);
-    if (!l) return;
-    const v = await ask("リンクを直す", l.name, l);
-    if (!v) return;
-    try {
-      await this.api.updateLink(key, { name: v.name, url: v.url, icon: v.icon });
-      toast("直しました");
-      this.toggle(true);
-    } catch (e) {
-      this.fail(e, "リンクの変更");
-    }
+  private fail(message: string): void {
+    this.error = message;
+    this.render();
   }
 
   private async remove(key: string): Promise<void> {
-    const l = (this.api.db.links ?? []).find((x) => x.key === key);
+    const l = this.find(key);
     if (!l) return;
+    // 消すのは取り消せないので、ここだけは中央のダイアログで手を止める。
     const ok = await confirmModal({
       title: "リンクを削除",
       sub: l.name,
@@ -180,13 +307,9 @@ export class Launcher {
       toast("削除しました");
       this.toggle(true);
     } catch (e) {
-      this.fail(e, "リンクの削除");
+      if (e instanceof ApiError) showApiError(e, "リンクの削除");
+      else toast(String(e), true);
     }
-  }
-
-  private fail(e: unknown, context: string): void {
-    if (e instanceof ApiError) showApiError(e, context);
-    else toast(String(e), true);
   }
 }
 
@@ -206,44 +329,4 @@ function tile(l: AppLink): string {
     '<svg class="ic"><use href="#ic-delete"/></svg></button>' +
     "</span></div>"
   );
-}
-
-/** 追加と変更で同じ入力を使う。 */
-async function ask(
-  title: string,
-  sub: string,
-  now?: AppLink,
-): Promise<{ name: string; url: string; icon: string } | null> {
-  const v = await askModal({
-    title,
-    sub,
-    okLabel: now ? "保存する" : "追加する",
-    fields: [
-      {
-        k: "icon",
-        label: "アイコン",
-        type: "icon",
-        value: now?.icon ?? DEFAULT_ICON,
-        options: ICONS.map((i) => ({ v: i.v, l: i.l, icon: iconHTML(i.v, true) })),
-        hint: "決めたものから選びます。Microsoft のサービスは製品のアイコン、それ以外はこの画面と同じ単色のアイコンです。",
-      },
-      {
-        k: "name",
-        label: "表示名",
-        required: true,
-        value: now?.name ?? "",
-        placeholder: "Defender ポータル",
-      },
-      {
-        k: "url",
-        label: "URL",
-        required: true,
-        value: now?.url ?? "",
-        placeholder: "https://security.microsoft.com/",
-        hint: "http:// か https:// で始まるものだけ受け付けます。",
-      },
-    ],
-  });
-  if (!v) return null;
-  return { name: v.name, url: v.url, icon: v.icon || DEFAULT_ICON };
 }
