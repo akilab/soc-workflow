@@ -186,16 +186,19 @@ body.resizing{cursor:col-resize;user-select:none}
 .ew-rel .base{color:var(--ok);border-color:var(--ok)}
 .ew-rel .old{color:var(--s2);border-color:var(--s2);font-weight:700}
 
-/* 共通との違いの一覧。状態ごとに色を分ける（色だけに頼らず言葉も出す）。 */
-.difftbl .tag{font-family:var(--mono);font-size:var(--t2);font-weight:700;
-  border:1px solid var(--dc,var(--line));color:var(--dc,var(--dim));
-  border-radius:var(--r1);padding:1px 7px;white-space:nowrap}
+/* 共通との違いの一覧。状態ごとに色を分ける（色だけに頼らず言葉も出す）。
+   印の形はほかの画面と同じ（面を敷いて、字は面より 1 段明るい色）。 */
+.difftbl .tag{font-size:var(--t2);font-weight:600;white-space:nowrap;
+  display:inline-flex;align-items:center;height:18px;padding:0 6px;
+  color:var(--dcFg,var(--dim));background:color-mix(in srgb, var(--dc,var(--line)) 20%, transparent);
+  border:1px solid color-mix(in srgb, var(--dc,var(--line)) 42%, transparent);
+  border-radius:var(--r2)}
 .difftbl .why{display:block;font-size:var(--t2);color:var(--faint);line-height:1.6;margin-top:3px}
-.difftbl .d-added{--dc:var(--ok)}
-.difftbl .d-changed{--dc:var(--cur)}
-.difftbl .d-removed{--dc:var(--s1)}
+.difftbl .d-added{--dc:var(--ok);--dcFg:var(--okFg)}
+.difftbl .d-changed{--dc:var(--cur);--dcFg:var(--cur)}
+.difftbl .d-removed{--dc:var(--s1);--dcFg:var(--s1Fg)}
 .difftbl .d-removed b{color:var(--faint);text-decoration:line-through}
-.difftbl .d-same{--dc:var(--line)}
+.difftbl .d-same{--dc:var(--line-2);--dcFg:var(--faint)}
 .difftbl .d-same b{color:var(--dim);font-weight:400}
 
 /* 「共通との違い」ボタンの中に出す要約。 */
@@ -634,10 +637,21 @@ body.dragging .clane:not(.drop){opacity:.35}
   border-bottom:1px solid var(--line-2,var(--line));padding:8px 9px;font-weight:600;white-space:nowrap}
 .tbl td{border-bottom:1px solid var(--line-soft);padding:9px;vertical-align:middle;line-height:1.65}
 .tbl tr:hover td{background:var(--panel2)}
-.tbl .num{font-family:var(--mono);text-align:right;white-space:nowrap}
-.tbl .long{color:var(--s2);font-weight:700}
+/* 数はけた合わせのために等幅にしていたが、書体を変えずに tabular-nums で
+   同じことができる。Cascadia Mono は本文（Segoe UI）と字面が違いすぎた。 */
+.tbl .num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tbl .long{color:var(--s2);font-weight:600}
+/* パネルの中の表は縦に長くなる。見出しを残しておかないと、下まで送ったときに
+   どの列が何なのか分からなくなる。 */
+.panel-body .tbl th{position:sticky;top:0;z-index:1;background:var(--panel)}
+.panel-body .tbl th:first-child{width:1%}
+
 .pathkey{display:flex;flex-wrap:wrap;gap:5px}
-.pathkey em{font-style:normal;font-size:var(--t2);border:1px solid;border-radius:var(--r1);padding:1px 7px}
+/* 回答の組み合わせ。答えの色は分岐の色で、ほかの画面と同じものを指す。 */
+.pathkey em{font-style:normal;font-size:var(--t2);font-weight:600;
+  color:var(--c,var(--faint));background:color-mix(in srgb, var(--c,var(--line)) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--c,var(--line)) 42%, transparent);
+  border-radius:var(--r2);padding:1px 7px}
 
 /* フェーズ設定 */
 .ph-name{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
@@ -657,15 +671,22 @@ body.dragging .clane:not(.drop){opacity:.35}
   border-bottom:2px solid var(--pc);padding:0 3px 3px}
 .ph-preview i{font-style:normal;color:var(--faint);font-size:var(--t2)}
 
-.issue{display:flex;gap:11px;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r2);
-  margin-bottom:9px;background:var(--panel2);align-items:flex-start}
-.issue i{font-style:normal;font-family:var(--mono);font-weight:700;font-size:var(--t3);flex:none;
-  border-radius:var(--r1);padding:2px 7px;margin-top:1px}
-.issue.err i{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
-.issue.wrn i{background:color-mix(in srgb, var(--s2) 16%, transparent);color:var(--s2);border:1px solid var(--s2)}
-.issue b{display:block;font-size:var(--t5);line-height:1.55}
-.issue span{display:block;font-size:var(--t3);color:var(--dim);line-height:1.7;margin-top:2px}
-.okmsg{color:var(--ok);font-size:var(--t5);padding:20px 0;text-align:center}
+/* 検証の結果（Fluent の MessageBar）。
+   地をその重さの色でうっすら染め、重さは絵で示す。以前は灰色の箱に
+   「エラー」「注意」の札を貼っていたので、箱がどれも同じ見た目になり、
+   一覧の中でどれが重いのか札を読むまで分からなかった。
+   色だけに頼らないという決めごとがあるので、言葉も本文の頭に残してある。 */
+.msgbar{display:flex;gap:10px;padding:10px 12px;border-radius:var(--r2);
+  margin-bottom:8px;align-items:flex-start;
+  background:color-mix(in srgb, var(--mc) 14%, transparent);
+  border:1px solid color-mix(in srgb, var(--mc) 38%, transparent)}
+.msgbar>.ic{flex:none;margin-top:3px;color:var(--mcFg)}
+.msgbar.err{--mc:var(--s1);--mcFg:var(--s1Fg)}
+.msgbar.wrn{--mc:var(--s2);--mcFg:var(--s2)}
+.msgbar.ok{--mc:var(--ok);--mcFg:var(--okFg)}
+.msgbar b{display:block;font-size:var(--t4);font-weight:600;line-height:1.6}
+.msgbar b u{text-decoration:none;color:var(--mcFg);margin-right:5px}
+.msgbar span{display:block;font-size:var(--t3);color:var(--dim);line-height:1.7;margin-top:2px}
 
 /* ---------- テスト ---------- */
 #runWrap{display:none}

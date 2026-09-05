@@ -338,16 +338,23 @@ export class EditScreen {
     if (!evt) return;
     const r = validate(this.api.db, evt);
 
+    // 重さは絵と地の色で示し、言葉も頭に残す（色だけに頼らない）。
     const html = r.issues.length
       ? r.issues
-          .map(
-            (i) =>
-              `<div class="issue ${i.lv === "err" ? "err" : "wrn"}">` +
-              `<i>${i.lv === "err" ? "エラー" : "注意"}</i>` +
-              `<div><b>${esc(i.t)}</b><span>${esc(i.d)}</span></div></div>`,
-          )
+          .map((i) => {
+            const err = i.lv === "err";
+            return (
+              `<div class="msgbar ${err ? "err" : "wrn"}">` +
+              `<svg class="ic lg"><use href="#ic-${err ? "alert" : "warn"}"/></svg>` +
+              `<div><b><u>${err ? "エラー" : "注意"}</u>${esc(i.t)}</b>` +
+              `<span>${esc(i.d)}</span></div></div>`
+            );
+          })
           .join("")
-      : '<p class="okmsg">&#10003; 問題は見つかりませんでした。</p>';
+      : '<div class="msgbar ok"><svg class="ic lg"><use href="#ic-check"/></svg>' +
+        "<div><b>問題は見つかりませんでした</b>" +
+        "<span>手順の抜け・行き止まり・参照できない判断は見当たりません。" +
+        "配ってよい状態です。</span></div></div>";
 
     openModal("検証", evt.title, html);
   }
@@ -406,16 +413,21 @@ export class EditScreen {
       })
       .join("");
 
+    // 「元が更新された」は手を打つかどうかの判断を求めるものなので、
+    // 検証と同じ帯で出す。ふつうの説明文に混ぜると読み飛ばされる。
     const head =
-      `<p class="cfm">「<b>${esc(d.base.title)}</b>」を元にしています。` +
-      `${esc(diffSummary(d))}。` +
-      (d.reordered ? "手順の前後関係も変えてあります。" : "") +
-      "</p>" +
+      // 手を打つかどうかを問うものが先。説明はそのあとでよい。
       (d.outdated
-        ? '<p class="cfm"><em>元のフローが、このあと更新されています。</em>' +
-          "取り込むかどうかは、上の違いを見て決めてください。" +
-          "見たうえで今のままでよければ、下の「確認した」を押すと印が消えます。</p>"
-        : "");
+        ? '<div class="msgbar wrn"><svg class="ic lg"><use href="#ic-warn"/></svg>' +
+          "<div><b>元のフローが、このあと更新されています</b>" +
+          "<span>取り込むかどうかは、下の違いを見て決めてください。" +
+          "見たうえで今のままでよければ、「確認した」を押すと印が消えます。" +
+          "</span></div></div>"
+        : "") +
+      '<p class="ins hint" style="margin:10px 0 12px">' +
+      `「<b>${esc(d.base.title)}</b>」を元にしています。${esc(diffSummary(d))}。` +
+      (d.reordered ? "手順の前後関係も変えてあります。" : "") +
+      "</p>";
 
     openModal(
       "共通との違い",
@@ -449,7 +461,11 @@ export class EditScreen {
     const evt = this.evt;
     if (!evt) return;
     const r = validate(this.api.db, evt);
-    const max = Math.max(0, ...r.paths.map((p) => p.minutes));
+    const mins = r.paths.map((p) => p.minutes);
+    const max = Math.max(0, ...mins);
+    // 全部同じ長さなら、どれも色を付けない。全行が色付きだと「最も長い」が
+    // 何も言っていないことになる（実データで 4 経路とも 16 時間 45 分だった）。
+    const varies = max > Math.min(...mins);
     const anyWait = r.paths.some((p) => p.waitMinutes > 0);
 
     const rows = r.paths
@@ -459,16 +475,19 @@ export class EditScreen {
           ? keys
               .map((k) => {
                 const c = { key: k, value: p.answers[k] };
-                const col = optColor(evt, c);
-                return `<em style="color:${col};border-color:${col}">${esc(optLabel(evt, c))}</em>`;
+                return (
+                  `<em style="--c:${optColor(evt, c)}">` +
+                  `${esc(optLabel(evt, c))}</em>`
+                );
               })
               .join("")
-          : '<em style="color:var(--faint);border-color:var(--line)">分岐なし</em>';
+          : '<em style="--c:var(--faint)">分岐なし</em>';
         return (
           `<tr><td class="num">${i + 1}</td>` +
           `<td><div class="pathkey">${chips}</div></td>` +
           `<td class="num">${p.count}</td>` +
-          `<td class="num${p.minutes >= max && max > 0 ? " long" : ""}">${fmtMin(p.minutes)}</td>` +
+          `<td class="num${varies && p.minutes >= max ? " long" : ""}">` +
+          `${fmtMin(p.minutes)}</td>` +
           (anyWait
             ? `<td class="num">${p.waitMinutes ? fmtMin(p.waitMinutes) : "—"}</td>`
             : "") +
@@ -481,7 +500,7 @@ export class EditScreen {
       "経路一覧",
       `${evt.title} — ${r.paths.length} 経路`,
       '<p class="ins hint" style="margin:0 0 12px">分岐の全組み合わせです。' +
-        "作業の合計が最も長い経路を色付きで示します。" +
+        (varies ? "作業の合計が最も長い経路を色付きで示します。" : "") +
         (anyWait
           ? "待ちは自分たちが動く時間ではないので、分けて数えています。"
           : "") +
