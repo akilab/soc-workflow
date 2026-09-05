@@ -67,7 +67,38 @@ class App {
     this.show("events");
   }
 
+  /**
+   * 下段の状態。
+   *
+   * 出すのは、画面のどこにも出ていなかったことだけ。
+   * 「外部に送らない」はこの道具の性格そのものなので、注記に埋もれさせず
+   * 常に見えるところへ出す。数と最終更新は、書き出して配ったものと
+   * 見比べるときに効く。
+   */
+  private renderStatus(): void {
+    const db = this.api.db;
+    const members = db.contactGroups.reduce((n, g) => n + g.members.length, 0);
+    const newest = db.events.reduce(
+      (t, e) => Math.max(t, new Date(e.updatedAt).getTime() || 0),
+      0,
+    );
+
+    $("appStatus").innerHTML =
+      '<span><svg class="ic"><use href="#ic-save"/></svg>' +
+      "この端末の JSON ファイルにのみ保存・外部送信なし</span>" +
+      `<span><svg class="ic"><use href="#ic-flow"/></svg>フロー <b>${db.events.length}</b></span>` +
+      `<span><svg class="ic"><use href="#ic-task"/></svg>対応 <b>${db.tasks.length}</b></span>` +
+      `<span><svg class="ic"><use href="#ic-people"/></svg>連絡先 <b>${db.contactGroups.length}</b>` +
+      ` グループ・<b>${members}</b> 名</span>` +
+      '<span class="sp"></span>' +
+      (newest
+        ? '<span><svg class="ic"><use href="#ic-clock"/></svg>最終更新 ' +
+          `${escapeText(fmtStamp(newest))}</span>`
+        : "");
+  }
+
   private render(): void {
+    this.renderStatus();
     if (this.screen === "edit") this.edit.render();
     else if (this.screen === "contacts") this.contacts.render();
     else if (this.screen === "tasks") this.tasks.render();
@@ -187,6 +218,16 @@ class App {
       `<p class="ew-sub">${escapeText(msg)}</p>` +
       '<p class="ew-sub">サーバが動いているか確認してから、再読み込みしてください。</p></div>';
   }
+}
+
+/** 「2026年9月5日 12:34」。秒までは要らない。 */
+function fmtStamp(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ` +
+    `${p(d.getHours())}:${p(d.getMinutes())}`
+  );
 }
 
 function escapeText(s: string): string {
