@@ -1124,3 +1124,9 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 
 /* 連絡先の並べ替え。編集・削除の左に置く（並びは中身より弱い操作なので）。 */
 .cg-mv{display:flex;gap:2px;margin-right:4px}
+
+/* SLA。目標に対する実績を並べる。 */
+.sla-t{max-width:120px}
+.slacell{white-space:nowrap}
+.sla-of{color:var(--faint);font-size:var(--t2);margin-left:5px;
+  font-variant-numeric:tabular-nums}

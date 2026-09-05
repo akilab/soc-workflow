@@ -138,6 +138,9 @@ func normalize(db *model.DB) {
 	if db.ContactGroups == nil {
 		db.ContactGroups = []*model.ContactGroup{}
 	}
+	if db.SLAs == nil {
+		db.SLAs = []*model.SLA{}
+	}
 	if db.Events == nil {
 		db.Events = []*model.Event{}
 	}

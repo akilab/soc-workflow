@@ -142,6 +142,11 @@ var actionLabel = map[string]string{
 	"DELETE /api/tasks/{key}": "対応の削除",
 	"PUT /api/tasks/order":    "対応の並べ替え",
 
+	"POST /api/slas":         "SLA の追加",
+	"PUT /api/slas/{key}":    "SLA の変更",
+	"DELETE /api/slas/{key}": "SLA の削除",
+	"PUT /api/slas/order":    "SLA の並べ替え",
+
 	"POST /api/links":         "リンクの追加",
 	"PUT /api/links/{key}":    "リンクの変更",
 	"DELETE /api/links/{key}": "リンクの削除",
@@ -160,6 +165,7 @@ var actionLabel = map[string]string{
 	"POST /api/events/{key}/reviewed":  "共通との違いの確認",
 	"PUT /api/events/order":            "フローの並べ替え",
 	"PUT /api/events/{key}/lanes":      "このフローの担当の変更",
+	"PUT /api/events/{key}/slas":       "SLA の変更",
 
 	"POST /api/events/{key}/steps":                "手順の追加",
 	"PUT /api/events/{key}/steps/{id}":            "手順の変更",

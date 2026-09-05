@@ -18,9 +18,34 @@ export interface DB {
   phases: Phase[];
   tasks: Task[];
   contactGroups: ContactGroup[];
+  /** 約束した時間。SOC の標準。無いこともある。 */
+  slas?: SLA[];
   events: EventFlow[];
   /** 左上のランチャーに並べる、外部の画面への近道。無いこともある。 */
   links?: AppLink[];
+}
+
+/**
+ * SLA。「検知から○○まで○分以内」という約束。
+ *
+ * 手順ひとつずつの目標時間とは別に持つ。手順の目標を全部足した数は
+ * 「この経路の重さ」でしかなく、約束した時間ではない（1 営業日の手順が
+ * 2 つあるだけで、初動の 15 分が見えなくなっていた）。
+ *
+ * 測る範囲はフローの始まりから、印を付けた手順（Step.milestone）まで。
+ */
+export interface SLA {
+  key: string;
+  name: string;
+  /** 目標。分で持つ。 */
+  minutes: number;
+  note: string;
+}
+
+/** このフローだけの目標時間。顧客別に合意した時間を持つ。 */
+export interface EventSLA {
+  key: string;
+  minutes: number;
 }
 
 /**
@@ -147,6 +172,8 @@ export interface EventFlow {
    * だけなので、対応の既定の担当もフローをまたいだ集計も壊れない。
    */
   lanes?: EventLane[] | null;
+  /** このフローだけの目標時間。空なら全体の標準をそのまま使う。 */
+  slas?: EventSLA[] | null;
   /**
    * 元にしたフロー。空なら独立したフロー。
    *
@@ -186,7 +213,10 @@ export interface Step {
   lane: string;
   title: string;
   detail: string;
+  /** 目標時間。"15分" "即時" など。任意。 */
   sla: string;
+  /** この手順が到達点になる SLA のキー。空なら到達点ではない。 */
+  milestone?: string;
   escalate: boolean;
   /** 参照する ContactGroup のキー。 */
   contacts: string[];

@@ -377,6 +377,7 @@ type stepBody struct {
 	Contacts   []string          `json:"contacts"`
 	Conditions []model.Condition `json:"conditions"`
 	Decision   *model.Decision   `json:"decision"`
+	Milestone  string            `json:"milestone"`
 }
 
 func (s *Server) updateStep(w http.ResponseWriter, r *http.Request) {
@@ -403,6 +404,7 @@ func (s *Server) updateStep(w http.ResponseWriter, r *http.Request) {
 		st.Contacts = strs(in.Contacts)
 		st.Conditions = conds(in.Conditions)
 		st.Decision = in.Decision
+		st.Milestone = in.Milestone
 		touch(ev)
 		return st, nil
 	})
@@ -420,6 +422,10 @@ func checkStep(db *model.DB, ev *model.Event, cur *model.Step, in stepBody) erro
 	}
 	if db.Task(in.TaskKey) == nil {
 		return errf(http.StatusBadRequest, "知らない対応です: %s", in.TaskKey)
+	}
+	// 到達点の印。実在する SLA だけを指せる。
+	if in.Milestone != "" && db.SLA(in.Milestone) == nil {
+		return errf(http.StatusBadRequest, "知らない SLA です: %s", in.Milestone)
 	}
 	// 担当は図のどの列に座るかを決める。空だと行き場が無いので必須。
 	if db.Lane(in.LaneKey) == nil {

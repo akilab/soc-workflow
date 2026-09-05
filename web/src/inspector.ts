@@ -23,6 +23,7 @@ import { OPTION_COLORS } from "./branch";
 import { $, esc } from "./dom";
 import { groupVias, stepContacts, viaMark } from "./contacts";
 import { eventLanes, taskOf } from "./flow";
+import { milestoneField } from "./sla";
 import type { Decision, EventFlow, Severity, Step } from "./types";
 import {
   askModal,
@@ -409,9 +410,11 @@ export class Inspector {
         )
         .join("") +
       "</select></div>" +
-      "<div><label>SLA</label>" +
+      "<div><label>目標時間</label>" +
       `<input type="text" id="s_sla" placeholder="15分 / 即時" value="${esc(st.sla)}"></div></div>` +
-      '<p class="hint">担当を変えると、フロー図でこの手順が別の列へ移ります。</p>' +
+      '<p class="hint">担当を変えると、フロー図でこの手順が別の列へ移ります。<br>' +
+      "目標時間はこの手順ひとつぶんです。約束した時間（SLA）は別に持ちます。</p>" +
+      milestoneField(this.db, st) +
       '<label class="chk" style="margin-top:12px"><input type="checkbox" id="s_esc"' +
       `${st.escalate ? " checked" : ""}>エスカレーション判断が必要</label>` +
       this.contactsHTML(st) +
@@ -437,6 +440,11 @@ export class Inspector {
     });
 
     // --- 選び直し。すぐ送る ---
+    on<HTMLSelectElement>("s_ms", "change", (el) => {
+      this.apply(evt.key, st, () => {
+        st.milestone = el.value;
+      });
+    });
     on<HTMLSelectElement>("s_lane", "change", (el) => {
       void this.apply(evt.key, st, () => {
         st.lane = el.value;

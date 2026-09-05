@@ -22,6 +22,7 @@ import {
   stopEdgeScroll,
 } from "../canvas";
 import { optColor, optLabel } from "../branch";
+import { SLASettings, slaCell } from "../sla";
 import { changedDetail, diffFrom, diffSummary } from "../derive";
 import type { StepDiff } from "../derive";
 import { $, $as, esc } from "../dom";
@@ -95,6 +96,7 @@ export class EditScreen {
   private readonly inspector: Inspector;
   private readonly palette: Palette;
   private readonly laneSettings: EventLaneSettings;
+  private readonly slaSettings: SLASettings;
 
   private eventKey = "";
   private mode: Mode = "edit";
@@ -115,6 +117,7 @@ export class EditScreen {
       renderFlow: () => this.renderFlow(),
     });
     this.laneSettings = new EventLaneSettings(this.api, () => this.render());
+    this.slaSettings = new SLASettings(this.api);
     this.palette = new Palette({
       api: this.api,
       event: () => this.evt,
@@ -471,6 +474,11 @@ export class EditScreen {
     const varies = max > Math.min(...mins);
     const anyWait = r.paths.some((p) => p.waitMinutes > 0);
 
+    // 定義されている SLA のうち、このフローで測れるもの（到達点の印がある）だけ列にする。
+    const cols = (this.api.db.slas ?? []).filter((x) =>
+      evt.steps.some((st) => st.milestone === x.key),
+    );
+
     const rows = r.paths
       .map((p, i) => {
         const keys = Object.keys(p.answers);
@@ -489,6 +497,14 @@ export class EditScreen {
           `<tr><td class="num">${i + 1}</td>` +
           `<td><div class="pathkey">${chips}</div></td>` +
           `<td class="num">${p.count}</td>` +
+          cols
+            .map((c) => {
+              const hit = p.slas.find((x) => x.sla.key === c.key);
+              return `<td class="slacell">${
+                hit ? slaCell(hit.target, hit.actual, hit.over) : "—"
+              }</td>`;
+            })
+            .join("") +
           `<td class="num${varies && p.minutes >= max ? " long" : ""}">` +
           `${fmtMin(p.minutes)}</td>` +
           (anyWait
@@ -503,13 +519,20 @@ export class EditScreen {
       "経路一覧",
       `${evt.title} — ${r.paths.length} 経路`,
       '<p class="ins hint" style="margin:0 0 12px">分岐の全組み合わせです。' +
-        (varies ? "作業の合計が最も長い経路を色付きで示します。" : "") +
+        (cols.length
+          ? "SLA の列は、フローの始まりから到達点までの目標時間の合計です。" +
+            "超えている経路には印が付きます。"
+          : "SLA の列は、手順に到達点の印を付けると出ます" +
+            "（インスペクタの「SLA の到達点」）。") +
+        (varies ? "目標時間の合計が最も長い経路を色付きで示します。" : "") +
         (anyWait
           ? "待ちは自分たちが動く時間ではないので、分けて数えています。"
           : "") +
         "対応者は 1 本しか辿りませんが、設計する側は全部を見る必要があります。</p>" +
         '<table class="tbl"><thead><tr><th>#</th><th>回答の組み合わせ</th>' +
-        "<th>手順数</th><th>作業 SLA</th>" +
+        "<th>手順数</th>" +
+        cols.map((c) => `<th>${esc(c.name)}</th>`).join("") +
+        "<th>目標時間の合計</th>" +
         (anyWait ? "<th>待ち</th>" : "") +
         "</tr></thead>" +
         `<tbody>${rows}</tbody></table>`,
@@ -549,6 +572,10 @@ export class EditScreen {
     $("btnLanes").addEventListener("click", () => {
       const evt = this.evt;
       if (evt) this.laneSettings.open(evt);
+    });
+    $("btnSLAs").addEventListener("click", () => {
+      const evt = this.evt;
+      if (evt) this.slaSettings.openForEvent(evt);
     });
     $("btnDiff").addEventListener("click", () => this.showDiff());
     $("btnCheck").addEventListener("click", () => this.showCheck());

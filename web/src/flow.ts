@@ -5,7 +5,16 @@
  * ここが変わると「検証 OK」の意味が変わるので、直すときは意図を持って直す。
  */
 
-import type { Condition, DB, EventFlow, Lane, Phase, Step, Task } from "./types";
+import type {
+  Condition,
+  DB,
+  EventFlow,
+  Lane,
+  Phase,
+  SLA,
+  Step,
+  Task,
+} from "./types";
 
 /** 判断への回答。キーは Decision.key、値は Option.value。 */
 export type Answers = Record<string, string>;
@@ -25,6 +34,20 @@ export interface FlowPath {
    * どちらも経過時間ではあるので、両方出して読む側に判断させる。
    */
   waitMinutes: number;
+  /** 約束した時間に対する実績。定義されている SLA のうち、この経路に到達点が
+      あるものだけが入る。 */
+  slas: PathSLA[];
+}
+
+/** 経路 1 本ぶんの、SLA ひとつの結果。 */
+export interface PathSLA {
+  sla: SLA;
+  /** このフローでの目標（分）。顧客別に上書きされていればその値。 */
+  target: number;
+  /** 到達点までに積み上がる目標時間の合計（分）。 */
+  actual: number;
+  /** 目標を超えているか。 */
+  over: boolean;
 }
 
 /** 検証で見つかった問題。 */
@@ -180,8 +203,45 @@ export function enumeratePaths(db: DB, evt: EventFlow): FlowPath[] {
         .filter((s) => !isWait(s))
         .reduce((a, s) => a + parseSla(s.sla), 0),
       waitMinutes: steps.filter(isWait).reduce((a, s) => a + parseSla(s.sla), 0),
+      slas: pathSLAs(db, evt, steps),
     };
   });
+}
+
+/**
+ * このフローでの、その SLA の目標時間。
+ *
+ * フロー側に上書きがあればそれ、無ければ全体の標準。顧客別のフローで
+ * 「標準は 2 時間だが、この顧客とは 1 時間」を表すための仕組み。
+ */
+export function slaTarget(evt: EventFlow, sla: SLA): number {
+  const o = (evt.slas ?? []).find((x) => x.key === sla.key);
+  return o && o.minutes > 0 ? o.minutes : sla.minutes;
+}
+
+/**
+ * 経路 1 本について、約束した時間に届いているかを測る。
+ *
+ * 測る範囲は**フローの始まりから、到達点の印が付いた手順まで**（その手順を
+ * 含む）。起点を揃えるのは、SLA が普通「検知から○○まで」と語られるため。
+ * 区間に切ると「初動 2 時間」と「一次報告 30 分」のように範囲が重なるものを
+ * 持てなくなる。
+ *
+ * 待ちの対応も足す。約束した時間は経過時間の約束であって、自分たちが
+ * 動いた時間の合計ではない。
+ */
+function pathSLAs(db: DB, evt: EventFlow, steps: Step[]): PathSLA[] {
+  const out: PathSLA[] = [];
+  for (const sla of db.slas ?? []) {
+    const at = steps.findIndex((s) => s.milestone === sla.key);
+    if (at < 0) continue; // この経路には到達点が無い
+    const actual = steps
+      .slice(0, at + 1)
+      .reduce((a, s) => a + parseSla(s.sla), 0);
+    const target = slaTarget(evt, sla);
+    out.push({ sla, target, actual, over: actual > target });
+  }
+  return out;
 }
 
 /**
@@ -283,6 +343,31 @@ export function validate(db: DB, evt: EventFlow): Validation {
       d:
         "受け渡しは 1 回ごとに引き継ぎ漏れが起きうる場所です。" +
         "同じ担当で続けられる手順がまとまっていないか、見直してください。",
+    });
+  }
+
+  // 6. 約束した時間を超える経路が無いか。
+  //
+  //    設計の時点で分かる超過は、運用で頑張って埋めるものではない。
+  //    どの分岐を通ると超えるのかを名指しで出す。
+  for (const sla of db.slas ?? []) {
+    const bad = paths.filter((p) =>
+      p.slas.some((x) => x.sla.key === sla.key && x.over),
+    );
+    if (!bad.length) continue;
+    const worst = Math.max(
+      ...bad.map((p) => p.slas.find((x) => x.sla.key === sla.key)?.actual ?? 0),
+    );
+    const target = slaTarget(evt, sla);
+    issues.push({
+      lv: "wrn",
+      t:
+        `「${sla.name}」を超える経路が ${bad.length} / ${paths.length} 本あります` +
+        `（目標 ${fmtMin(target)}・最長 ${fmtMin(worst)}）`,
+      d:
+        "到達点までに積み上がる目標時間の合計が、約束した時間を超えています。" +
+        "手順を前後で入れ替える、到達点をもっと手前に置く、" +
+        "この顧客の約束を見直す、のいずれかが要ります。",
     });
   }
 

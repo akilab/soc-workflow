@@ -11,6 +11,8 @@
 import type {
   AppLink,
   ContactGroup,
+  EventSLA,
+  SLA,
   ContactKind,
   ContactMember,
   Condition,
@@ -85,6 +87,12 @@ export interface PhaseInput {
   color: string;
 }
 
+export interface SLAInput {
+  name: string;
+  minutes: number;
+  note: string;
+}
+
 export interface LinkInput {
   name: string;
   url: string;
@@ -117,6 +125,7 @@ export function stepInput(st: Step): StepInput {
     title: st.title,
     detail: st.detail,
     sla: st.sla,
+    milestone: st.milestone ?? "",
     escalate: st.escalate,
     contacts: st.contacts ?? [],
     conditions: st.conditions ?? [],
@@ -139,6 +148,7 @@ export interface StepInput {
   title: string;
   detail: string;
   sla: string;
+  milestone: string;
   escalate: boolean;
   contacts: string[];
   conditions: Condition[];
@@ -354,6 +364,27 @@ export class Api {
 
   orderPhases(keys: string[]) {
     return this.write<null>("PUT", "/api/phases/order", { keys } as OrderBody);
+  }
+
+  createSLA(input: SLAInput) {
+    return this.write<SLA>("POST", "/api/slas", input);
+  }
+
+  updateSLA(key: string, input: SLAInput) {
+    return this.write<SLA>("PUT", `/api/slas/${enc(key)}`, input);
+  }
+
+  deleteSLA(key: string) {
+    return this.write<null>("DELETE", `/api/slas/${enc(key)}`);
+  }
+
+  orderSLAs(keys: string[]) {
+    return this.write<null>("PUT", "/api/slas/order", { keys } as OrderBody);
+  }
+
+  /** このフローだけの目標時間を差し替える。標準に戻すものは外して送る。 */
+  setEventSLAs(key: string, slas: EventSLA[]) {
+    return this.write<EventFlow>("PUT", `/api/events/${enc(key)}/slas`, { slas });
   }
 
   createLink(input: LinkInput) {
