@@ -10,7 +10,7 @@
   --line:#2f2f2f; --line-soft:#252525;
   --line-2:#3d3d3d;         /* 少し強い罫線。ボタンの枠や表の見出しに使う */
   /* ボックスの枠。地との対比を 3.0 以上にする（非テキストの目安）。 */
-  --nodeline:#5a5a5a;
+  --nodeline:#484848;
   --fg:#ffffff; --dim:#c7c7c7; --faint:#9a9a9a;
 
   /* アクセント。Fluent の communication blue（暗い地の上での値）。
@@ -30,7 +30,7 @@
 
   /* 明るさ切り替えのために、直に書いていた色もトークンにする */
   --hover:#4a4a4a;          /* ホバー時の枠線 */
-  --wire:#8a8a8a;           /* フロー図の接続線 */
+  --wire:#616161;           /* フロー図の接続線。薄めずにこの色そのままで引く */
   --onCur:#ffffff;          /* --cur の上に載せる文字 */
   --onOk:#ffffff;           /* --ok の上に載せる文字 */
   --topbg:rgba(10,10,10,.96);
@@ -127,9 +127,11 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-lane{position:relative;z-index:0;
   border-left:1px solid var(--line);background:color-mix(in srgb, var(--lc) 3.5%, transparent)}
 .v-lane.last{border-right:1px solid var(--line)}
+/* 字はどの列でも読めるよう本文の色にして、担当の色は下の 2px 罫に持たせる
+   （エディタ側 app.css の .clane-h と同じ考え方）。 */
 .v-lane-h{grid-row:1;position:sticky;top:0;z-index:3;text-align:center;
-  font-size:var(--t2);letter-spacing:.1em;font-weight:700;white-space:nowrap;
-  color:var(--lc);padding:5px 4px 6px;background:var(--panel);
+  font-size:var(--t2);font-weight:600;white-space:nowrap;
+  color:var(--fg);padding:5px 4px 6px;background:var(--panel);
   border-bottom:2px solid var(--lc)}
 
 /* フェーズの色は左のバーとラベルで示し、状態は枠線・地色・記号で示す。
@@ -139,17 +141,19 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-node{position:relative;z-index:2;margin:0 14px 0 10px;
   background:var(--panel2);border:1px solid var(--nodeline);border-left:4px solid var(--pc,var(--line));
   border-radius:0;padding:8px 11px 9px 12px;cursor:pointer;
+  box-shadow:0 1px 3px var(--shadow);
   transition:opacity .18s,border-color .18s,background .18s,box-shadow .18s}
 /* 分類の行。フェーズ（色）と担当（列）をタイトルの上に置く。
    列が担当を表してはいるが、縦に長いフローでは列見出しが
    ページと一緒にスクロールして見えなくなる。 */
 .v-node .cls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:2px}
-.v-node .cls .ph{font-style:normal;font-size:var(--t1);letter-spacing:.04em;
-  font-weight:700;color:var(--pc,var(--faint))}
-.v-node .cls .who{font-style:normal;font-family:var(--mono);font-size:var(--t1);
-  font-weight:700;letter-spacing:.03em;line-height:1.7;padding:0 5px;
-  color:var(--lc);border:1px solid var(--lc);
-  background:color-mix(in srgb, var(--lc) 12%, transparent)}
+.v-node .cls .ph{font-style:normal;font-size:var(--t2);font-weight:600;
+  color:var(--pc,var(--faint))}
+.v-node .cls .who{font-style:normal;font-family:var(--sans);font-size:var(--t2);
+  font-weight:600;height:18px;line-height:16px;padding:0 6px;
+  display:inline-flex;align-items:center;border-radius:var(--r2);
+  color:var(--lc);border:1px solid color-mix(in srgb, var(--lc) 40%, transparent);
+  background:color-mix(in srgb, var(--lc) 16%, transparent)}
 .v-node .n{font-size:var(--t4);display:block;line-height:1.45;font-weight:600}
 .v-node .t{font-size:var(--t2);color:var(--faint);display:block;line-height:1.4;margin-top:2px}
 .v-node .mk{position:absolute;top:7px;right:9px;font-family:var(--mono);font-size:var(--t3);font-weight:700}
@@ -160,14 +164,15 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-ct{position:relative;z-index:2;align-self:center;justify-self:center;
   max-width:92%;font-size:var(--t3);font-weight:600;line-height:1.4;text-align:center;
   color:var(--lc);background:var(--panel2);
-  border:1px dashed var(--lc);
+  border:1px dashed color-mix(in srgb, var(--lc) 55%, transparent);
   border-radius:var(--r-pill);padding:6px 14px}
-.v-node:hover{background:var(--panel3)}
+.v-node:hover{background:var(--panel3);box-shadow:0 3px 8px var(--shadow)}
 .v-node.done{border-color:var(--ok);background:var(--ok-bg)}
 .v-node.done .mk{color:var(--ok)}
-.v-node.cur{border-color:var(--cur);background:var(--cur-bg);box-shadow:0 0 0 3px color-mix(in srgb, var(--cur) 18%, transparent)}
+.v-node.cur{border-color:var(--cur);background:var(--cur-bg);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--cur) 18%, transparent), 0 1px 3px var(--shadow)}
 .v-node.cur .mk{color:var(--cur)}
-.v-node.skip{opacity:.32;border-style:dashed;background:transparent}
+.v-node.skip{opacity:.32;border-style:dashed;background:transparent;box-shadow:none}
 .v-node.skip .mk{color:var(--skip)}
 .v-node .dec{position:absolute;bottom:7px;right:9px;font-size:var(--t2);color:var(--dec)}
 
@@ -176,7 +181,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
 .v-wires polygon.ca{fill:var(--cac)}
 .v-wires path.w{fill:none;stroke:var(--cur);stroke-width:2;opacity:.85;stroke-linecap:round}
 .v-wires path.w.done{stroke:var(--ok)}
-.v-wires path.w.pend{stroke:var(--faint);stroke-dasharray:5 4;opacity:.7}
+.v-wires path.w.pend{stroke:var(--wire);stroke-dasharray:5 4;stroke-linecap:round}
 .v-wires circle{fill:var(--bg);stroke:var(--cur);stroke-width:1.6}
 .v-wires circle.done{stroke:var(--ok)} .v-wires circle.pend{stroke:var(--faint)}
 .v-wires text{fill:var(--cur);font-family:var(--mono);font-size:var(--t2);font-weight:700;
@@ -319,7 +324,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
   --bg:#faf9f8; --panel:#ffffff; --panel2:#f5f5f5; --panel3:#ebebeb;
   --line:#e0e0e0; --line-soft:#efefef;
   --line-2:#c8c6c4;
-  --nodeline:#909090;
+  --nodeline:#d6d4d2;
   --fg:#242424; --dim:#484644; --faint:#616161;
 
   --cur:#0f6cbd;  --cur-bg:color-mix(in srgb, #0f6cbd 10%, transparent);
@@ -332,7 +337,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
   --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
 
   --hover:#a0a0a0;
-  --wire:#8a8a8a;
+  --wire:#a19f9d;
   --onCur:#ffffff;
   --onOk:#ffffff;
   --topbg:rgba(255,255,255,.96);
@@ -353,7 +358,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
   --bg:#faf9f8; --panel:#ffffff; --panel2:#f5f5f5; --panel3:#ebebeb;
   --line:#e0e0e0; --line-soft:#efefef;
   --line-2:#c8c6c4;
-  --nodeline:#909090;
+  --nodeline:#d6d4d2;
   --fg:#242424; --dim:#484644; --faint:#616161;
 
   --cur:#0f6cbd;  --cur-bg:color-mix(in srgb, #0f6cbd 10%, transparent);
@@ -366,7 +371,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
   --c6:#00718f; --c7:#c2410c; --c8:#3f7a1f; --c9:#a5218f; --c10:#3949ab;
 
   --hover:#a0a0a0;
-  --wire:#8a8a8a;
+  --wire:#a19f9d;
   --onCur:#ffffff;
   --onOk:#ffffff;
   --topbg:rgba(255,255,255,.96);
