@@ -49,13 +49,17 @@ export class EventsScreen {
     const v = validate(db, ev);
     const dist = phaseDist(db, ev);
 
+    // フェーズ分布は帯だけにする。
+    //
+    // 以前は帯の下に凡例（色の点＋フェーズ名＋件数）を並べていたが、
+    // 320px のカードでは 2 行に折り返し、カードの高さが揃わない原因になっていた。
+    // 帯は同じことを長さで示しているので、名前と件数は帯の説明に持たせる。
+    // 色はキャンバスもパレットも同じフェーズ色なので、対応は付く。
     const bar = dist
-      .map((d) => `<i style="background:${esc(d.p.color)};flex:${d.n}"></i>`)
-      .join("");
-    const legend = dist
       .map(
         (d) =>
-          `<span><i style="background:${esc(d.p.color)}"></i>${esc(d.p.name)} ${d.n}</span>`,
+          `<i style="background:${esc(d.p.color)};flex:${d.n}"` +
+          ` title="${esc(d.p.name)} ${d.n} 手順"></i>`,
       )
       .join("");
 
@@ -66,14 +70,14 @@ export class EventsScreen {
       this.relation(ev) +
       `<p class="ew-sub">${esc(ev.sub || "（説明なし）")}</p>` +
       `<div class="ew-bar">${bar}</div>` +
-      `<div class="ew-dist">${legend}</div>` +
       '<div class="ew-meta">' +
       `<span>${ev.steps.length} 手順</span>` +
       `<span>${v.paths.length} 経路</span>` +
       `<span class="${v.issues.length ? "ng" : "ok"}">` +
       `${v.issues.length ? `検証 ${v.issues.length} 件` : "検証 OK"}</span></div>` +
       '<div class="ew-acts">' +
-      `<button data-a="open" data-key="${esc(ev.key)}">開く</button>` +
+      // 「開く」は置かない。カードそのものが押せるので、同じことを 2 つ並べても
+      // 選ぶ手間が増えるだけになる。ここに残すのは、押さないと分からない操作だけ。
       `<button data-a="dup" data-key="${esc(ev.key)}">複製</button>` +
       // 派生の派生は作れないので、元になれるものにだけ出す。
       (ev.base

@@ -29,25 +29,45 @@
   --sbar:#39415a;           /* スクロールバーのつまみ */
   --sbarOn:#5c6880;         /* 同、触れているとき */
 
+  /* 文字の段階。
+     以前は 9〜26px を 0.5px 刻みで 18 種類使っていた。段階ではなく漂流で、
+     同じ役目の文字が場所によって 0.5px ずれていた。8 段階に畳む。
+       t1 印・ラベル（大文字送りの見出し、mono のバッジ）
+       t2 メタ・凡例・注記
+       t3 補足・説明文
+       t4 本文（手順の題名、入力欄、表の中身）
+       t5 読ませる本文（書き出し HTML の地の文）
+       t6 小見出し（カードの題名、ペインの見出し）
+       t7 画面の名前
+       t8 数字の表示（試走のメーター） */
+  --t1:10px; --t2:11px; --t3:12px; --t4:13px;
+  --t5:14px; --t6:15px; --t7:18px; --t8:24px;
+
+  /* 角の丸み。以前は 1〜14px を 1px 刻みで 14 種類。役目ごとに 4 段階へ。
+     手順のボックス（.cnode / .v-node）だけは 0 のまま——角のある四角は
+     Microsoft Defender に寄せた意図的な選択なので、この段階には入れない。
+       r1 印・バッジ  r2 ボタン・入力・小さな枠  r3 カード・パネル  r-pill 丸 */
+  --r1:4px; --r2:8px; --r3:12px; --r-pill:999px;
+
   --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
   --sans:"Meiryo UI","Hiragino Sans","Helvetica Neue","Noto Sans JP","Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.7;
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(--t6);line-height:1.7;
   -webkit-font-smoothing:antialiased}
 
 .v-top{position:sticky;top:0;z-index:20;background:var(--topbg);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);padding:14px 28px;display:flex;align-items:center;
   justify-content:space-between;gap:26px;flex-wrap:wrap}
-.v-top h1{margin:0;font-size:18px;font-weight:700;white-space:nowrap}
+.v-top h1{margin:0;font-size:var(--t7);font-weight:700;white-space:nowrap}
 .v-top h1 b{color:var(--cur)}
-.v-now{flex:1;min-width:240px;font-size:14px;color:var(--dim)}
+.v-now{flex:1;min-width:240px;font-size:var(--t5);color:var(--dim)}
 .v-now b{color:var(--fg)}
 .v-meters{display:flex;gap:26px;align-items:center}
-.v-meter .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
-.v-meter .val{font-family:var(--mono);font-size:23px;line-height:1.25;font-weight:700}
-.v-bar{height:7px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px;width:170px}
+.v-meter .k{font-size:var(--t1);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.v-meter .val{font-family:var(--mono);font-size:var(--t8);line-height:1.25;font-weight:700}
+.v-bar{height:7px;background:var(--line);border-radius:var(--r1);overflow:hidden;margin-top:6px;width:170px}
 .v-bar i{display:block;height:100%;background:var(--ok);width:0%;transition:width .3s}
 
 .v-main{display:grid;grid-template-columns:310px minmax(0,1fr);gap:18px;padding:18px 28px 0;align-items:start}
@@ -55,25 +75,25 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-main.solo .v-evs{display:none}
 @media(max-width:1150px){.v-main{grid-template-columns:1fr}}
 
-.v-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
-.v-card>h3{margin:0 0 11px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+.v-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);padding:14px 15px}
+.v-card>h3{margin:0 0 11px;font-size:var(--t2);letter-spacing:.15em;text-transform:uppercase;
   color:var(--faint);font-weight:700}
 
 .v-ev{width:100%;text-align:left;background:var(--panel2);color:inherit;border:1px solid var(--line);
-  border-radius:9px;padding:11px 12px;margin-bottom:8px;cursor:pointer;font-family:var(--sans);
+  border-radius:var(--r2);padding:11px 12px;margin-bottom:8px;cursor:pointer;font-family:var(--sans);
   display:flex;gap:10px;align-items:flex-start;transition:border-color .16s,background .16s}
 .v-ev:hover{border-color:var(--hover);background:var(--panel3)}
 .v-ev.on{border-color:var(--cur);background:var(--cur-bg)}
 .v-ev.on b{color:var(--cur)}
-.v-ev b{display:block;font-size:14px;font-weight:700;line-height:1.5}
-.v-ev span.sub{display:block;font-size:12px;color:var(--dim);line-height:1.55;margin-top:2px}
-.sev{flex:none;font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;
-  border-radius:4px;margin-top:2px;letter-spacing:.03em}
+.v-ev b{display:block;font-size:var(--t5);font-weight:700;line-height:1.5}
+.v-ev span.sub{display:block;font-size:var(--t3);color:var(--dim);line-height:1.55;margin-top:2px}
+.sev{flex:none;font-family:var(--mono);font-size:var(--t2);font-weight:700;padding:2px 7px;
+  border-radius:var(--r1);margin-top:2px;letter-spacing:.03em}
 .sev.S1{background:color-mix(in srgb, var(--s1) 16%, transparent);color:var(--s1);border:1px solid var(--s1)}
 .sev.S2{background:color-mix(in srgb, var(--s2) 16%, transparent);color:var(--s2);border:1px solid var(--s2)}
 .sev.S3{background:color-mix(in srgb, var(--s3) 16%, transparent);color:var(--s3);border:1px solid var(--s3)}
 
-.v-stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+.v-stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);
   padding:16px 18px 22px;overflow-x:auto}
 /* 列＝担当（レーン）、行＝手順の順番。
    行が実施順そのものなので、手順の流れを表す線は必ず下へ進み、決して戻らない。
@@ -88,7 +108,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
   border-left:1px solid var(--line);background:color-mix(in srgb, var(--lc) 3.5%, transparent)}
 .v-lane.last{border-right:1px solid var(--line)}
 .v-lane-h{grid-row:1;position:sticky;top:0;z-index:3;text-align:center;
-  font-size:11px;letter-spacing:.1em;font-weight:700;white-space:nowrap;
+  font-size:var(--t2);letter-spacing:.1em;font-weight:700;white-space:nowrap;
   color:var(--lc);padding:5px 4px 6px;background:var(--panel);
   border-bottom:2px solid var(--lc)}
 
@@ -104,24 +124,24 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
    列が担当を表してはいるが、縦に長いフローでは列見出しが
    ページと一緒にスクロールして見えなくなる。 */
 .v-node .cls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:2px}
-.v-node .cls .ph{font-style:normal;font-size:10px;letter-spacing:.04em;
+.v-node .cls .ph{font-style:normal;font-size:var(--t1);letter-spacing:.04em;
   font-weight:700;color:var(--pc,var(--faint))}
-.v-node .cls .who{font-style:normal;font-family:var(--mono);font-size:9px;
+.v-node .cls .who{font-style:normal;font-family:var(--mono);font-size:var(--t1);
   font-weight:700;letter-spacing:.03em;line-height:1.7;padding:0 5px;
   color:var(--lc);border:1px solid var(--lc);
   background:color-mix(in srgb, var(--lc) 12%, transparent)}
-.v-node .n{font-size:13px;display:block;line-height:1.45;font-weight:600}
-.v-node .t{font-size:11px;color:var(--faint);display:block;line-height:1.4;margin-top:2px}
-.v-node .mk{position:absolute;top:7px;right:9px;font-family:var(--mono);font-size:12px;font-weight:700}
+.v-node .n{font-size:var(--t4);display:block;line-height:1.45;font-weight:600}
+.v-node .t{font-size:var(--t2);color:var(--faint);display:block;line-height:1.4;margin-top:2px}
+.v-node .mk{position:absolute;top:7px;right:9px;font-family:var(--mono);font-size:var(--t3);font-weight:700}
 
 /* 連絡の相手。矢印の行き先に置く札。
    手順のボックスは角のある四角にしたので、こちらは丸くしておく。
    形が違えば「手順ではない」ことが一目で分かる。 */
 .v-ct{position:relative;z-index:2;align-self:center;justify-self:center;
-  max-width:92%;font-size:12px;font-weight:600;line-height:1.4;text-align:center;
+  max-width:92%;font-size:var(--t3);font-weight:600;line-height:1.4;text-align:center;
   color:var(--lc);background:var(--panel2);
   border:1px dashed var(--lc);
-  border-radius:999px;padding:6px 14px}
+  border-radius:var(--r-pill);padding:6px 14px}
 .v-node:hover{background:var(--panel3)}
 .v-node.done{border-color:var(--ok);background:var(--ok-bg)}
 .v-node.done .mk{color:var(--ok)}
@@ -129,7 +149,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-node.cur .mk{color:var(--cur)}
 .v-node.skip{opacity:.32;border-style:dashed;background:transparent}
 .v-node.skip .mk{color:var(--skip)}
-.v-node .dec{position:absolute;bottom:7px;right:9px;font-size:11px;color:var(--dec)}
+.v-node .dec{position:absolute;bottom:7px;right:9px;font-size:var(--t2);color:var(--dec)}
 
 .v-wires{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
 .v-wires path.ca{fill:none;stroke:var(--cac);stroke-width:1.4;stroke-dasharray:2 3;opacity:.85}
@@ -139,46 +159,46 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 .v-wires path.w.pend{stroke:var(--faint);stroke-dasharray:5 4;opacity:.7}
 .v-wires circle{fill:var(--bg);stroke:var(--cur);stroke-width:1.6}
 .v-wires circle.done{stroke:var(--ok)} .v-wires circle.pend{stroke:var(--faint)}
-.v-wires text{fill:var(--cur);font-family:var(--mono);font-size:11px;font-weight:700;
+.v-wires text{fill:var(--cur);font-family:var(--mono);font-size:var(--t2);font-weight:700;
   text-anchor:middle;dominant-baseline:central}
 .v-wires text.done{fill:var(--ok)} .v-wires text.pend{fill:var(--faint)}
 
 .v-steps{margin:18px 28px 60px;background:var(--panel);border:1px solid var(--line);
-  border-radius:12px;padding:18px 22px 22px}
+  border-radius:var(--r3);padding:18px 22px 22px}
 .v-steps>header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
   padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
-.v-steps h2{margin:0;font-size:18px}
-.v-steps h2 small{display:block;font-size:13px;color:var(--dim);font-weight:400;margin-top:3px}
+.v-steps h2{margin:0;font-size:var(--t7)}
+.v-steps h2 small{display:block;font-size:var(--t4);color:var(--dim);font-weight:400;margin-top:3px}
 .v-acts{display:flex;gap:9px}
-.v-btn{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;
-  padding:8px 15px;font-size:13px;cursor:pointer;font-family:var(--sans)}
+.v-btn{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:var(--r2);
+  padding:8px 15px;font-size:var(--t4);cursor:pointer;font-family:var(--sans)}
 .v-btn:hover{border-color:var(--hover);background:var(--panel3)}
 .v-btn.p{border-color:var(--ok);color:var(--ok)}
 .v-th{flex:none;white-space:nowrap}
 
 .v-s{display:flex;gap:14px;padding:15px 12px;border-top:1px solid var(--line-soft);
-  border-radius:9px;transition:background .18s}
+  border-radius:var(--r2);transition:background .18s}
 .v-s:first-of-type{border-top:none}
 .v-s.current{background:var(--cur-bg);border-top-color:transparent;box-shadow:inset 4px 0 0 var(--cur)}
-.v-s .chk{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--line);
+.v-s .chk{flex:none;width:28px;height:28px;border-radius:var(--r2);border:2px solid var(--line);
   background:var(--panel2);cursor:pointer;display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:13px;font-weight:700;color:var(--faint);margin-top:2px}
+  font-family:var(--mono);font-size:var(--t4);font-weight:700;color:var(--faint);margin-top:2px}
 .v-s .chk:hover{border-color:var(--cur);color:var(--cur)}
 .v-s.current .chk{border-color:var(--cur);color:var(--cur)}
 .v-s.done .chk{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
 .v-s .bd{flex:1;min-width:0}
-.v-s .ttl{font-size:15.5px;font-weight:700;line-height:1.6}
+.v-s .ttl{font-size:var(--t6);font-weight:700;line-height:1.6}
 .v-s.current .ttl{color:var(--cur)}
 .v-s.done .ttl{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--faint)}
-.v-s .path{font-size:12px;color:var(--faint);margin:2px 0 7px}
+.v-s .path{font-size:var(--t3);color:var(--faint);margin:2px 0 7px}
 .v-s .path i{font-style:normal;color:var(--pc,var(--faint))}
-.v-s .dsc{font-size:13.5px;color:var(--dim);line-height:1.85}
-.v-s .dsc code{font-family:var(--mono);font-size:12.5px;background:var(--panel3);
-  border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--fg)}
+.v-s .dsc{font-size:var(--t5);color:var(--dim);line-height:1.85}
+.v-s .dsc code{font-family:var(--mono);font-size:var(--t4);background:var(--panel3);
+  border:1px solid var(--line);border-radius:var(--r1);padding:2px 6px;color:var(--fg)}
 .v-s.skipped{opacity:.34}
 .v-s.skipped .ttl{text-decoration:line-through}
 
-.tag{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;
+.tag{display:inline-block;font-size:var(--t3);font-weight:700;padding:2px 9px;border-radius:var(--r-pill);
   margin-left:8px;vertical-align:middle;white-space:nowrap}
 .tag.now{background:var(--cur);color:var(--onCur);border:1px solid var(--cur)}
 .tag.sla{background:var(--panel3);color:var(--dim);border:1px solid var(--line);font-family:var(--mono)}
@@ -192,52 +212,52 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 
 /* 連絡先 — 手順の中に置く。別紙を探させない。
    グループ単位で、連絡順に並べる。 */
-.v-contacts{margin-top:12px;border:1px solid var(--line);border-radius:9px;
+.v-contacts{margin-top:12px;border:1px solid var(--line);border-radius:var(--r2);
   background:var(--panel2);padding:9px 11px 11px}
-.v-contacts>b{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+.v-contacts>b{display:block;font-size:var(--t1);letter-spacing:.14em;text-transform:uppercase;
   color:var(--faint);font-weight:700;margin-bottom:8px}
 .v-cg{border-top:1px solid var(--line-soft);padding:9px 0 3px}
 .v-cg:first-of-type{border-top:none;padding-top:0}
 .v-cgh{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
-.v-cgh .nm{font-size:13.5px;font-weight:700;color:var(--fg)}
-.v-cgh em{font-style:normal;font-size:10.5px;color:var(--kc);border:1px solid var(--kc);
-  border-radius:4px;padding:0 6px}
-.v-cgh u{text-decoration:none;font-family:var(--mono);font-size:10px;color:var(--faint)}
-.v-cgn{font-size:11.5px;color:var(--dim);line-height:1.65;margin:0 0 6px}
+.v-cgh .nm{font-size:var(--t5);font-weight:700;color:var(--fg)}
+.v-cgh em{font-style:normal;font-size:var(--t2);color:var(--kc);border:1px solid var(--kc);
+  border-radius:var(--r1);padding:0 6px}
+.v-cgh u{text-decoration:none;font-family:var(--mono);font-size:var(--t1);color:var(--faint)}
+.v-cgn{font-size:var(--t3);color:var(--dim);line-height:1.65;margin:0 0 6px}
 .v-cm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:3px 0}
 .v-cm .no{flex:none;width:19px;height:19px;border-radius:50%;background:var(--panel3);
-  border:1px solid var(--line);font-family:var(--mono);font-size:10px;font-weight:700;
+  border:1px solid var(--line);font-family:var(--mono);font-size:var(--t1);font-weight:700;
   color:var(--dim);display:flex;align-items:center;justify-content:center}
 .v-cm.first .no{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
-.v-cm .who{font-size:13px;font-weight:600;min-width:74px}
-.v-cm .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:13px;
-  color:var(--fg);background:var(--panel3);border:1px solid var(--vc);border-radius:6px;
+.v-cm .who{font-size:var(--t4);font-weight:600;min-width:74px}
+.v-cm .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:var(--t4);
+  color:var(--fg);background:var(--panel3);border:1px solid var(--vc);border-radius:var(--r2);
   padding:1px 8px 1px 3px;user-select:all}
-.v-cm .ch i{font-style:normal;width:17px;height:17px;border-radius:4px;font-size:10px;font-weight:700;
+.v-cm .ch i{font-style:normal;width:17px;height:17px;border-radius:var(--r1);font-size:var(--t1);font-weight:700;
   display:flex;align-items:center;justify-content:center;
   background:color-mix(in srgb, var(--vc) 24%, transparent);color:var(--vc);user-select:none}
 /* ロゴを使う手段は、色を付けた四角で囲まず、そのまま出す */
 .v-cm .ch i.ico{background:none;width:16px;height:16px}
 .vico{width:100%;height:100%;display:block;color:var(--vc)}
-.v-cm .mnt{flex-basis:100%;font-size:11px;color:var(--faint);padding-left:27px;line-height:1.55}
+.v-cm .mnt{flex-basis:100%;font-size:var(--t2);color:var(--faint);padding-left:27px;line-height:1.55}
 
-.v-godone{margin-top:12px;background:var(--cur);border:none;color:var(--onCur);border-radius:8px;
-  padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans)}
+.v-godone{margin-top:12px;background:var(--cur);border:none;color:var(--onCur);border-radius:var(--r2);
+  padding:10px 20px;font-size:var(--t5);font-weight:700;cursor:pointer;font-family:var(--sans)}
 .v-godone:hover{filter:brightness(1.08)}
 
-.v-ask{margin-top:12px;padding:14px 16px;background:var(--panel2);border:2px solid var(--dec);border-radius:9px}
-.v-ask p{margin:0 0 10px;font-size:14.5px;font-weight:700}
+.v-ask{margin-top:12px;padding:14px 16px;background:var(--panel2);border:2px solid var(--dec);border-radius:var(--r2)}
+.v-ask p{margin:0 0 10px;font-size:var(--t5);font-weight:700}
 .v-ask .opts{display:flex;gap:10px;flex-wrap:wrap}
-.v-ask button{background:var(--panel3);border:2px solid var(--line);color:var(--fg);border-radius:8px;
-  padding:9px 18px;font-size:14px;cursor:pointer;font-family:var(--sans)}
+.v-ask button{background:var(--panel3);border:2px solid var(--line);color:var(--fg);border-radius:var(--r2);
+  padding:9px 18px;font-size:var(--t5);cursor:pointer;font-family:var(--sans)}
 .v-ask button:hover{border-color:var(--dec)}
 .v-ask button.on{border-color:var(--dec);background:color-mix(in srgb, var(--dec) 22%, transparent);color:var(--decFg);font-weight:700}
 
-.v-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--dim)}
+.v-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:var(--t3);color:var(--dim)}
 .v-legend span{display:flex;align-items:center;gap:6px}
-.v-legend i{font-family:var(--mono);font-weight:700;font-size:13px;font-style:normal}
-.v-note{margin:18px 0 0;font-size:12.5px;color:var(--faint);line-height:1.75}
-.v-empty{color:var(--faint);font-size:14px;margin:18px 0 6px}
+.v-legend i{font-family:var(--mono);font-weight:700;font-size:var(--t4);font-style:normal}
+.v-note{margin:18px 0 0;font-size:var(--t4);color:var(--faint);line-height:1.75}
+.v-empty{color:var(--faint);font-size:var(--t5);margin:18px 0 6px}
 
 /* ================= スクロールバー =================
    OS 既定のものは明るく太く、暗い画面から浮く。ここだけ別のアプリに見える。
@@ -252,7 +272,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 *::-webkit-scrollbar{width:12px;height:12px}
 *::-webkit-scrollbar-track{background:transparent}
 *::-webkit-scrollbar-thumb{
-  background:var(--sbar);border-radius:99px;
+  background:var(--sbar);border-radius:var(--r-pill);
   border:3px solid transparent;background-clip:padding-box}
 *::-webkit-scrollbar-thumb:hover{background:var(--sbarOn);background-clip:padding-box}
 *::-webkit-scrollbar-thumb:active{background:var(--sbarOn);background-clip:padding-box}
