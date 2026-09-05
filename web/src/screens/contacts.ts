@@ -184,18 +184,18 @@ export class ContactsScreen {
     // フロー図でこの連絡先を置く列。空だと、手順で参照しても線が引かれない。
     // 黙って線が出ないのが一番たちが悪いので、未設定もはっきり書く。
     const laneTag = lane
-      ? `<span class="cg-lane" style="--tc:${lane.color}" ` +
+      ? `<span class="bdg cg-lane" style="--tc:${lane.color}" ` +
         `title="この連絡先を使う手順から、「${esc(lane.name)}」の列へ線が引かれます">` +
         `→ ${esc(lane.name)}</span>`
-      : '<span class="cg-lane none" title="どの列に置くかが決まっていないため、' +
+      : '<span class="bdg cg-lane none" title="どの列に置くかが決まっていないため、' +
         'フロー図には線が出ません（手順の連絡先一覧には出ます）">担当なし</span>';
 
     card.innerHTML =
       `<div class="cg-h"><b>${esc(g.name)}</b>` +
-      `<span class="kind">${esc(kd.l)}</span>` +
+      `<span class="bdg kind">${esc(kd.l)}</span>` +
       laneTag +
       `<span class="cnt">${g.members.length} 名</span>` +
-      `<span class="use${uses.length ? " on" : ""}">` +
+      `<span class="bdg use${uses.length ? " on" : ""}">` +
       (uses.length ? `${uses.length} 手順で使用` : "未使用") +
       "</span>" +
       '<span class="sp"></span>' +
@@ -212,7 +212,8 @@ export class ContactsScreen {
       '<div class="cg-mem"><h5>' +
       (g.members.length > 1 ? "メンバー（連絡順）" : "メンバー") +
       "</h5><div data-mem></div>" +
-      '<button class="cg-add" data-add>＋ メンバーを追加</button></div>';
+      '<button class="addrow" data-add>' +
+      '<svg class="ic"><use href="#ic-add"/></svg>メンバーを追加</button></div>';
 
     const mem = card.querySelector<HTMLElement>("[data-mem]")!;
     if (!g.members.length) {
@@ -256,11 +257,14 @@ export class ContactsScreen {
         })
         .join("") +
       '<span class="sp"></span>' +
-      '<span class="ops">' +
-      `<button data-up${i === 0 ? " disabled" : ""} title="上へ">&#9650;</button>` +
-      `<button data-dn${i === g.members.length - 1 ? " disabled" : ""} title="下へ">&#9660;</button>` +
-      "<button data-ed>編集</button>" +
-      '<button data-rm class="dgr" title="削除">&times;</button></span>' +
+      '<span class="ops rowops">' +
+      `<button data-up${i === 0 ? " disabled" : ""} title="上へ">` +
+      '<svg class="ic"><use href="#ic-chev-u"/></svg></button>' +
+      `<button data-dn${i === g.members.length - 1 ? " disabled" : ""} title="下へ">` +
+      '<svg class="ic"><use href="#ic-chev-d"/></svg></button>' +
+      '<button data-ed title="編集"><svg class="ic"><use href="#ic-edit"/></svg></button>' +
+      '<button data-rm class="dgr" title="削除">' +
+      '<svg class="ic"><use href="#ic-delete"/></svg></button></span>' +
       (m.note ? `<span class="mnt">${esc(m.note)}</span>` : "");
 
     el.querySelector("[data-up]")!.addEventListener("click", () => {

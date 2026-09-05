@@ -127,7 +127,8 @@ export class Palette {
     g.style.setProperty("--pc", p.color);
     g.innerHTML =
       `<h4><span>${esc(p.name)}<u>${tasks.length}</u></span>` +
-      `<button title="${esc(p.name)} に新しい対応を作る">＋</button></h4>`;
+      `<button title="${esc(p.name)} に新しい対応を作る">` +
+      '<svg class="ic"><use href="#ic-add"/></svg></button></h4>';
 
     g.querySelector("h4 span")?.addEventListener("click", () => {
       if (narrowed) return; // 絞り込み中は畳まない。畳むと結果が見えなくなる
@@ -172,9 +173,10 @@ export class Palette {
           : "") +
       `${esc(t.label)}</b><span class="nt">${esc(t.note ?? "")}</span>` +
       '<span class="use">' +
-      (here ? `<span class="u-in">使用中 ${here}</span>` : "") +
+      (here ? `<span class="bdg u-in">使用中 ${here}</span>` : "") +
       `<span class="u-all">${all}フロー</span></span>` +
-      '<button class="add" title="末尾に追加">+</button>';
+      '<button class="add" title="末尾に追加">' +
+      '<svg class="ic"><use href="#ic-add"/></svg></button>';
     el.title =
       t.label +
       (t.note ? `（${t.note}）` : "") +

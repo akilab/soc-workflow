@@ -412,9 +412,9 @@ body.dragging .clane:not(.drop){opacity:.35}
 /* 待ちだけは枠を破線のままにする。「動いていない」ことを形でも示す。 */
 .ol-row .wait{color:var(--dim);background:var(--panel3);
   border:1px dashed var(--line-2)}
-.pal-t .k-wait{display:inline-block;font-style:normal;vertical-align:1px;
-  margin-right:5px;font-size:var(--t1);font-weight:700;letter-spacing:.04em;line-height:1.6;
-  color:var(--dim);border:1px dashed var(--dim);border-radius:var(--r1);padding:0 4px}
+.pal-t .k-wait{display:inline-flex;align-items:center;font-style:normal;vertical-align:-3px;
+  margin-right:5px;height:18px;padding:0 6px;font-size:var(--t2);font-weight:600;line-height:16px;
+  color:var(--dim);background:var(--panel3);border:1px dashed var(--line-2);border-radius:var(--r2)}
 
 /* 掴んで動かしている最中のボックス。 */
 .cnode.drag{opacity:.35}
@@ -516,33 +516,76 @@ body.dragging .clane:not(.drop){opacity:.35}
   transition:color .15s,border-color .15s}
 .tabs button:hover{color:var(--fg);background:var(--panel2)}
 .tabs button.on{color:var(--cur);border-bottom-color:var(--cur);font-weight:600}
-.tabs button i{font-style:normal;font-family:var(--mono);font-size:var(--t1);font-weight:700;
-  background:var(--panel3);border:1px solid var(--line);border-radius:var(--r1);padding:0 5px;color:var(--faint)}
-.tabs button.on i{background:var(--cur-bg);border-color:var(--cur);color:var(--cur)}
+/* タブの件数。印と同じ形にそろえる（.bdg の色だけを変えたもの）。
+   中身が無いときは出さない。空の枠だけが残ると、何かが欠けて見える。 */
+.tabs button i:empty{display:none}
+.tabs button i{font-style:normal;display:inline-flex;align-items:center;height:18px;padding:0 6px;
+  font-size:var(--t2);font-weight:600;font-variant-numeric:tabular-nums;border-radius:var(--r2);
+  color:var(--faint);background:var(--panel3);border:1px solid var(--line-2)}
+.tabs button.on i{color:var(--cur);background:color-mix(in srgb, var(--cur) 18%, transparent);
+  border-color:color-mix(in srgb, var(--cur) 42%, transparent)}
 #paneRight.tab-ins #palwrap{display:none}
 #paneRight.tab-pal .ins{display:none}
 .palwrap{overflow:auto;flex:1;padding:10px 12px 16px;min-height:0}
 
+/* ---------- 印（Fluent の Badge）の共通形 ----------
+   面を敷いて、字は面より 1 段明るい色。色は --bc（面と枠）と --bf（字）で渡す。
+   同じ形をこれまで画面ごとに書き足していたので、ここに 1 つ持つ。
+   古い画面のものも形は同じなので、触るときにこちらへ寄せていく。 */
+.bdg{display:inline-flex;align-items:center;height:18px;padding:0 6px;white-space:nowrap;
+  font-family:var(--sans);font-size:var(--t2);font-weight:600;line-height:16px;
+  border-radius:var(--r2);color:var(--bf,var(--dim));
+  background:color-mix(in srgb, var(--bc,var(--line-2)) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--bc,var(--line-2)) 42%, transparent)}
+/* 数量。印ではないので面は敷かない（枠ありは性質、枠なしは数量）。 */
+.qty{font-family:var(--sans);font-size:var(--t2);color:var(--faint);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* 行の中の操作（並べ替え・編集・削除）。
+   Fluent の行操作は枠を持たない。24px の四角を並べると、それ自体が
+   表の列のように見えて、読むものと操作の区別が消える。 */
+.rowops button{background:none;border:1px solid transparent;color:var(--faint);
+  border-radius:var(--r2);min-width:26px;height:26px;padding:0 6px;font-size:var(--t2);
+  cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;
+  justify-content:center;transition:background .12s,color .12s}
+.rowops button:hover:not(:disabled){background:var(--panel3);color:var(--fg)}
+.rowops button.dgr:hover:not(:disabled){background:color-mix(in srgb, var(--s1) 18%, transparent);
+  color:var(--s1Fg)}
+.rowops button:disabled{color:var(--line-2);cursor:default}
+
+/* 追加の操作。破線の枠をやめる（Fluent に破線のボタンは無い）。
+   足すものだと分かるのは＋の記号と言葉であって、枠の種類ではない。 */
+.addrow{width:100%;background:none;border:1px solid var(--line-2);color:var(--cur);
+  border-radius:var(--r2);padding:7px;font-size:var(--t3);font-weight:600;cursor:pointer;
+  font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:6px}
+.addrow:hover{background:color-mix(in srgb, var(--cur) 12%, transparent);border-color:var(--cur)}
+
 /* ---------- 対応パレット（右サイドバー・縦） ---------- */
-.pal-search{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
+/* 打ち込む場所は、枠をひとつ強い罫（--line-2）にする。--line は面の境目の色で、
+   入力欄に使うと「ここに打てる」ことが見えなかった。 */
+.pal-search{width:100%;background:var(--panel2);border:1px solid var(--line-2);color:var(--fg);
   border-radius:var(--r2);padding:7px 11px;font-size:var(--t4);font-family:var(--sans);margin-bottom:7px}
 /* 並び順と絞り込み — 44 件を超えると定義順では定番が埋もれる */
 .tools{display:flex;gap:6px;margin-bottom:12px}
-.tools select{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);
+.tools select{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line-2);
   color:var(--dim);border-radius:var(--r2);padding:5px 7px;font-size:var(--t3);font-family:var(--sans)}
-.tools select:focus{outline:none;border-color:var(--cur)}
+.tools select:focus{outline:none;border-color:var(--cur);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--cur) 25%, transparent)}
 .tools select.on{border-color:var(--cur);color:var(--cur)}
-.pal-search:focus{outline:none;border-color:var(--cur)}
+.pal-search:focus{outline:none;border-color:var(--cur);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--cur) 25%, transparent)}
 .pal-g{margin-bottom:13px}
 .pal-g>h4{margin:0 0 7px;font-size:var(--t3);font-weight:600;color:var(--dim);
   display:flex;align-items:center;gap:7px;user-select:none;
   padding-bottom:4px;border-bottom:1px solid var(--pc)}
 .pal-g>h4>span{cursor:pointer;display:flex;align-items:center;gap:7px;flex:1;min-width:0}
 .pal-g>h4>span::before{content:"";width:9px;height:9px;border-radius:var(--r1);background:var(--pc);flex:none}
-.pal-g>h4 u{text-decoration:none;font-family:var(--mono);font-size:var(--t1);color:var(--faint);font-weight:400}
-.pal-g>h4 button{flex:none;background:none;border:1px solid var(--line);color:var(--faint);
-  border-radius:var(--r1);width:20px;height:20px;font-size:var(--t3);line-height:1;cursor:pointer;padding:0}
-.pal-g>h4 button:hover{border-color:var(--cur);color:var(--cur)}
+.pal-g>h4 u{text-decoration:none;font-family:var(--sans);font-size:var(--t2);color:var(--faint);
+  font-weight:400;font-variant-numeric:tabular-nums}
+.pal-g>h4 button{flex:none;background:none;border:1px solid transparent;color:var(--faint);
+  border-radius:var(--r2);width:22px;height:22px;line-height:1;cursor:pointer;padding:0;
+  display:flex;align-items:center;justify-content:center}
+.pal-g>h4 button:hover{background:var(--panel2);color:var(--cur)}
 
 /* パレットの札。掴んで運ぶものなので、キャンバスのボックスと同じ
    「角のある四角＋左のフェーズ色」にしておくと、置いた先の姿が想像できる。 */
@@ -555,17 +598,14 @@ body.dragging .clane:not(.drop){opacity:.35}
 .pal-t b{display:block;font-size:var(--t4);font-weight:600;line-height:1.45;padding-right:58px}
 .pal-t span.nt{display:block;font-size:var(--t2);color:var(--faint);line-height:1.4;margin-top:1px}
 .pal-t .use{position:absolute;top:6px;right:7px;display:flex;gap:4px;align-items:center}
-.pal-t .u-in{font-family:var(--mono);font-size:var(--t1);font-weight:700;color:var(--cur);
-  border:1px solid var(--cur);border-radius:var(--r1);padding:0 4px;background:var(--cur-bg)}
-.pal-t .u-all{font-family:var(--mono);font-size:var(--t1);color:var(--faint)}
+.pal-t .u-in{--bc:var(--cur);--bf:var(--cur)}
+.pal-t .u-all{font-family:var(--sans);font-size:var(--t2);color:var(--faint);
+  font-variant-numeric:tabular-nums}
 .pal-t .add{position:absolute;bottom:6px;right:7px;opacity:0;background:var(--panel3);
-  border:1px solid var(--line);color:var(--dim);border-radius:var(--r1);width:20px;height:20px;
-  font-size:var(--t4);line-height:1;cursor:pointer;transition:opacity .15s}
+  border:1px solid var(--line-2);color:var(--dim);border-radius:var(--r2);width:22px;height:22px;
+  cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center}
 .pal-t:hover .add{opacity:1}
 .pal-t .add:hover{border-color:var(--cur);color:var(--cur)}
-.pal-new{width:100%;background:none;border:1px dashed var(--line);color:var(--faint);border-radius:var(--r2);
-  padding:8px;font-size:var(--t3);cursor:pointer;font-family:var(--sans)}
-.pal-new:hover{border-color:var(--cur);color:var(--cur)}
 .pal-empty{color:var(--faint);font-size:var(--t4);line-height:1.9;padding:10px 2px}
 
 /* ---------- インスペクタ（右・タブ内） ---------- */
@@ -857,17 +897,17 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
   border-radius:var(--r3);padding:12px 14px;margin-bottom:8px}
 .cg-h{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .cg-h b{font-size:var(--t6);font-weight:600}
-.cg-h .kind{font-size:var(--t3);color:var(--kc);border:1px solid var(--kc);border-radius:var(--r1);padding:1px 8px}
-.cg-h .cnt{font-family:var(--mono);font-size:var(--t3);color:var(--faint)}
-.cg-h .use{font-family:var(--mono);font-size:var(--t3);color:var(--dim);
-  border:1px solid var(--line);border-radius:var(--r1);padding:1px 8px}
-.cg-h .use.on{color:var(--cur);border-color:var(--cur)}
+/* 区分・件数・使用状況。印はどの画面でも同じ形（.bdg）にする。 */
+.cg-h .kind{--bc:var(--kc);--bf:var(--kc)}
+.cg-h .cnt{font-variant-numeric:tabular-nums;font-size:var(--t3);color:var(--faint)}
+.cg-h .use{--bc:var(--line-2);--bf:var(--faint)}
+.cg-h .use.on{--bc:var(--cur);--bf:var(--cur)}
 /* フロー図でこの連絡先を置く列。担当バッジ（.tier）と同じ見た目にして、
    キャンバスの列と結びつける。空のときは、黙って線だけ出ないのが一番分かりにくいので、
    「担当なし」と書いて破線で囲む。 */
-.cg-h .cg-lane{font-family:var(--mono);font-size:var(--t3);font-weight:700;
-  color:var(--tc);border:1px solid var(--tc);border-radius:var(--r1);padding:1px 8px}
-.cg-h .cg-lane.none{color:var(--faint);border:1px dashed var(--line);font-weight:400}
+.cg-h .cg-lane{--bc:var(--tc);--bf:var(--tc)}
+.cg-h .cg-lane.none{--bf:var(--faint);background:var(--panel2);
+  border:1px dashed var(--line-2);font-weight:400}
 .cg-h .sp{flex:1}
 .cg-note{font-size:var(--t3);color:var(--dim);line-height:1.7;margin:7px 0 0}
 .cg-uses{font-size:var(--t3);color:var(--faint);line-height:1.65;margin:4px 0 0}
@@ -877,34 +917,33 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 .mem{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 9px;border-radius:var(--r2);
   background:var(--panel2);border:1px solid var(--line);margin-bottom:6px}
 .mem .no{flex:none;width:20px;height:20px;border-radius:50%;background:var(--panel3);
-  border:1px solid var(--line);font-family:var(--mono);font-size:var(--t1);font-weight:700;
+  border:1px solid var(--line-2);font-family:var(--sans);font-size:var(--t2);font-weight:600;
+  font-variant-numeric:tabular-nums;
   color:var(--dim);display:flex;align-items:center;justify-content:center}
 .mem.first .no{background:var(--cur);border-color:var(--cur);color:var(--onCur)}
 .mem .who{font-size:var(--t5);font-weight:600;min-width:90px}
-.mem .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:var(--t4);
-  color:var(--fg);background:var(--panel3);border:1px solid var(--vc);border-radius:var(--r2);padding:1px 8px 1px 3px}
+/* 電話番号やアカウント。手段の色（--vc）は絵と枠で示し、字は本文の色にする。
+   番号そのものを色で塗ると、読む対象と色分けの意味が混ざる。
+   けたは tabular-nums でそろう（等幅書体は本文と字面が違いすぎた）。 */
+.mem .ch{display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:var(--t4);
+  font-variant-numeric:tabular-nums;color:var(--fg);
+  background:color-mix(in srgb, var(--vc) 12%, transparent);
+  border:1px solid color-mix(in srgb, var(--vc) 40%, transparent);
+  border-radius:var(--r2);padding:2px 9px 2px 4px}
 .mem .ch i{font-style:normal;width:16px;height:16px;border-radius:var(--r1);font-size:var(--t1);font-weight:700;
   display:flex;align-items:center;justify-content:center;
   background:color-mix(in srgb, var(--vc) 24%, transparent);color:var(--vc)}
 .mem .mnt{flex-basis:100%;font-size:var(--t2);color:var(--faint);padding-left:30px;line-height:1.55}
 .mem .sp{flex:1}
-.mem .ops{display:flex;gap:5px}
-.mem .ops button{background:var(--panel3);border:1px solid var(--line);color:var(--dim);
-  border-radius:var(--r1);min-width:24px;height:24px;padding:0 6px;font-size:var(--t2);cursor:pointer;
-  font-family:var(--sans)}
-.mem .ops button:hover:not(:disabled){border-color:var(--cur);color:var(--cur)}
-.mem .ops button.dgr:hover{border-color:var(--s1);color:var(--s1)}
-.mem .ops button:disabled{opacity:.3;cursor:default}
-.cg-add{width:100%;background:none;border:1px dashed var(--line);color:var(--faint);border-radius:var(--r2);
-  padding:7px;font-size:var(--t3);cursor:pointer;font-family:var(--sans)}
-.cg-add:hover{border-color:var(--cur);color:var(--cur)}
+.mem .ops{display:flex;gap:2px}
 
 /* パレットで「終了」の対応を見分ける印。
    使用回数のバッジは右上に絶対配置されているので、そこへ重ねない。
    名前の頭にインラインで置けば、何を修飾しているかも明確になる。 */
-.pal-t .k-fin{display:inline-block;font-style:normal;vertical-align:1px;
-  margin-right:5px;font-size:var(--t1);font-weight:700;letter-spacing:.04em;line-height:1.6;
-  color:var(--ok);border:1px solid var(--ok);border-radius:var(--r1);padding:0 4px}
+.pal-t .k-fin{display:inline-flex;align-items:center;font-style:normal;vertical-align:-3px;
+  margin-right:5px;height:18px;padding:0 6px;font-size:var(--t2);font-weight:600;line-height:16px;
+  color:var(--okFg);background:color-mix(in srgb, var(--ok) 20%, transparent);
+  border:1px solid color-mix(in srgb, var(--ok) 42%, transparent);border-radius:var(--r2)}
 
 /* ================= フロー一覧の表 =================
    Defender のインシデント一覧と同じ作り。行に罫線、囲みも角丸も無し。 */
