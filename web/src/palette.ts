@@ -11,7 +11,8 @@
 
 import { Api, ApiError } from "./api";
 import type { StepPlacement } from "./api";
-import { $, $as, dimSource, esc, undimSource } from "./dom";
+import { $, $as, dimSource, esc, setDragChip, undimSource } from "./dom";
+import { setDragLabel } from "./canvas";
 import { eventsUsingTask } from "./flow";
 import type { DB, EventFlow, Phase, Task, TaskKind } from "./types";
 import { askModal, showApiError, toast } from "./ui";
@@ -187,11 +188,14 @@ export class Palette {
     el.addEventListener("dragstart", (e) => {
       e.dataTransfer?.setData("text/plain", `task:${t.key}`);
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
+      setDragChip(e, t.label, p.color);
+      setDragLabel(t.label);
       dimSource(el);
       document.body.classList.add("dragging");
     });
     el.addEventListener("dragend", () => {
       undimSource(el);
+      setDragLabel("");
       document.body.classList.remove("dragging");
     });
 

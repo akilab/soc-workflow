@@ -85,3 +85,29 @@ export function undimSource(el: HTMLElement): void {
   delete el.dataset.dragging;
   el.classList.remove("drag");
 }
+
+/**
+ * 運んでいる絵を、こちらで作って渡す。
+ *
+ * 何も渡さないと、ブラウザは掴んだ要素をそのまま写して絵にする。この絵は
+ * OS 側で薄く合成されるうえ、元の札は地が濃くないので、暗い画面ではほとんど
+ * 見えなかった（利用者の指摘。時機を直しても十分ではなかった）。
+ *
+ * 濃い地・太い枠・影を持った札を自分で作って渡せば、合成されても残る。
+ * 渡した絵は dragstart が終わった時点で写されるので、そのあとは消してよい。
+ * 画面の外に置くのは、写すまでのあいだ利用者に見せないため。
+ */
+export function setDragChip(e: DragEvent, label: string, color?: string): void {
+  if (!e.dataTransfer) return;
+  const chip = document.createElement("div");
+  chip.className = "dragchip";
+  if (color) chip.style.setProperty("--pc", color);
+  chip.textContent = label;
+  document.body.appendChild(chip);
+  try {
+    e.dataTransfer.setDragImage(chip, 16, 20);
+  } catch {
+    /* 使えない環境では、ブラウザ既定の絵に任せる */
+  }
+  setTimeout(() => chip.remove(), 0);
+}

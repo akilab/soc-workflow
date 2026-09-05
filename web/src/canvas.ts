@@ -19,7 +19,7 @@
  */
 
 import { condSentence, optColor, optLabel } from "./branch";
-import { $, dimSource, esc, undimSource } from "./dom";
+import { $, dimSource, esc, setDragChip, undimSource } from "./dom";
 import { groupVias, stepContacts, viaMark } from "./contacts";
 import { eventLanes, taskOf } from "./flow";
 import type { DB, EventFlow, Lane, Step } from "./types";
@@ -193,11 +193,14 @@ export function renderCanvas(deps: CanvasDeps): void {
     el.addEventListener("dragstart", (e) => {
       e.dataTransfer?.setData("text/plain", `step:${st.id}`);
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+      setDragChip(e, st.title, phase?.color);
+      setDragLabel(st.title);
       dimSource(el);
       document.body.classList.add("dragging");
     });
     el.addEventListener("dragend", () => {
       undimSource(el);
+      setDragLabel("");
       document.body.classList.remove("dragging");
     });
 
@@ -488,6 +491,19 @@ export function dropSpotAt(lanes: Lane[], x: number, y: number): DropSpot | null
   return { lane: lanes[li].key, index };
 }
 
+/**
+ * いま運んでいるものの名前。
+ *
+ * 落とし先の線に書き出す。運んでいる絵は OS が描くので、こちらからは
+ * 濃さを保証できない（暗い画面でほとんど見えないという指摘があった）。
+ * 何を運んでいるかは、こちらが描く線の側にも書いておく。
+ */
+let dragLabel = "";
+
+export function setDragLabel(text: string): void {
+  dragLabel = text;
+}
+
 /** 落とし先を画面に示す。列を光らせ、入る位置に線を引く。 */
 export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
   const grid = document.getElementById("cgrid");
@@ -508,6 +524,7 @@ export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
     line.className = "cdrop";
     grid.appendChild(line);
   }
+  line.innerHTML = dragLabel ? `<b>${esc(dragLabel)}</b>` : "";
 
   const box = grid.getBoundingClientRect();
   // 線は図の中に置くので、測った見かけの値を縮尺で割り戻す（paintWires と同じ）。

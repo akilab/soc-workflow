@@ -424,12 +424,29 @@ body.dragging .clane:not(.drop){opacity:.6}
 .cnode.drag{opacity:.5}
 
 /* パレットから落とすとき、または手順を動かすときに、どこへ入るかを示す線。 */
+/* 落とし先の線。運んでいるものの名前もここに書く。
+   運んでいる絵は OS が描くので濃さを保証できない。こちらが描くもので
+   「何を・どこへ」を必ず読めるようにしておく。 */
 .cdrop{position:absolute;z-index:4;height:3px;background:var(--cur);
   box-shadow:0 0 0 1px color-mix(in srgb, var(--cur) 55%, transparent);
   pointer-events:none}
 .cdrop::before,.cdrop::after{content:"";position:absolute;top:-3px;width:8px;height:8px;
   background:var(--cur);border-radius:50%}
 .cdrop::before{left:-4px} .cdrop::after{right:-4px}
+.cdrop b{position:absolute;left:0;top:-24px;max-width:100%;box-sizing:border-box;
+  background:var(--cur);color:var(--onCur);font-size:var(--t2);font-weight:600;
+  padding:2px 8px;border-radius:var(--r2);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;display:block;box-shadow:0 2px 6px var(--shadow)}
+
+/* 運んでいる絵。掴んだ瞬間に作って渡し、写し終えたら消す（dom.ts の setDragChip）。
+   画面の外に置くのは、写すまでのあいだ見せないため。 */
+.dragchip{position:fixed;top:-2000px;left:-2000px;pointer-events:none;
+  max-width:280px;padding:8px 12px 8px 10px;
+  background:var(--panel3);color:var(--fg);
+  border:2px solid var(--cur);border-left:5px solid var(--pc,var(--cur));
+  border-radius:var(--r2);font-family:var(--sans);font-size:var(--t4);font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 8px 20px rgba(0,0,0,.55)}
 
 /* 連絡の相手。矢印の行き先に置く札。
    手順のボックスは角のある四角にしたので、こちらは丸くしておく。
