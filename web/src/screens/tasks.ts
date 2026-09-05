@@ -142,6 +142,19 @@ export class TasksScreen {
       void this.createTask(p.key);
     });
 
+    // 列の見出しはフェーズごとに 1 行だけ。
+    //
+    // 以前は各行が「対応名」「補足」「既定の担当 / 種類」「使用」を自分で
+    // 名乗っていた。48 行 × 4 で同じ語を 192 回出していたことになる。
+    // 縦に並ぶものの名前は、上に一度あればよい。
+    if (tasks.length) {
+      g.insertAdjacentHTML(
+        "beforeend",
+        '<div class="rw-h"><span>対応名</span><span>補足</span>' +
+          "<span>既定の担当 / 種類</span><span>使用</span><span></span></div>",
+      );
+    }
+
     for (const t of tasks) g.appendChild(this.row(t, p));
     if (!tasks.length) {
       g.insertAdjacentHTML(
@@ -169,17 +182,18 @@ export class TasksScreen {
         ? ` <span class="badge" style="--bc:var(--s2)">${esc(TASK_KIND_LABEL[t.kind])}</span>`
         : "");
 
+    // 使っているフローの名前は 1 行に収める。折り返すと行の高さが
+    // ばらついて、表として上下に読めなくなる。全文は説明に入れてある。
+    const names = evs.map((e) => e.title).join("、");
+
     row.innerHTML =
-      `<div><span class="k">対応名</span><span class="v">${esc(t.label)}</span></div>` +
-      `<div><span class="k">補足</span>` +
-      `<span class="v dim">${t.note ? esc(t.note) : "—"}</span></div>` +
-      `<div><span class="k">既定の担当 / 種類</span>${badges}</div>` +
-      `<div class="use${evs.length ? " on" : ""}"><span class="k">使用</span>` +
+      `<div><span class="v">${esc(t.label)}</span></div>` +
+      `<div><span class="v dim">${t.note ? esc(t.note) : "—"}</span></div>` +
+      `<div>${badges}</div>` +
+      `<div class="use${evs.length ? " on" : ""}">` +
       `<b>${evs.length ? `${evs.length} フロー` : "未使用"}</b>` +
-      `<span>${
-        evs.length
-          ? esc(evs.map((e) => e.title).join("、"))
-          : "どのフローでも使われていません"
+      `<span title="${esc(names || "どのフローでも使われていません")}">${
+        evs.length ? esc(names) : "どのフローでも使われていません"
       }</span></div>` +
       '<div class="acts"><button class="ed-tool sm" data-ed>編集</button>' +
       '<button class="ed-tool sm dgr" data-rm' +

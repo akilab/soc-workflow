@@ -638,8 +638,15 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   transition:border-color .15s,background .15s}
 .rw:hover{border-color:var(--hover);background:var(--panel2)}
 @media(max-width:1100px){.rw{grid-template-columns:1fr 1fr}}
-.rw .k{display:block;font-size:var(--t1);letter-spacing:.11em;text-transform:uppercase;
-  color:var(--faint);font-weight:700;margin-bottom:3px}
+
+/* 列の見出し。行と同じ格子に載せて、上下がそろって見えるようにする。
+   狭い画面では行が 2 列に畳まれるので、そのときは見出しを出さない
+   （列と対応しなくなり、かえって読み違える）。 */
+.rw-h{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) 130px minmax(0,1.1fr) 128px;
+  gap:14px;padding:0 17px 5px;font-size:var(--t1);letter-spacing:.11em;
+  text-transform:uppercase;color:var(--faint);font-weight:700}
+@media(max-width:1100px){.rw-h{display:none}}
+
 .rw .v{font-size:var(--t5);line-height:1.5;word-break:break-word}
 .rw .v.mono{font-family:var(--mono);font-size:var(--t4);color:var(--cur)}
 .rw .v.dim{color:var(--dim);font-size:var(--t4)}
@@ -648,7 +655,8 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .rw .badge i{font-style:normal;font-weight:700;font-size:var(--t2)}
 .rw .use b{display:block;font-family:var(--mono);font-size:var(--t4);color:var(--dim)}
 .rw .use.on b{color:var(--cur)}
-.rw .use span{display:block;font-size:var(--t2);color:var(--faint);line-height:1.55;margin-top:2px}
+.rw .use span{display:block;font-size:var(--t2);color:var(--faint);line-height:1.55;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rw .acts{display:flex;gap:7px;justify-content:flex-end}
 .rw .note{grid-column:1/-1;font-size:var(--t3);color:var(--faint);line-height:1.6;
   border-top:1px solid var(--line-soft);padding-top:7px;margin-top:2px}
