@@ -7,7 +7,7 @@
 
 import { optColor, optLabel, outlineRows, decisionOf, decisionStepNo } from "./branch";
 import type { GroupRow, StepRow } from "./branch";
-import { $, dimSource, esc, setDragChip, undimSource } from "./dom";
+import { $, dimSource, endCarry, esc, startCarry, undimSource } from "./dom";
 import { eventLanes, taskOf } from "./flow";
 import { stepContacts } from "./contacts";
 import type { DB, EventFlow } from "./types";
@@ -233,7 +233,7 @@ function stepEl(
 
   el.addEventListener("dragstart", (e) => {
     dragging = st.id;
-    setDragChip(e, el);
+    startCarry(e, el);
     dimSource(el);
     e.dataTransfer?.setData("text/plain", `step:${st.id}`);
     if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
@@ -241,6 +241,7 @@ function stepEl(
   el.addEventListener("dragend", () => {
     dragging = null;
     undimSource(el);
+    endCarry();
     for (const x of box.querySelectorAll(".ol-row")) x.classList.remove("over");
   });
   el.addEventListener("dragover", (e) => {

@@ -1030,14 +1030,14 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
 .modal .ed-tool.dgr{border-color:var(--s1);color:var(--s1);font-weight:600}
 .modal .ed-tool.dgr:hover{background:var(--s1);color:#fff;border-color:var(--s1)}
 
-/* 運んでいる絵。掴んだ要素をそのまま複製したもの（dom.ts の setDragChip）。
-   別の札を組み立てて渡していたときは「元のものと別物になる」と言われた。
-   掴んだものがそのまま付いてくるのが正しいので、見た目は変えず、
-   地を 1 段明るくして枠と影だけを足す。OS 側で薄く合成されても残るように。
+/* 運んでいるもの。掴んだ要素をそのまま複製して、指に付いてくる
+   （dom.ts の startCarry）。ブラウザに絵を渡す仕組みは使っていない——
+   渡した絵は必ず薄く合成されてしまい、こちらから透過を無くせないため。
+   これは画面の上に自分で置いているだけなので、透過は無い。
 
-   このファイルの最後に置いてあるのは、複製が元のクラス（.pal-t や .cnode）を
-   そのまま持っているため。あとに書かれたほうが勝つ。 */
-.dragghost{position:fixed!important;top:-2000px;left:-2000px;margin:0;
+   このファイルの最後に置いてあるのは、複製が元のクラス（.pal-t / .cnode /
+   .ol-row）をそのまま持っているため。あとに書かれたほうが勝つ。 */
+.dragghost{position:fixed!important;left:0;top:0;z-index:200;margin:0;
   pointer-events:none;opacity:1;
   background:var(--panel3);
   box-shadow:inset 0 0 0 2px var(--cur),0 10px 24px rgba(0,0,0,.55)}

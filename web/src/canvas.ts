@@ -19,7 +19,7 @@
  */
 
 import { condSentence, optColor, optLabel } from "./branch";
-import { $, dimSource, esc, setDragChip, undimSource } from "./dom";
+import { $, dimSource, endCarry, esc, startCarry, undimSource } from "./dom";
 import { groupVias, stepContacts, viaMark } from "./contacts";
 import { eventLanes, taskOf } from "./flow";
 import type { DB, EventFlow, Lane, Step } from "./types";
@@ -193,13 +193,14 @@ export function renderCanvas(deps: CanvasDeps): void {
     el.addEventListener("dragstart", (e) => {
       e.dataTransfer?.setData("text/plain", `step:${st.id}`);
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-      setDragChip(e, el);
+      startCarry(e, el);
       setDragLabel(st.title);
       dimSource(el);
       document.body.classList.add("dragging");
     });
     el.addEventListener("dragend", () => {
       undimSource(el);
+      endCarry();
       setDragLabel("");
       document.body.classList.remove("dragging");
     });

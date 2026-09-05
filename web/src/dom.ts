@@ -87,33 +87,67 @@ export function undimSource(el: HTMLElement): void {
 }
 
 /**
- * 運んでいる絵を、こちらで作って渡す。
+ * 運んでいるものを、こちらで描いて持ち回る。
  *
- * 何も渡さないと、ブラウザは掴んだ要素をそのまま写して絵にする。この絵は
- * OS 側で薄く合成されるので、暗い画面ではほとんど見えなかった（利用者の指摘）。
+ * ブラウザに絵を渡す仕組み（setDragImage）は使わない。**渡した絵は
+ * 必ず薄く合成される**（Chromium は一律に 0.75 を掛ける）ので、こちらから
+ * 透過を無くすことができない。実際、濃い地・太い枠・影を足しても
+ * 「まだ見にくい」という指摘が続いた。
  *
- * 別の札を組み立てて渡してみたが、それだと**運んでいるものが元の姿と
- * 別物になる**という指摘をもらった。掴んだものがそのまま付いてくるのが
- * 正しいので、いまは掴んだ要素の複製を渡している。見た目はそのままで、
- * 地と枠と影だけを足して（.dragghost）合成に負けないようにする。
+ * そこで、ブラウザには透明な 1x1 の絵を渡して既定の絵を消し、掴んだ要素の
+ * 複製を自分で置いて、指の動きに合わせて動かす。これなら透過は無い。
  *
- * 掴んだ位置を絵の中の同じ場所に合わせるので、札の一部を摘まんで持ち上げた
- * ような手触りになる。渡した絵は dragstart が終わった時点で写されるので、
- * そのあとは消してよい。画面の外に置くのは、写すまで見せないため。
+ * 位置は dragover から取る。dragover は落とせる場所かどうかに関わらず
+ * 上がってくるので、画面のどこを通っても追いかけられる。
  */
-export function setDragChip(e: DragEvent, el: HTMLElement): void {
+
+/** 既定の絵を消すための、透明な 1x1。読み込みは起動時に済ませておく。 */
+const BLANK = new Image();
+BLANK.src =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+// 読み込みが済んでいない絵を渡すと、ブラウザは既定の絵に戻してしまう。
+// data: なのですぐ済むが、起動時に確実に済ませておく。
+void BLANK.decode?.().catch(() => {});
+
+let carried: HTMLElement | null = null;
+let grabX = 0;
+let grabY = 0;
+
+export function startCarry(e: DragEvent, el: HTMLElement): void {
   if (!e.dataTransfer) return;
   const box = el.getBoundingClientRect();
+  // 掴んだ場所を覚えておく。札の摘まんだところが指に付いてくる。
+  grabX = e.clientX - box.left;
+  grabY = e.clientY - box.top;
+
   const ghost = el.cloneNode(true) as HTMLElement;
   ghost.classList.add("dragghost");
   ghost.classList.remove("drag");
   // 元の札は伸び縮みする箱の中にいるので、複製にも同じ大きさを持たせる。
   ghost.style.width = `${Math.round(box.width)}px`;
+  moveCarry(ghost, e.clientX, e.clientY);
   document.body.appendChild(ghost);
+  carried = ghost;
+
   try {
-    e.dataTransfer.setDragImage(ghost, e.clientX - box.left, e.clientY - box.top);
+    e.dataTransfer.setDragImage(BLANK, 0, 0);
   } catch {
-    /* 使えない環境では、ブラウザ既定の絵に任せる */
+    // 消せない環境では、ブラウザ既定の絵と重なる。二重に見えるより
+    // 見えないほうが困るので、そのまま両方出しておく。
   }
-  setTimeout(() => ghost.remove(), 0);
+  document.addEventListener("dragover", follow, true);
+}
+
+export function endCarry(): void {
+  document.removeEventListener("dragover", follow, true);
+  carried?.remove();
+  carried = null;
+}
+
+function follow(e: DragEvent): void {
+  if (carried) moveCarry(carried, e.clientX, e.clientY);
+}
+
+function moveCarry(el: HTMLElement, x: number, y: number): void {
+  el.style.transform = `translate(${Math.round(x - grabX)}px, ${Math.round(y - grabY)}px)`;
 }
