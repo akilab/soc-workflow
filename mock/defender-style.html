@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>SOC Workflow — Defender 風デザイン案</title>
+<style>
+/* =========================================================
+   Defender 風の下地。Fluent 2 のトークンに寄せた値。
+   ========================================================= */
+:root{
+  /* 面 — 紺ではなく無彩色。Defender は青みを持たない灰で積む */
+  --bg:#0f0f0f;          /* ページ */
+  --bg-top:#0a0a0a;      /* 上段 */
+  --bg-nav:#141414;      /* 左の帯 */
+  --surface:#1b1b1b;     /* パネル・カード */
+  --surface-2:#242424;   /* ホバー */
+  --surface-3:#2e2e2e;   /* 選択 */
+  --line:#2f2f2f;        /* 罫線（弱） */
+  --line-2:#3d3d3d;      /* 罫線（強） */
+
+  /* 文字 */
+  --fg:#ffffff;
+  --fg-2:#c7c7c7;
+  --fg-3:#9a9a9a;
+
+  /* アクセント — Fluent の communication blue（暗い地の上） */
+  --accent:#479ef5;
+  --accent-2:#2886de;
+  --accent-bg:rgba(71,158,245,.14);
+
+  /* 重大度 — Defender と同じ割り当て */
+  --sev-h:#d13438;  /* 高 */
+  --sev-m:#ff8c00;  /* 中 */
+  --sev-l:#fce100;  /* 低 */
+  --ok:#54b054;
+  --warn:#ffb900;
+
+  /* フェーズ（少し彩度を落として Defender の地になじませる） */
+  --p1:#e3618a; --p2:#4a9be0; --p3:#9a76d8; --p4:#e0a03c; --p5:#3fc09a;
+
+  /* 角 — Fluent は 4px が基本。カードだけ 6px */
+  --r-s:2px; --r:4px; --r-l:6px;
+
+  /* 文字の段階 — Fluent のランプ 10/12/14/16/20/28 */
+  --t-cap:10px; --t-sm:12px; --t-md:14px; --t-lg:16px; --t-title:20px; --t-page:28px;
+
+  /* 欧文は Segoe UI、和文は Yu Gothic UI。Defender の日本語画面と同じ組み合わせ */
+  --sans:"Segoe UI","Yu Gothic UI","Hiragino Sans","Noto Sans JP",sans-serif;
+  --mono:"Cascadia Mono",Consolas,monospace;
+}
+:root[data-theme="light"]{
+  --bg:#faf9f8; --bg-top:#ffffff; --bg-nav:#f3f2f1;
+  --surface:#ffffff; --surface-2:#f3f2f1; --surface-3:#edebe9;
+  --line:#e1dfdd; --line-2:#c8c6c4;
+  --fg:#242424; --fg-2:#484644; --fg-3:#616161;
+  --accent:#0f6cbd; --accent-2:#0c5aa0; --accent-bg:rgba(15,108,189,.10);
+  --sev-l:#c19c00; --ok:#0e700e;
+  --p1:#c2185b; --p2:#0b62d0; --p3:#6a35d9; --p4:#a15c00; --p5:#0f8a63;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(--t-md);
+  line-height:1.5;-webkit-font-smoothing:antialiased}
+svg.i{width:16px;height:16px;flex:none;fill:currentColor;vertical-align:-3px}
+svg.i.lg{width:20px;height:20px}
+
+/* ---------- 上段 ---------- */
+.top{height:48px;background:var(--bg-top);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:14px;padding:0 12px;position:sticky;top:0;z-index:40}
+.top .waffle{width:32px;height:32px;border:none;background:none;color:var(--fg-2);
+  border-radius:var(--r);cursor:pointer;display:grid;place-items:center}
+.top .waffle:hover{background:var(--surface-2)}
+.top .name{font-size:var(--t-lg);font-weight:600;letter-spacing:.01em}
+.top .name span{color:var(--fg-3);font-weight:400;margin-left:8px;font-size:var(--t-md)}
+.top .sp{flex:1}
+.top .icons{display:flex;gap:2px}
+.top .icons button{width:32px;height:32px;border:none;background:none;color:var(--fg-2);
+  border-radius:var(--r);cursor:pointer;display:grid;place-items:center}
+.top .icons button:hover{background:var(--surface-2);color:var(--fg)}
+
+/* ---------- 左の帯（48px）— これがアプリの地図になる ---------- */
+.shell{display:flex;height:calc(100vh - 48px)}
+.rail{width:56px;background:var(--bg-nav);border-right:1px solid var(--line);
+  padding:6px 0;display:flex;flex-direction:column;gap:2px;flex:none}
+.rail a{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 2px 7px;color:var(--fg-3);text-decoration:none;font-size:var(--t-cap);
+  line-height:1.2;text-align:center}
+.rail a:hover{background:var(--surface-2);color:var(--fg-2)}
+.rail a.on{color:var(--fg);background:var(--surface-2)}
+.rail a.on::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;
+  border-radius:0 var(--r-s) var(--r-s) 0;background:var(--accent)}
+.rail .gap{flex:1}
+
+.main{flex:1;min-width:0;overflow:auto}
+.page{padding:18px 24px 40px;max-width:1500px}
+
+/* ---------- 見出しと道筋 ---------- */
+.crumb{display:flex;align-items:center;gap:6px;font-size:var(--t-sm);color:var(--fg-3);margin-bottom:4px}
+.crumb a{color:var(--accent);text-decoration:none}
+.crumb a:hover{text-decoration:underline}
+.h1{font-size:var(--t-page);font-weight:600;margin:0 0 2px;letter-spacing:-.01em}
+.h1row{display:flex;align-items:flex-end;gap:14px;margin-bottom:14px}
+.h1row .sp{flex:1}
+.linkbtn{background:none;border:none;color:var(--accent);font-family:var(--sans);
+  font-size:var(--t-sm);cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:var(--r)}
+.linkbtn:hover{background:var(--surface-2)}
+
+/* ---------- お知らせの帯 ---------- */
+.msgbar{display:flex;align-items:center;gap:10px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r);padding:9px 12px;margin-bottom:16px;font-size:var(--t-sm)}
+.msgbar .ico{color:var(--accent);display:flex}
+.msgbar .sp{flex:1}
+.msgbar button{background:var(--surface-2);border:1px solid var(--line-2);color:var(--fg);
+  border-radius:var(--r);padding:4px 10px;font-size:var(--t-sm);cursor:pointer;font-family:var(--sans)}
+
+/* ---------- 操作の帯（Fluent の CommandBar）---------- */
+.cmd{display:flex;align-items:center;gap:2px;border-bottom:1px solid var(--line);
+  padding-bottom:6px;margin-bottom:10px;flex-wrap:wrap}
+.cmd button{background:none;border:none;color:var(--fg);font-family:var(--sans);font-size:var(--t-md);
+  padding:6px 10px;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.cmd button:hover{background:var(--surface-2)}
+.cmd button .i{color:var(--accent)}
+.cmd button.plain .i{color:var(--fg-2)}
+.cmd .sp{flex:1}
+.cmd .count{font-size:var(--t-sm);color:var(--fg-3);padding:0 8px}
+.search{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line-2);
+  border-radius:var(--r);padding:5px 9px;min-width:230px;color:var(--fg-3)}
+.search input{background:none;border:none;outline:none;color:var(--fg);font-family:var(--sans);
+  font-size:var(--t-sm);width:100%}
+.sepv{width:1px;height:20px;background:var(--line);margin:0 6px}
+
+/* ---------- 絞り込みの札 ---------- */
+.filters{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;font-size:var(--t-sm)}
+.filters .lbl{color:var(--fg-3)}
+.pill{display:flex;align-items:center;gap:8px;background:var(--accent);color:#fff;
+  border:none;border-radius:var(--r);padding:4px 6px 4px 10px;font-size:var(--t-sm);font-family:var(--sans)}
+.pill b{font-weight:600}
+.pill i{display:grid;place-items:center;width:18px;height:18px;border-radius:var(--r-s);cursor:pointer}
+.pill i:hover{background:rgba(255,255,255,.22)}
+.pill.ghost{background:none;color:var(--fg-2);border:1px solid var(--line-2);padding:4px 10px;cursor:pointer}
+.pill.ghost:hover{background:var(--surface-2)}
+
+/* ---------- 表 ---------- */
+table{width:100%;border-collapse:collapse;font-size:var(--t-md)}
+thead th{text-align:left;font-size:var(--t-sm);font-weight:600;color:var(--fg-2);
+  padding:8px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+thead th .i{color:var(--fg-3);margin-left:4px}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr{cursor:pointer}
+td.name{font-weight:600}
+td.name .sub{display:block;font-weight:400;font-size:var(--t-sm);color:var(--fg-3);margin-top:1px}
+.chk{width:16px;height:16px;border:1px solid var(--line-2);border-radius:var(--r-s);display:block}
+.num{font-variant-numeric:tabular-nums;color:var(--fg-2)}
+
+/* 重大度 — Defender の 3 目盛り */
+.sev{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.sev .bars{display:flex;gap:2px}
+.sev .bars i{width:4px;height:11px;background:var(--line-2);border-radius:1px;display:block}
+.sev.h .bars i{background:var(--sev-h)} .sev.m .bars i:nth-child(-n+2){background:var(--sev-m)}
+.sev.l .bars i:nth-child(1){background:var(--sev-l)}
+.sev span{font-size:var(--t-sm);color:var(--fg-2)}
+
+/* フェーズの帯 */
+.pbar{display:flex;gap:1px;height:6px;width:130px;border-radius:1px;overflow:hidden;background:var(--surface-3)}
+.pbar i{display:block;height:100%}
+
+.state{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-sm);color:var(--fg-2)}
+.state .i{color:var(--ok)} .state.ng .i{color:var(--warn)} .state.ng{color:var(--warn)}
+.rel{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-sm);color:var(--fg-3)}
+.rel .i{color:var(--fg-3)}
+
+/* ---------- 編集ビューの上段（案）---------- */
+.demo2{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
+.demo2 h2{font-size:var(--t-sm);letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3);
+  font-weight:600;margin:0 0 12px}
+.edtop{background:var(--bg-top);border:1px solid var(--line);border-radius:var(--r-l);padding:10px 14px}
+.edtitle{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.edtitle .back{width:30px;height:30px;border:none;background:none;color:var(--fg-2);
+  border-radius:var(--r);cursor:pointer;display:grid;place-items:center}
+.edtitle .back:hover{background:var(--surface-2);color:var(--fg)}
+.edtitle b{font-size:var(--t-title);font-weight:600}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r);padding:2px}
+.seg button{background:none;border:none;color:var(--fg-2);font-family:var(--sans);font-size:var(--t-sm);
+  padding:5px 14px;border-radius:var(--r-s);cursor:pointer;display:flex;align-items:center;gap:6px}
+.seg button.on{background:var(--accent);color:#fff;font-weight:600}
+.pri{background:var(--accent);border:1px solid var(--accent);color:#fff;font-weight:600;
+  border-radius:var(--r);padding:6px 14px;font-size:var(--t-md);font-family:var(--sans);cursor:pointer;
+  display:flex;align-items:center;gap:7px}
+.pri:hover{background:var(--accent-2)}
+.note{font-size:var(--t-sm);color:var(--fg-3);line-height:1.9;margin:18px 0 0}
+.note b{color:var(--fg-2)}
+.themebtn{position:fixed;right:16px;bottom:16px;z-index:60;background:var(--surface);
+  border:1px solid var(--line-2);color:var(--fg);border-radius:var(--r);padding:8px 14px;cursor:pointer;
+  font-family:var(--sans);font-size:var(--t-sm)}
+</style>
+</head>
+<body>
+
+<!-- アイコン。実装では Fluent UI System Icons（MIT）を取り込んでスプライトにする。
+     ここでは形を確かめるための近似。 -->
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 20 20"><path d="M4 3h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm9 0h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM4 12h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Zm9 0h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-flow" viewBox="0 0 20 20"><path d="M7 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2v2h4a1 1 0 0 1 1 1v2h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1v-1H6v1h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1V9a1 1 0 0 1 1-1h4V6H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-task" viewBox="0 0 20 20"><path d="M7 2a2 2 0 0 0-2 2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1a2 2 0 0 0-2-2H7Zm0 1.5h6a.5.5 0 0 1 .5.5v.5h-7V4a.5.5 0 0 1 .5-.5Zm-.4 6.9 1.9 1.9 3.9-3.9 1.1 1.1-5 5-3-3 1.1-1.1Z"/></symbol>
+  <symbol id="i-people" viewBox="0 0 20 20"><path d="M7.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM3 12h9a2 2 0 0 1 2 2v.5C14 16.4 11.5 18 7.5 18S1 16.4 1 14.5V14a2 2 0 0 1 2-2Zm11.2-1.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm.3 1.5H16a3 3 0 0 1 3 3v.4c0 1.4-1.3 2.6-3.6 3 .7-.8 1.1-1.8 1.1-2.9V14c0-.8-.3-1.5-.8-2Z"/></symbol>
+  <symbol id="i-layer" viewBox="0 0 20 20"><path d="M9.6 2.1a1 1 0 0 1 .8 0l7 3.2a1 1 0 0 1 0 1.8l-7 3.2a1 1 0 0 1-.8 0l-7-3.2a1 1 0 0 1 0-1.8l7-3.2ZM3 9.6l6.6 3a1 1 0 0 0 .8 0l6.6-3 .4.2a1 1 0 0 1 0 1.8l-7 3.2a1 1 0 0 1-.8 0l-7-3.2a1 1 0 0 1 0-1.8l.4-.2Z"/></symbol>
+  <symbol id="i-org" viewBox="0 0 20 20"><path d="M8 2h4a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.2v2H15a1 1 0 0 1 1 1v1.2h1a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-2.8a1 1 0 0 1 1-1h.5V11h-8v.2H6a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2.8a1 1 0 0 1 1-1h1V10a1 1 0 0 1 1-1h4.2V7H8a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-add" viewBox="0 0 20 20"><path d="M10 3a.8.8 0 0 1 .8.8v5.4h5.4a.8.8 0 0 1 0 1.6h-5.4v5.4a.8.8 0 0 1-1.6 0v-5.4H3.8a.8.8 0 0 1 0-1.6h5.4V3.8A.8.8 0 0 1 10 3Z"/></symbol>
+  <symbol id="i-export" viewBox="0 0 20 20"><path d="M10 2.5a.8.8 0 0 1 .8.8v7.4l2.3-2.3a.8.8 0 1 1 1.1 1.1l-3.6 3.7a.8.8 0 0 1-1.2 0L5.8 9.5a.8.8 0 0 1 1.1-1.1l2.3 2.3V3.3a.8.8 0 0 1 .8-.8ZM3.5 12a.8.8 0 0 1 .8.8V15c0 .4.3.7.7.7h10c.4 0 .7-.3.7-.7v-2.2a.8.8 0 0 1 1.6 0V15a2.3 2.3 0 0 1-2.3 2.3H5A2.3 2.3 0 0 1 2.7 15v-2.2a.8.8 0 0 1 .8-.8Z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 20 20"><path d="M10 3.5a6.5 6.5 0 0 1 5.7 3.4V4.8a.8.8 0 0 1 1.6 0v3.9a.8.8 0 0 1-.8.8h-3.9a.8.8 0 0 1 0-1.6h2.1A4.9 4.9 0 1 0 15 11.5a.8.8 0 0 1 1.5.5A6.5 6.5 0 1 1 10 3.5Z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 20 20"><path d="M7 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm0 1.5a.5.5 0 0 0-.5.5v9c0 .3.2.5.5.5h7a.5.5 0 0 0 .5-.5V4a.5.5 0 0 0-.5-.5H7ZM3 6a.8.8 0 0 1 .8.8V16c0 .3.2.5.5.5h8a.8.8 0 0 1 0 1.5h-8A2 2 0 0 1 2.3 16V6.8A.8.8 0 0 1 3 6Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 20 20"><path d="M8.5 3a5.5 5.5 0 1 1-3.2 10l-2.6 2.6a.8.8 0 0 1-1.1-1.1l2.6-2.6A5.5 5.5 0 0 1 8.5 3Zm0 1.6a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8Z" transform="translate(4 4) scale(.9)"/><path d="M8.5 2a6.5 6.5 0 0 1 5.1 10.5l3.7 3.7a.9.9 0 0 1-1.3 1.3l-3.7-3.7A6.5 6.5 0 1 1 8.5 2Zm0 1.8a4.7 4.7 0 1 0 0 9.4 4.7 4.7 0 0 0 0-9.4Z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 20 20"><path d="M8.4 4.2a.9.9 0 0 1 0 1.3L4.8 9.1h11.3a.9.9 0 0 1 0 1.8H4.8l3.6 3.6a.9.9 0 1 1-1.3 1.3l-5.1-5.1a.9.9 0 0 1 0-1.3l5.1-5.1a.9.9 0 0 1 1.3 0Z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 20 20"><path d="M7.4 4.4a.8.8 0 0 1 1.1 0l5 5a.8.8 0 0 1 0 1.2l-5 5a.8.8 0 1 1-1.1-1.2L11.8 10 7.4 5.6a.8.8 0 0 1 0-1.2Z"/></symbol>
+  <symbol id="i-sortd" viewBox="0 0 20 20"><path d="M10 13.5 5.8 9.3a.8.8 0 0 1 1.1-1.1L10 11.3l3.1-3.1a.8.8 0 0 1 1.1 1.1L10 13.5Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm3.9 5.4a.8.8 0 0 0-1.1 0L9 11.2 7.2 9.4a.8.8 0 1 0-1.1 1.2l2.3 2.3c.3.3.8.3 1.1 0l4.4-4.4a.8.8 0 0 0 0-1.1Z"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 20 20"><path d="M8.7 2.9a1.5 1.5 0 0 1 2.6 0l6.5 11.4a1.5 1.5 0 0 1-1.3 2.2H3.5a1.5 1.5 0 0 1-1.3-2.2L8.7 2.9ZM10 7a.8.8 0 0 0-.8.8v3.4a.8.8 0 0 0 1.6 0V7.8A.8.8 0 0 0 10 7Zm0 6.2a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 6.5a.8.8 0 0 0-.8.8v4a.8.8 0 0 0 1.6 0v-4a.8.8 0 0 0-.8-.8Zm0-2.8a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 20 20"><path d="M3 4.8c0-.4.3-.8.8-.8h12.4a.8.8 0 0 1 .6 1.3l-4.6 5.5V16a.8.8 0 0 1-1.2.7l-2.6-1.6a.8.8 0 0 1-.4-.7v-3.6L3.4 5.3A.8.8 0 0 1 3 4.8Z"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 20 20"><path d="M10 3.5A6.5 6.5 0 1 1 3.5 10a.8.8 0 0 1 1.6 0 4.9 4.9 0 1 0 1.4-3.4h2.1a.8.8 0 0 1 0 1.6H4.7a.8.8 0 0 1-.8-.8V3.5a.8.8 0 0 1 1.6 0v1.9A6.5 6.5 0 0 1 10 3.5Z"/></symbol>
+  <symbol id="i-col" viewBox="0 0 20 20"><path d="M4 3h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm3.5 1.5h-3a.5.5 0 0 0-.5.5v10c0 .3.2.5.5.5h3v-11Zm1.5 0v11h2v-11H9Zm3.5 0v11h3a.5.5 0 0 0 .5-.5V5a.5.5 0 0 0-.5-.5h-3Z"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 20 20"><path d="M7.6 4.2a.8.8 0 0 1 0 1.2L5.8 7.2h5.7a5.3 5.3 0 0 1 0 10.6H8a.8.8 0 0 1 0-1.6h3.5a3.7 3.7 0 0 0 0-7.4H5.8l1.8 1.8a.8.8 0 1 1-1.2 1.2L3.2 8.6a.8.8 0 0 1 0-1.2l3.2-3.2a.8.8 0 0 1 1.2 0Z"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 20 20"><path d="M12.4 4.2a.8.8 0 0 0 0 1.2l1.8 1.8H8.5a5.3 5.3 0 1 0 0 10.6H12a.8.8 0 0 0 0-1.6H8.5a3.7 3.7 0 0 1 0-7.4h5.7l-1.8 1.8a.8.8 0 1 0 1.2 1.2l3.2-3.2a.8.8 0 0 0 0-1.2l-3.2-3.2a.8.8 0 0 0-1.2 0Z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 20 20"><path d="M6.3 3.3a1 1 0 0 1 1 0l9 6a1 1 0 0 1 0 1.7l-9 6A1 1 0 0 1 5.8 16V4.2a1 1 0 0 1 .5-.9Z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 20 20"><path d="M14.5 2.6a2 2 0 0 1 2.9 2.9l-.9.9-2.9-2.9.9-.9ZM12.5 4.6l2.9 2.9-7.6 7.6a2 2 0 0 1-.9.5l-3 .8a.6.6 0 0 1-.8-.8l.8-3a2 2 0 0 1 .5-.9l8.1-8.1Z"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 20 20"><path d="M5.5 2a2.5 2.5 0 0 1 .8 4.9v1.4A2 2 0 0 0 8.3 10h3.4a2 2 0 0 0 2-1.7V6.9a2.5 2.5 0 1 1 1.6 0v1.4a3.6 3.6 0 0 1-3.4 3.3h-1V13a2.5 2.5 0 1 1-1.6 0v-1.4h-1A3.6 3.6 0 0 1 4.7 8.3V6.9A2.5 2.5 0 0 1 5.5 2Z"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 20 20"><path d="M8.3 2.2a.8.8 0 0 1 .2 1A6.4 6.4 0 0 0 16.8 12a.8.8 0 0 1 1 1A8 8 0 1 1 8.3 2.2Z"/></symbol>
+  <symbol id="i-help" viewBox="0 0 20 20"><path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 11.2a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm0-7.4c-1.6 0-2.8 1.1-2.8 2.6a.8.8 0 0 0 1.6 0c0-.6.5-1 1.2-1s1.2.4 1.2 1c0 .4-.1.6-.7 1.1l-.3.3c-.7.6-1 1.1-1 1.9a.8.8 0 0 0 1.6 0c0-.3.1-.5.5-.8l.3-.3c.8-.7 1.2-1.2 1.2-2.2 0-1.5-1.2-2.6-2.8-2.6Z"/></symbol>
+  <symbol id="i-set" viewBox="0 0 20 20"><path d="M10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm-1.3-4.8h2.6c.5 0 .9.3 1 .8l.3 1.4c.4.2.8.4 1.1.6l1.4-.5c.4-.2.9 0 1.2.4l1.3 2.2c.2.4.2.9-.2 1.2l-1.1.9v1.3l1.1.9c.4.3.4.8.2 1.2l-1.3 2.2c-.3.4-.8.6-1.2.4l-1.4-.5-1.1.6-.3 1.4c-.1.5-.5.8-1 .8H8.7c-.5 0-.9-.3-1-.8l-.3-1.4-1.1-.6-1.4.5c-.4.2-.9 0-1.2-.4L2.4 12c-.2-.4-.2-.9.2-1.2l1.1-.9V8.6l-1.1-.9c-.4-.3-.4-.8-.2-1.2l1.3-2.2c.3-.4.8-.6 1.2-.4l1.4.5 1.1-.6.3-1.4c.1-.5.5-.8 1-.8Z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 20 20"><path d="M3.5 4.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm3.3.2h9.4a.8.8 0 0 1 0 1.6H6.8a.8.8 0 0 1 0-1.6ZM3.5 9a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm3.3.2h9.4a.8.8 0 0 1 0 1.6H6.8a.8.8 0 0 1 0-1.6ZM3.5 13.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm3.3.2h9.4a.8.8 0 0 1 0 1.6H6.8a.8.8 0 0 1 0-1.6Z"/></symbol>
+</svg>
+
+<!-- ================= 上段 ================= -->
+<div class="top">
+  <button class="waffle" title="メニュー"><svg class="i lg"><use href="#i-grid"/></svg></button>
+  <div class="name">SOC Workflow <span>| 対応フローの設計</span></div>
+  <div class="sp"></div>
+  <div class="icons">
+    <button title="明るさ"><svg class="i lg"><use href="#i-moon"/></svg></button>
+    <button title="設定"><svg class="i lg"><use href="#i-set"/></svg></button>
+    <button title="ヘルプ"><svg class="i lg"><use href="#i-help"/></svg></button>
+  </div>
+</div>
+
+<div class="shell">
+  <!-- ================= 左の帯 ================= -->
+  <nav class="rail">
+    <a href="#" class="on"><svg class="i lg"><use href="#i-flow"/></svg>フロー</a>
+    <a href="#"><svg class="i lg"><use href="#i-task"/></svg>対応</a>
+    <a href="#"><svg class="i lg"><use href="#i-people"/></svg>連絡先</a>
+    <a href="#"><svg class="i lg"><use href="#i-layer"/></svg>フェーズ</a>
+    <a href="#"><svg class="i lg"><use href="#i-org"/></svg>担当</a>
+    <div class="gap"></div>
+  </nav>
+
+  <div class="main">
+  <div class="page">
+
+    <div class="h1row">
+      <div>
+        <h1 class="h1">フロー</h1>
+      </div>
+      <div class="sp"></div>
+      <button class="linkbtn"><svg class="i"><use href="#i-set"/></svg>フェーズ設定</button>
+      <button class="linkbtn"><svg class="i"><use href="#i-org"/></svg>担当設定</button>
+    </div>
+
+    <div class="msgbar">
+      <span class="ico"><svg class="i"><use href="#i-info"/></svg></span>
+      <span>データはこの端末の JSON ファイルにのみ保存され、外部には送信されません。</span>
+      <span class="sp"></span>
+      <button>今後表示しない</button>
+    </div>
+
+    <!-- 操作の帯 -->
+    <div class="cmd">
+      <button><svg class="i"><use href="#i-add"/></svg>作成</button>
+      <button><svg class="i"><use href="#i-export"/></svg>エクスポート</button>
+      <button class="plain"><svg class="i"><use href="#i-refresh"/></svg>最新の情報に更新</button>
+      <div class="sp"></div>
+      <span class="count">6 件のフロー</span>
+      <div class="search"><svg class="i"><use href="#i-search"/></svg><input placeholder="名前で検索"></div>
+      <div class="sepv"></div>
+      <button class="plain"><svg class="i"><use href="#i-col"/></svg>列のカスタマイズ</button>
+    </div>
+
+    <!-- 絞り込み -->
+    <div class="filters">
+      <span class="lbl">フィルター:</span>
+      <span class="pill"><b>重大度: S1, S2</b><i>✕</i></span>
+      <button class="pill ghost"><svg class="i"><use href="#i-filter"/></svg> フィルターの追加</button>
+      <button class="pill ghost"><svg class="i"><use href="#i-reset"/></svg> すべてリセット</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28px"><span class="chk"></span></th>
+          <th>フロー名 <svg class="i"><use href="#i-sortd"/></svg></th>
+          <th style="width:110px">重大度 <svg class="i"><use href="#i-sortd"/></svg></th>
+          <th style="width:70px">手順</th>
+          <th style="width:70px">経路</th>
+          <th style="width:150px">フェーズ分布</th>
+          <th style="width:120px">検証</th>
+          <th style="width:200px">元にしたフロー</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="chk"></span></td>
+          <td class="name">ランサムウェアの疑い<span class="sub">大量のファイル暗号化・拡張子変更を検知</span></td>
+          <td><span class="sev h"><span class="bars"><i></i><i></i><i></i></span><span>高 (S1)</span></span></td>
+          <td class="num">17</td><td class="num">4</td>
+          <td><span class="pbar"><i style="flex:3;background:var(--p1)"></i><i style="flex:2;background:var(--p2)"></i><i style="flex:2;background:var(--p4)"></i><i style="flex:3;background:var(--p5)"></i><i style="flex:7;background:var(--p3)"></i></span></td>
+          <td><span class="state ng"><svg class="i"><use href="#i-warn"/></svg>1 件</span></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td><span class="chk"></span></td>
+          <td class="name">EDR がマルウェアを検知<span class="sub">端末で不審な実行ファイルが検出された</span></td>
+          <td><span class="sev m"><span class="bars"><i></i><i></i><i></i></span><span>中 (S2)</span></span></td>
+          <td class="num">14</td><td class="num">2</td>
+          <td><span class="pbar"><i style="flex:2;background:var(--p1)"></i><i style="flex:3;background:var(--p2)"></i><i style="flex:3;background:var(--p4)"></i><i style="flex:2;background:var(--p5)"></i><i style="flex:4;background:var(--p3)"></i></span></td>
+          <td><span class="state"><svg class="i"><use href="#i-check"/></svg>OK</span></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td><span class="chk"></span></td>
+          <td class="name">不審なログイン（地理的に不可能な移動）<span class="sub">短時間に離れた拠点から同一アカウントで認証</span></td>
+          <td><span class="sev m"><span class="bars"><i></i><i></i><i></i></span><span>中 (S2)</span></span></td>
+          <td class="num">12</td><td class="num">3</td>
+          <td><span class="pbar"><i style="flex:1;background:var(--p1)"></i><i style="flex:4;background:var(--p2)"></i><i style="flex:3;background:var(--p4)"></i><i style="flex:4;background:var(--p3)"></i></span></td>
+          <td><span class="state"><svg class="i"><use href="#i-check"/></svg>OK</span></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td><span class="chk"></span></td>
+          <td class="name">大量データ送信を検知（DLP）<span class="sub">外部への異常なデータ転送量</span></td>
+          <td><span class="sev m"><span class="bars"><i></i><i></i><i></i></span><span>中 (S2)</span></span></td>
+          <td class="num">8</td><td class="num">2</td>
+          <td><span class="pbar"><i style="flex:1;background:var(--p1)"></i><i style="flex:2;background:var(--p2)"></i><i style="flex:1;background:var(--p4)"></i><i style="flex:4;background:var(--p3)"></i></span></td>
+          <td><span class="state"><svg class="i"><use href="#i-check"/></svg>OK</span></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td><span class="chk"></span></td>
+          <td class="name">フィッシングメールの報告<span class="sub">利用者から不審メールの報告があった</span></td>
+          <td><span class="sev l"><span class="bars"><i></i><i></i><i></i></span><span>低 (S3)</span></span></td>
+          <td class="num">11</td><td class="num">2</td>
+          <td><span class="pbar"><i style="flex:1;background:var(--p1)"></i><i style="flex:6;background:var(--p2)"></i><i style="flex:2;background:var(--p4)"></i><i style="flex:2;background:var(--p3)"></i></span></td>
+          <td><span class="state"><svg class="i"><use href="#i-check"/></svg>OK</span></td>
+          <td><span class="rel"><svg class="i"><use href="#i-branch"/></svg>顧客別 1 件</span></td>
+        </tr>
+        <tr>
+          <td><span class="chk"></span></td>
+          <td class="name">橋本製作所<span class="sub">利用者から不審メールの報告があった</span></td>
+          <td><span class="sev l"><span class="bars"><i></i><i></i><i></i></span><span>低 (S3)</span></span></td>
+          <td class="num">11</td><td class="num">2</td>
+          <td><span class="pbar"><i style="flex:1;background:var(--p1)"></i><i style="flex:6;background:var(--p2)"></i><i style="flex:2;background:var(--p4)"></i><i style="flex:2;background:var(--p3)"></i></span></td>
+          <td><span class="state"><svg class="i"><use href="#i-check"/></svg>OK</span></td>
+          <td><span class="rel"><svg class="i"><use href="#i-chev"/></svg>フィッシングメールの報告・共通と同じ</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ================= 編集ビューの上段（案）================= -->
+    <div class="demo2">
+      <h2>編集ビューの上段（案）</h2>
+      <div class="edtop">
+        <div class="crumb"><a href="#">フロー</a><svg class="i" style="width:12px;height:12px"><use href="#i-chev"/></svg><span>橋本製作所</span></div>
+        <div class="edtitle">
+          <button class="back" title="フローへ戻る"><svg class="i lg"><use href="#i-back"/></svg></button>
+          <span class="sev l" style="margin-right:2px"><span class="bars"><i></i><i></i><i></i></span></span>
+          <b>橋本製作所</b>
+          <div class="sp" style="flex:1"></div>
+        </div>
+        <div class="cmd" style="border:none;padding:0;margin:0">
+          <button class="plain"><svg class="i"><use href="#i-undo"/></svg>元に戻す</button>
+          <button class="plain"><svg class="i"><use href="#i-redo"/></svg>やり直し</button>
+          <div class="sepv"></div>
+          <button><svg class="i"><use href="#i-org"/></svg>担当</button>
+          <button><svg class="i"><use href="#i-branch"/></svg>共通との違い</button>
+          <button class="plain"><svg class="i" style="color:var(--ok)"><use href="#i-check"/></svg>検証 OK</button>
+          <button class="plain"><svg class="i"><use href="#i-list"/></svg>経路一覧</button>
+          <div class="sp"></div>
+          <div class="seg">
+            <button class="on"><svg class="i"><use href="#i-edit"/></svg>編集</button>
+            <button><svg class="i"><use href="#i-play"/></svg>テスト</button>
+          </div>
+          <div style="width:8px"></div>
+          <button class="pri"><svg class="i"><use href="#i-export"/></svg>エクスポート</button>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>変えたところ:</b>
+        「← フロー一覧」は、道筋（パンくず）＋戻る矢印のアイコンボタンに。Defender と同じ形。/
+        「試走」→「<b>テスト</b>」。アイコンは ▶。/
+        「書き出し」→「<b>エクスポート</b>」。Defender の日本語 UI と同じ語にそろえる。/
+        操作は枠のないコマンドバー（アイコン＋文字）に。押せるものが一列に並ばず、
+        <b>読むもの（検証・経路一覧）と操作（担当・エクスポート）が見分けられる</b>。
+      </p>
+    </div>
+
+  </div>
+  </div>
+</div>
+
+<button class="themebtn" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')">明るさを切り替え</button>
+</body>
+</html>
