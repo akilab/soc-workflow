@@ -115,13 +115,16 @@ body.resizing{cursor:col-resize;user-select:none}
 /* 取り消し・やり直し。記号だけなので幅をそろえて、対の操作に見えるようにする。 */
 .ed-undo{display:flex;gap:4px;margin-left:12px;flex:none}
 .ed-undo button{width:30px;padding:0;font-size:var(--t6);line-height:1.6;font-family:var(--sans)}
-.ed-tool{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:var(--r2);
-  padding:7px 14px;font-size:var(--t4);cursor:pointer;font-family:var(--sans);white-space:nowrap}
-.ed-tool:hover{border-color:var(--hover);background:var(--panel3)}
+/* Fluent の既定ボタン。地は面と同じで、枠だけで押せることを示す。
+   主ボタン（.pri）だけがアクセントで塗られる。1 画面に主は 1 つ。 */
+.ed-tool{background:var(--panel);border:1px solid var(--line-2,var(--line));color:var(--fg);
+  border-radius:var(--r2);padding:6px 14px;font-size:var(--t4);cursor:pointer;
+  font-family:var(--sans);white-space:nowrap}
+.ed-tool:hover{background:var(--panel2);border-color:var(--hover)}
 .ed-tool.warn{border-color:var(--s2);color:var(--s2)}
 .ed-tool.good{border-color:var(--ok);color:var(--ok)}
-.ed-tool.pri{background:var(--ok);border-color:var(--ok);color:var(--onOk);font-weight:700}
-.ed-tool.pri:hover{filter:brightness(1.08);background:var(--ok)}
+.ed-tool.pri{background:var(--cur);border-color:var(--cur);color:var(--onCur);font-weight:600}
+.ed-tool.pri:hover{filter:brightness(1.1);background:var(--cur);border-color:var(--cur)}
 .ed-tool.sm{padding:4px 9px;font-size:var(--t3)}
 /* 好みの切り替え（明るさ）は操作ではないので、枠を持たせない。
    同じ形で並べると、めったに押さないものが一番押しそうに見える。 */
@@ -144,7 +147,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .ew-top{position:sticky;top:0;z-index:30;background:var(--topbg);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);padding:13px 30px;display:flex;align-items:center;gap:11px}
 .ew-body{max-width:1360px;margin:0 auto;padding:26px 30px 40px}
-.ew-h{margin:0 0 16px;font-size:var(--t2);letter-spacing:.15em;text-transform:uppercase;color:var(--faint);
+.ew-h{margin:0 0 16px;font-size:var(--t4);color:var(--fg);
   font-weight:700;display:flex;align-items:baseline;gap:10px}
 .ew-h span{letter-spacing:0;text-transform:none;font-size:var(--t3);font-weight:400}
 .ew-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
@@ -660,7 +663,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
   gap:12px;align-items:start;background:var(--panel);border:1px solid var(--line);
   border-left:3px solid var(--pc);border-radius:var(--r2);padding:11px 13px;margin-bottom:8px}
 @media(max-width:1100px){.tk-row{grid-template-columns:1fr 1fr;}}
-.tk-f label,.tk-use label{display:block;font-size:var(--t1);letter-spacing:.11em;text-transform:uppercase;
+.tk-f label,.tk-use label{display:block;font-size:var(--t3);
   color:var(--faint);font-weight:700;margin-bottom:4px}
 .tk-f input,.tk-f select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--fg);
   border-radius:var(--r2);padding:7px 9px;font-size:var(--t4);font-family:var(--sans)}
@@ -778,8 +781,8 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
    狭い画面では行が 2 列に畳まれるので、そのときは見出しを出さない
    （列と対応しなくなり、かえって読み違える）。 */
 .rw-h{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) 130px minmax(0,1.1fr) 128px;
-  gap:14px;padding:0 17px 5px;font-size:var(--t1);letter-spacing:.11em;
-  text-transform:uppercase;color:var(--faint);font-weight:700}
+  gap:14px;padding:6px 16px;font-size:var(--t3);
+  color:var(--dim);font-weight:600;border-bottom:1px solid var(--line)}
 @media(max-width:1100px){.rw-h{display:none}}
 
 .rw .v{font-size:var(--t5);line-height:1.5;word-break:break-word}
@@ -818,7 +821,7 @@ body.screen-run #runWrap{display:block}   /* これが無く、試走モード�
 .cg-note{font-size:var(--t3);color:var(--dim);line-height:1.7;margin:7px 0 0}
 .cg-uses{font-size:var(--t3);color:var(--faint);line-height:1.65;margin:4px 0 0}
 .cg-mem{margin-top:11px;border-top:1px solid var(--line-soft);padding-top:9px}
-.cg-mem>h5{margin:0 0 7px;font-size:var(--t1);letter-spacing:.12em;text-transform:uppercase;
+.cg-mem>h5{margin:0 0 7px;font-size:var(--t3);
   color:var(--faint);font-weight:700}
 .mem{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 9px;border-radius:var(--r2);
   background:var(--panel2);border:1px solid var(--line);margin-bottom:6px}
