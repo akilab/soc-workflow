@@ -323,6 +323,7 @@ export class EditScreen {
         phases: db.phases,
         tasks: db.tasks,
         contactGroups: db.contactGroups,
+        slas: db.slas ?? [],
         events: db.events,
       },
       { event: this.eventKey },
