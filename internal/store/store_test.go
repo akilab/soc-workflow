@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/akilab/soc-workflow/internal/model"
@@ -216,6 +217,75 @@ func TestSeedIsConsistent(t *testing.T) {
 						ev.Key, st.Title, c.Key)
 				}
 			}
+		}
+	}
+}
+
+// リンク集を持っていないファイルには、標準の行き先が入ること。
+func TestOpenFillsDefaultLinks(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "data.json")
+
+	st, err := Open(path, Seed())
+	if err != nil {
+		t.Fatalf("開けません: %v", err)
+	}
+	defer st.Close()
+
+	var got []*model.AppLink
+	st.Read(func(db *model.DB) { got = db.Links })
+	if len(got) != len(DefaultLinks()) {
+		t.Fatalf("リンク %d 件、期待 %d 件", len(got), len(DefaultLinks()))
+	}
+	for _, l := range got {
+		if l.URL == "" || l.Icon == "" || l.Name == "" {
+			t.Errorf("中身が欠けています: %+v", l)
+		}
+	}
+}
+
+// 自分で全部消したファイルには、戻さないこと。
+// 消したものが起動のたびに戻ってくるのでは、消せたことにならない。
+func TestOpenKeepsEmptiedLinks(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "data.json")
+	if err := os.WriteFile(path, []byte(`{"version":2,"links":[]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	st, err := Open(path, Seed())
+	if err != nil {
+		t.Fatalf("開けません: %v", err)
+	}
+	defer st.Close()
+
+	var n int
+	st.Read(func(db *model.DB) { n = len(db.Links) })
+	if n != 0 {
+		t.Errorf("リンクが %d 件戻ってきました。消したままであるべきです", n)
+	}
+}
+
+// 標準の行き先は、画面が受け付ける形であること
+// （URL は http/https、アイコンは選べる一覧の中）。
+func TestDefaultLinksAreAcceptable(t *testing.T) {
+	// api の linkIcons と同じ並び。ここを増やすときは両方直す。
+	icons := map[string]bool{
+		"defender": true, "intune": true, "teams": true, "outlook": true,
+		"copilot": true, "azure": true, "m365": true,
+		"entra": true, "sentinel": true, "logicapps": true,
+		"ticket": true, "book": true, "search": true, "people": true,
+		"settings": true, "globe": true, "link": true,
+	}
+	seen := map[string]bool{}
+	for _, l := range DefaultLinks() {
+		if seen[l.Key] {
+			t.Errorf("キーが重複しています: %s", l.Key)
+		}
+		seen[l.Key] = true
+		if !icons[l.Icon] {
+			t.Errorf("%s: 選べないアイコンです: %s", l.Name, l.Icon)
+		}
+		if !strings.HasPrefix(l.URL, "https://") {
+			t.Errorf("%s: URL が https で始まっていません: %s", l.Name, l.URL)
 		}
 	}
 }
