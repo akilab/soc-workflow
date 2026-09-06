@@ -266,6 +266,11 @@ type stepCreateBody struct {
 	// 図の列が担当になったので、どの列に落としたかがそのまま意味を持つ。
 	// 「このフローでは Tier1 がやる」を、置く動作だけで表せる。
 	LaneKey string `json:"lane,omitempty"`
+	// Cond は分岐の枝。分かれ道の帯の中へ落としたときに入る。
+	//
+	// 作ってから条件を付ける二段構えにしない。二度書きになるうえ、
+	// 途中で失敗すると条件の無い手順が枝の列に残り、図の意味が変わる。
+	Cond *model.Condition `json:"cond,omitempty"`
 }
 
 func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
@@ -292,13 +297,27 @@ func (s *Server) createStep(w http.ResponseWriter, r *http.Request) {
 			return nil, errf(http.StatusBadRequest, "知らない担当です: %s", lane)
 		}
 
+		conds := []model.Condition{}
+		if in.Cond != nil {
+			d, found := decisionsAfter(ev, nil, nil)[in.Cond.Key]
+			if !found {
+				return nil, errf(http.StatusBadRequest,
+					"知らない判断を条件が指しています: %s", in.Cond.Key)
+			}
+			if !hasOption(d, in.Cond.Value) {
+				return nil, errf(http.StatusBadRequest,
+					"判断「%s」に無い答えを条件が指しています: %s", d.Label, in.Cond.Value)
+			}
+			conds = append(conds, *in.Cond)
+		}
+
 		st := &model.Step{
 			ID:         stepIDGen(db)(),
 			TaskKey:    task.Key,
 			Title:      task.Label, // このフローでの言い方は、まず対応名から始める
 			LaneKey:    lane,
 			Contacts:   []string{},
-			Conditions: []model.Condition{},
+			Conditions: conds,
 		}
 
 		at := len(ev.Steps)

@@ -55,6 +55,8 @@ export interface Placed {
   exit: boolean;
   /** 分岐の中なら、どの答えの枝か。 */
   value?: string;
+  /** 分岐の中なら、何番目の帯か（bands の添字）。落とし先の判定で使う。 */
+  band?: number;
   block: Block;
 }
 
@@ -68,8 +70,13 @@ export interface FlowLayout {
   placed: Placed[];
   /** 行の数（見出しの行を除く）。 */
   rows: number;
-  /** 分岐の帯（行の範囲）。地色を敷いて「ここが分かれ道」と示す。 */
-  bands: { from: number; to: number }[];
+  /**
+   * 分岐の帯（行の範囲）。地色を敷いて「ここが分かれ道」と示す。
+   *
+   * key はその分かれ道の判断のキー。帯の中へ手順を落としたときに、
+   * その枝の条件を付けるために使う（canvas.ts の落とし先判定）。
+   */
+  bands: { from: number; to: number; key: string }[];
   /** 線を引く組。 */
   pairs: [Placed, Placed][];
 }
@@ -146,7 +153,7 @@ export function layoutFlow(evt: EventFlow, lanes: Lane[]): FlowLayout {
   }
 
   const placed: Placed[] = [];
-  const bands: { from: number; to: number }[] = [];
+  const bands: { from: number; to: number; key: string }[] = [];
   let row = 2; // 1 行目は列の見出し
 
   for (const b of blocks) {
@@ -180,6 +187,7 @@ export function layoutFlow(evt: EventFlow, lanes: Lane[]): FlowLayout {
     }
 
     const start = row;
+    const bi = bands.length;
     let height = 0;
     for (const v of b.order ?? []) {
       const list = b.byVal?.[v] ?? [];
@@ -195,11 +203,12 @@ export function layoutFlow(evt: EventFlow, lanes: Lane[]): FlowLayout {
           entry: k === 0,
           exit: k === list.length - 1,
           value: v,
+          band: bi,
           block: b,
         });
       });
     }
-    bands.push({ from: start, to: start + height - 1 });
+    bands.push({ from: start, to: start + height - 1, key: b.key ?? "" });
     row = start + height;
   }
 

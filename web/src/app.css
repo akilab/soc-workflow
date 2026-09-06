@@ -438,6 +438,19 @@ body.dragging .clane:not(.drop){opacity:.6}
   background:var(--cur);color:var(--onCur);font-size:var(--t2);font-weight:600;
   padding:2px 8px;border-radius:var(--r2);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;display:block;box-shadow:0 2px 6px var(--shadow)}
+/* 分かれ道の帯の中へ落とすときは、線をその枝の色にして、どの枝に加わるかを
+   書き添える。線の幅も枝の列に合わせてあるので、色と幅と字の三つで同じことを指す。 */
+/* 枝の列は担当の列より狭い。札を線の幅に合わせると「誤検知 の…」で切れて
+   肝心のところが読めないので、枝のときだけ札は線からはみ出してよいことにする。 */
+.cdrop.br b,.cdrop.br u{width:max-content;max-width:240px}
+.cdrop.br{background:var(--brc);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--brc) 55%, transparent)}
+.cdrop.br::before,.cdrop.br::after{background:var(--brc)}
+.cdrop u{position:absolute;left:0;top:6px;max-width:100%;box-sizing:border-box;
+  background:var(--brc);color:#fff;font-size:var(--t3);font-weight:600;
+  text-decoration:none;padding:1px 7px;border-radius:var(--r2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;display:block;
+  box-shadow:0 2px 6px var(--shadow)}
 
 /* 連絡の相手。矢印の行き先に置く札。
    手順のボックスは角のある四角にしたので、こちらは丸くしておく。

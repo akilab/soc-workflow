@@ -33,7 +33,7 @@ import { Palette } from "../palette";
 import { Selection } from "../select";
 import { EventLaneSettings } from "../settings";
 import type { DropSpot } from "../canvas";
-import type { EventFlow } from "../types";
+import type { Condition, EventFlow, Step } from "../types";
 import {
   closeModal,
   openModal,
@@ -644,6 +644,7 @@ export class EditScreen {
 
       const data = e.dataTransfer?.getData("text/plain") ?? "";
       if (data.startsWith("task:")) {
+        // spot には落とした列（担当）と、分かれ道の帯の中なら枝も入っている。
         void this.palette.addStep(data.slice(5), spot ?? undefined);
         return;
       }
@@ -654,10 +655,10 @@ export class EditScreen {
   }
 
   /**
-   * 落とした場所へ手順を動かす。担当と順番が同時に決まる。
+   * 落とした場所へ手順を動かす。担当と順番と、どの枝かが同時に決まる。
    *
-   * 送るのは 2 つに分かれる。担当は手順の中身なので更新、順番はフローの中の
-   * 並びなので並べ替え。どちらか片方しか変わっていなければ、その片方だけ送る。
+   * 送るのは 2 つに分かれる。担当と条件は手順の中身なので更新、順番はフローの
+   * 中の並びなので並べ替え。どちらか片方しか変わっていなければ、その片方だけ送る。
    */
   private async moveStep(id: string, spot: DropSpot): Promise<void> {
     const evt = this.evt;
@@ -667,19 +668,30 @@ export class EditScreen {
     if (from < 0) return;
     const st = evt.steps[from];
 
+    // 自分の分かれ道の中へは置かせない。判断が枝の途中に来ると、その手前の
+    // 手順が「まだ答えていない質問の答え」を条件に持つことになる。
+    // 検証は後から知らせてくれるが、置けてしまってから直すより、置かせない。
+    if (spot.cond && st.decision?.key === spot.cond.key) {
+      toast("この判断は、自分が分けている枝の中には置けません", true);
+      return;
+    }
+
     // 落とした位置は「いまの並びの何番目に割り込むか」。自分より後ろへ動かす
     // ときは、自分が抜けたぶんだけ 1 つ手前になる。
     let to = spot.index;
     if (to > from) to -= 1;
 
     const laneChanged = st.lane !== spot.lane;
+    const conds = branchConditions(st, spot);
+    const condChanged = conds !== null;
     const moved = to !== from;
-    if (!laneChanged && !moved) return; // 同じ場所に戻しただけ
+    if (!laneChanged && !condChanged && !moved) return; // 同じ場所に戻しただけ
 
     await this.inspector.flush();
     try {
-      if (laneChanged) {
+      if (laneChanged || condChanged) {
         st.lane = spot.lane;
+        if (conds) st.conditions = conds;
         await this.api.updateStep(evt.key, id, stepInput(st), { quiet: true });
       }
       if (moved) {
@@ -688,7 +700,7 @@ export class EditScreen {
         ids.splice(to, 0, id);
         await this.api.orderSteps(evt.key, ids);
       } else {
-        await this.api.load(); // 担当だけ変えた場合。画面を合わせる
+        await this.api.load(); // 担当や枝だけ変えた場合。画面を合わせる
       }
     } catch (e) {
       this.fail(e, "手順の移動");
@@ -812,4 +824,33 @@ function saveWidths(w: PaneWidths): void {
   } catch {
     // 保存できなくても動作に支障はない
   }
+}
+
+/**
+ * 落とした先に合わせた、この手順の条件。変える必要が無ければ null。
+ *
+ * 分かれ道の帯の中へ落とせばその枝に加わり、帯の外へ出せば枝から抜ける。
+ * 「どちらの答えのときに実施するか」を、インスペクタを開かずに置く動作だけで
+ * 決められるようにする。図の上でその枝の列に入れたのに条件が付かない、という
+ * 食い違いを無くすのが目的。
+ *
+ * 入れ子の分岐では、別の分かれ道の条件を残す。置き換えるのは同じ分かれ道の
+ * 条件だけ。落とした動作で分かるのは「この分かれ道のどちら側か」であって、
+ * 他の分かれ道について何か言ったわけではない。
+ *
+ * 判断そのものを自分の枝へ入れる場合は、ここまで来ない（moveStep が断る）。
+ */
+function branchConditions(st: Step, spot: DropSpot): Condition[] | null {
+  const now = st.conditions ?? [];
+  const c = spot.cond;
+
+  if (c) {
+    if (now[0]?.key === c.key && now[0]?.value === c.value) return null;
+    return [c, ...now.filter((x) => x.key !== c.key)];
+  }
+
+  if (!now.length) return null;
+  // 帯の外へ出した。図の上でその枝から離れたのだから、条件も外す。
+  // 残したままだと、離れた場所にその手順ひとつだけの帯ができる。
+  return now.filter((x) => x.key !== now[0].key);
 }

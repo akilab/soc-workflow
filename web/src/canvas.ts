@@ -25,7 +25,7 @@ import { eventLanes, taskOf } from "./flow";
 import { layoutFlow } from "./layout";
 import type { FlowLayout } from "./layout";
 import { milestoneTag } from "./sla";
-import type { DB, EventFlow, Lane, Step } from "./types";
+import type { Condition, DB, EventFlow, Lane, Step } from "./types";
 
 /** 測るために覚えておく、手順とその要素の対応。手順の順に並ぶ。 */
 interface Node {
@@ -174,13 +174,16 @@ export function renderCanvas(deps: CanvasDeps): void {
   });
 
   // 分岐の帯。どこからどこまでが 1 つの分かれ道かを地色で示す。
-  for (const b of L.bands) {
+  L.bands.forEach((b, bi) => {
     const band = document.createElement("div");
     band.className = "cband";
+    // 落とし先の判定で「この帯はどの分かれ道か」を知るために持たせる。
+    band.dataset.b = String(bi);
+    band.dataset.k = b.key;
     band.style.gridColumn = `1 / span ${Math.max(L.cols, 1)}`;
     band.style.gridRow = `${b.from} / ${b.to + 1}`;
     grid.appendChild(band);
-  }
+  });
 
   const nodes: (Node | undefined)[] = [];
 
@@ -204,6 +207,15 @@ export function renderCanvas(deps: CanvasDeps): void {
     // 落とし先の判定で「この箱は手順の何番目か」を知るために持たせる。
     // 枝を横に並べたので、置いた順と配列の順が一致しなくなった。
     el.dataset.i = String(i);
+    // 枝の中のボックスは、どの帯のどの枝かも持つ。帯の中へ落としたときに
+    // 「落とした列の枝に加わる」を決めるのに使う（dropSpotAt）。
+    if (p.value !== undefined) {
+      const c = { key: (st.conditions ?? [])[0]?.key ?? "", value: p.value };
+      el.dataset.b = String(p.band ?? 0);
+      el.dataset.bv = p.value;
+      el.dataset.bl = optLabel(evt, c);
+      el.dataset.bc = optColor(evt, c);
+    }
     el.innerHTML = nodeHTML(db, evt, st, i, phase?.name ?? "", lanes[li]?.name ?? "", p.value);
 
     el.addEventListener("click", (e) => deps.onPick(st.id, e));
@@ -217,7 +229,9 @@ export function renderCanvas(deps: CanvasDeps): void {
       e.dataTransfer?.setData("text/plain", `step:${st.id}`);
       if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
       startCarry(e, el);
-      setDragLabel(st.title);
+      // 枝の中の手順は、帯の外へ出すと枝から抜ける。運ぶ前に知らせられるよう、
+      // いまどちらにいるかを持たせる。
+      setDragLabel(st.title, (st.conditions ?? []).length > 0);
       dimSource(el);
       document.body.classList.add("dragging");
     });
@@ -505,6 +519,23 @@ export function scrollToSelected(): void {
 export interface DropSpot {
   lane: string;
   index: number;
+  /**
+   * 分岐の帯の中へ落としたときの、その枝の条件。帯の外なら無い。
+   *
+   * 「落とした列の枝に加わる」を、置く動作だけで表すためのもの。
+   * これが無かった頃は、枝の中へ落としても条件の付かない手順が入り、
+   * 帯が 2 つに割れていた（どちらの枝でも実施する、という別の意味になる）。
+   */
+  cond?: Condition;
+  /** 落とし先の線を、枝の列の幅で引くための見かけの座標。 */
+  cell?: { left: number; width: number; label: string; color: string };
+  /**
+   * 落とし先の線を引く見かけの高さ。枝の最後へ足すときだけ入る。
+   *
+   * 配列での位置は帯の次の手順を指すので、そのままだと線が帯の外に出る。
+   * 入るのはその枝の続きなので、線はその枝の最後のボックスの下に引く。
+   */
+  atY?: number;
 }
 
 /**
@@ -534,6 +565,23 @@ interface DropGeom {
   lanes: { left: number; right: number; width: number }[];
   /** 見かけの上から順。i は手順の配列での位置。 */
   nodes: { top: number; mid: number; bottom: number; i: number }[];
+  /** 分岐の帯。落とした先がどの枝かを決めるのに使う。 */
+  bands: DropBand[];
+}
+
+/** 分岐の帯ひとつぶんの寸法。 */
+interface DropBand {
+  /** その分かれ道の判断のキー。 */
+  key: string;
+  top: number;
+  bottom: number;
+  /**
+   * 枝の列。1 つの枝が担当をまたげば、その枝の列は複数になる。
+   * 枝どうしは列が飛び飛びに並ぶことがあるので、左端と右端では表せない。
+   */
+  cells: { value: string; label: string; color: string; left: number; right: number }[];
+  /** 帯の中のボックス。枝ごとに縦位置で見る。 */
+  nodes: { value: string; mid: number; i: number }[];
 }
 
 let geom: DropGeom | null = null;
@@ -556,6 +604,44 @@ function dropGeom(grid: HTMLElement): DropGeom {
     passive: true,
   });
 
+  const bands: DropBand[] = [];
+  for (const el of grid.querySelectorAll<HTMLElement>(".cband")) {
+    const r = el.getBoundingClientRect();
+    bands[Number(el.dataset.b ?? 0)] = {
+      key: el.dataset.k ?? "",
+      top: r.top,
+      bottom: r.bottom,
+      cells: [],
+      nodes: [],
+    };
+  }
+
+  // ボックスは 1 回だけ測り、落とし先の並びと帯の中身の両方に使う。
+  // 測る回数が増えると、そのぶん指の動きが遅れる（ここは 1 回 3ms かかっていた）。
+  const nodes: DropGeom["nodes"] = [];
+  for (const el of grid.querySelectorAll<HTMLElement>(".cnode")) {
+    const r = el.getBoundingClientRect();
+    const mid = r.top + r.height / 2;
+    const i = Number(el.dataset.i ?? 0);
+    nodes.push({ top: r.top, mid, bottom: r.bottom, i });
+
+    const value = el.dataset.bv;
+    const band = value === undefined ? undefined : bands[Number(el.dataset.b ?? 0)];
+    if (!band || value === undefined) continue;
+    band.nodes.push({ value, mid, i });
+    // 同じ枝の同じ列は 1 つでよい。列は行ごとにずれないので、左端で見分ける。
+    if (!band.cells.some((c) => c.value === value && c.left === r.left)) {
+      band.cells.push({
+        value,
+        label: el.dataset.bl ?? value,
+        color: el.dataset.bc ?? "var(--cur)",
+        left: r.left,
+        right: r.right,
+      });
+    }
+  }
+  for (const b of bands) b?.nodes.sort((a, z) => a.mid - z.mid);
+
   geom = {
     box: grid.getBoundingClientRect(),
     z: gridScale(grid),
@@ -565,17 +651,8 @@ function dropGeom(grid: HTMLElement): DropGeom {
     }),
     // 枝を横に並べたので、置いた順は配列の順ではない。落とし先は「見かけの
     // 上から何番目か」で決めるので、測ったあとに縦位置で並べ直す。
-    nodes: [...grid.querySelectorAll<HTMLElement>(".cnode")]
-      .map((el) => {
-        const r = el.getBoundingClientRect();
-        return {
-          top: r.top,
-          mid: r.top + r.height / 2,
-          bottom: r.bottom,
-          i: Number(el.dataset.i ?? 0),
-        };
-      })
-      .sort((a, b) => a.top - b.top),
+    nodes: nodes.sort((a, b) => a.top - b.top),
+    bands: bands.filter(Boolean),
   };
   return geom;
 }
@@ -587,8 +664,40 @@ export function dropSpotAt(lanes: Lane[], x: number, y: number): DropSpot | null
 
   const li = g.lanes.findIndex((l) => x >= l.left && x < l.right);
   if (li < 0 || !lanes[li]) return null;
+  const lane = lanes[li].key;
 
-  // 上から順に見て、最初に「その箱の真ん中より上」になったところへ入れる。
+  // 分かれ道の帯の中なら、落とした列の枝に加わる。縦の位置はその枝の中での順。
+  // 枝をまたいで数えると、短い枝の下へ落としたときに、隣の長い枝の途中の
+  // 位置が返ってしまう。
+  const band = g.bands.find((b) => y >= b.top && y < b.bottom);
+  const cell = band ? nearestCell(band, x) : undefined;
+  if (band && cell) {
+    const mine = band.nodes.filter((n) => n.value === cell.value);
+    const last = mine[mine.length - 1];
+    let index = (last?.i ?? 0) + 1;
+    let atY: number | undefined = last ? bottomOf(g, last.i) : undefined;
+    for (const n of mine) {
+      if (y < n.mid) {
+        index = n.i;
+        atY = undefined;
+        break;
+      }
+    }
+    return {
+      lane,
+      index,
+      atY,
+      cond: { key: band.key, value: cell.value },
+      cell: {
+        left: cell.left,
+        width: cell.right - cell.left,
+        label: cell.label,
+        color: cell.color,
+      },
+    };
+  }
+
+  // 帯の外。上から順に見て、最初に「その箱の真ん中より上」になったところへ入れる。
   // 入れる位置は配列での位置で返す（枝を横に並べたので、見かけの順とは違う）。
   let index = g.nodes.length;
   for (const n of g.nodes) {
@@ -597,7 +706,32 @@ export function dropSpotAt(lanes: Lane[], x: number, y: number): DropSpot | null
       break;
     }
   }
-  return { lane: lanes[li].key, index };
+  return { lane, index };
+}
+
+/** 測り置きの中から、その手順のボックスの下端を引く。 */
+function bottomOf(g: DropGeom, i: number): number | undefined {
+  return g.nodes.find((n) => n.i === i)?.bottom;
+}
+
+/**
+ * 指の位置にいちばん近い枝の列。列の中なら 0、隙間なら近いほうへ寄せる。
+ *
+ * 列と列のあいだ、また枝が使っていない担当の列にも落とせる。そこで「どれでもない」
+ * を返すと、帯の中に条件の付かない手順が入って帯が割れる——落とした人から見れば
+ * 何も起きていないのに図の意味が変わる。近いほうへ寄せて、線でそれを見せる。
+ */
+function nearestCell(band: DropBand, x: number): DropBand["cells"][number] | undefined {
+  let best: DropBand["cells"][number] | undefined;
+  let near = Infinity;
+  for (const c of band.cells) {
+    const d = x < c.left ? c.left - x : x > c.right ? x - c.right : 0;
+    if (d < near) {
+      near = d;
+      best = c;
+    }
+  }
+  return best;
 }
 
 /**
@@ -608,10 +742,12 @@ export function dropSpotAt(lanes: Lane[], x: number, y: number): DropSpot | null
  * 何を運んでいるかは、こちらが描く線の側にも書いておく。
  */
 let dragLabel = "";
+/** 運んでいるものが、いま分かれ道の枝の中にあるか。 */
+let dragBranched = false;
 
-
-export function setDragLabel(text: string): void {
+export function setDragLabel(text: string, branched = false): void {
   dragLabel = text;
+  dragBranched = branched;
 }
 
 // ---------------------------------------------------------------------------
@@ -688,7 +824,7 @@ let lastSpot = " ";
  * 同じ場所に同じものを書き直すと、そのぶん描き直しが起きる。
  */
 export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
-  const key = spot ? `${spot.lane}:${spot.index}` : "";
+  const key = spot ? `${spot.lane}:${spot.index}:${spot.cond?.value ?? ""}` : "";
   if (key === lastSpot) return;
   lastSpot = key;
 
@@ -708,10 +844,20 @@ export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
   if (!line) {
     line = document.createElement("div");
     line.className = "cdrop";
-    // 名前は運んでいるあいだ変わらないので、線を作るときに 1 度だけ入れる。
-    line.innerHTML = dragLabel ? `<b>${esc(dragLabel)}</b>` : "";
     grid.appendChild(line);
   }
+  // 落とすと条件が変わるなら、そう言う。置いてから図が変わって気づく、では
+  // 遅い。落とし先が変わったときだけ書き換える。
+  const note = spot.cell
+    ? `${spot.cell.label} の枝に入ります`
+    : dragBranched
+      ? "分かれ道から外れます"
+      : "";
+  line.innerHTML =
+    (dragLabel ? `<b>${esc(dragLabel)}</b>` : "") +
+    (note ? `<u>${esc(note)}</u>` : "");
+  line.style.setProperty("--brc", spot.cell?.color ?? "var(--s2)");
+  line.classList.toggle("br", !!note);
 
   const g = dropGeom(grid);
   // 線は図の中に置くので、測った見かけの値を縮尺で割り戻す（paintWires と同じ）。
@@ -722,14 +868,20 @@ export function showDropSpot(lanes: Lane[], spot: DropSpot | null): void {
   const target = at >= 0 ? g.nodes[at] : undefined;
   const prev = at > 0 ? g.nodes[at - 1] : g.nodes[g.nodes.length - 1];
   // 入る位置の上の境目。末尾なら最後のボックスの下。
-  const y = target
-    ? gx(target.top - g.box.top) - 9
-    : prev
-      ? gx(prev.bottom - g.box.top) + 9
-      : 44;
+  // 枝の続きに足すときは、配列の位置ではなくその枝の最後の下に引く（atY）。
+  const y =
+    spot.atY !== undefined
+      ? gx(spot.atY - g.box.top) + 9
+      : target
+        ? gx(target.top - g.box.top) - 9
+        : prev
+          ? gx(prev.bottom - g.box.top) + 9
+          : 44;
 
+  // 枝の中なら、線はその枝の列の幅で引く。担当の列いっぱいに引くと、
+  // 枝が 2 本並んでいるときにどちらへ入るのか線から読めない。
   const li = lanes.findIndex((l) => l.key === spot.lane);
-  const lr = g.lanes[li];
+  const lr = spot.cell ?? g.lanes[li];
   line.style.top = `${y}px`;
   line.style.left = lr ? `${gx(lr.left - g.box.left) + 10}px` : "10px";
   line.style.width = lr ? `${gx(lr.width) - 20}px` : "100%";
