@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/akilab/soc-workflow/internal/model"
@@ -261,31 +260,5 @@ func TestOpenKeepsEmptiedLinks(t *testing.T) {
 	st.Read(func(db *model.DB) { n = len(db.Links) })
 	if n != 0 {
 		t.Errorf("リンクが %d 件戻ってきました。消したままであるべきです", n)
-	}
-}
-
-// 標準の行き先は、画面が受け付ける形であること
-// （URL は http/https、アイコンは選べる一覧の中）。
-func TestDefaultLinksAreAcceptable(t *testing.T) {
-	// api の linkIcons と同じ並び。ここを増やすときは両方直す。
-	icons := map[string]bool{
-		"defender": true, "intune": true, "teams": true, "outlook": true,
-		"copilot": true, "azure": true, "m365": true,
-		"entra": true, "sentinel": true, "logicapps": true,
-		"ticket": true, "book": true, "search": true, "people": true,
-		"settings": true, "globe": true, "link": true,
-	}
-	seen := map[string]bool{}
-	for _, l := range DefaultLinks() {
-		if seen[l.Key] {
-			t.Errorf("キーが重複しています: %s", l.Key)
-		}
-		seen[l.Key] = true
-		if !icons[l.Icon] {
-			t.Errorf("%s: 選べないアイコンです: %s", l.Name, l.Icon)
-		}
-		if !strings.HasPrefix(l.URL, "https://") {
-			t.Errorf("%s: URL が https で始まっていません: %s", l.Name, l.URL)
-		}
 	}
 }

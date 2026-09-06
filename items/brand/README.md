@@ -22,14 +22,17 @@ UI アイコン（`items/fluent`）とは扱いが違うので、置き場所を
 
 ## いま置いてあるもの
 
-`defender` `intune` `teams` `outlook` `copilot` `azure` `m365` `entra`
+`defender` `intune` `teams` `outlook` `copilot` `azure` `m365`
+`entra` `logicapps` `powerautomate`
 
-`entra` 以外は
-[homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons)（Apache-2.0）から。
-`entra` は [msicons.com](https://msicons.com/microsoft-entra-id-color-icon) から。
+前の 7 つは
+[homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons)（Apache-2.0）、
+後の 3 つは [msicons.com](https://msicons.com/) から。
 
-**足りていないもの**: Sentinel、Logic Apps。同じように SVG を落として
-ここへ置けば増やせる。
+Sentinel は置いていない。**Defender に統合されて別の入口ではなくなった**ため。
+選べる一覧（`web/src/links.ts` の `ICONS`）からも外してあるが、サーバ側の
+`linkIcons` にだけは残してある。すでに `sentinel` を使っているリンクが
+保存できなくなるのを避けるため。
 
 ## 扱いの注意
 

@@ -9,8 +9,9 @@ import "github.com/akilab/soc-workflow/internal/model"
 // 常にある。それが空のまま始まると、結局ブックマークを探しに行くことになり、
 // ランチャーがあること自体に気づかれない。
 //
-// ここに置くのはどのテナントでも同じ入口だけにする。テナント固有の URL
-// （Sentinel のワークスペースや Logic App など）は組織ごとに違うので入れない。
+// ここに置くのはどのテナントでも同じ入口だけにする。個別の資源を直に指す URL
+// （このワークスペース、この Logic App）は組織ごとに違うので入れない。
+// Logic Apps は入口が Azure ポータルの一覧なので、その一覧を指している。
 // 名前・URL・アイコンはあとから画面上で直せるし、要らないものは消せる。
 func DefaultLinks() []*model.AppLink {
 	return []*model.AppLink{
@@ -22,5 +23,7 @@ func DefaultLinks() []*model.AppLink {
 		{Key: "link-6", Name: "Outlook", URL: "https://outlook.office.com/mail/", Icon: "outlook"},
 		{Key: "link-7", Name: "Microsoft 365", URL: "https://www.office.com/", Icon: "m365"},
 		{Key: "link-8", Name: "Copilot", URL: "https://copilot.microsoft.com/", Icon: "copilot"},
+		{Key: "link-9", Name: "Power Automate", URL: "https://make.powerautomate.com/", Icon: "powerautomate"},
+		{Key: "link-10", Name: "Logic Apps", URL: "https://portal.azure.com/#browse/Microsoft.Logic%2Fworkflows", Icon: "logicapps"},
 	}
 }

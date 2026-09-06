@@ -394,12 +394,14 @@ type linkBody struct {
 var linkIcons = map[string]bool{
 	// Microsoft のサービス（色付きの製品アイコン。items/brand）
 	"defender": true, "intune": true, "teams": true, "outlook": true,
-	"copilot": true, "azure": true, "m365": true,
-	// 製品アイコンをまだ置いていないもの（単色で出る）
-	"entra": true, "sentinel": true, "logicapps": true,
+	"copilot": true, "azure": true, "m365": true, "entra": true,
+	"logicapps": true, "powerautomate": true,
 	// それ以外（画面のほかの部分と同じ単色のアイコン）
 	"ticket": true, "book": true, "search": true, "people": true,
 	"settings": true, "globe": true, "link": true,
+	// 古いデータのため。Sentinel は Defender に統合されたので選べる一覧からは
+	// 外したが、すでに使っているリンクが保存できなくなるのは困る。
+	"sentinel": true,
 }
 
 func (b linkBody) check() error {

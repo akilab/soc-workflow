@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/akilab/soc-workflow/internal/model"
@@ -1240,6 +1241,28 @@ func TestEventLanesRejectsBadInput(t *testing.T) {
 			eventLanesBody{Lanes: lanes})
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("%s: 状態コード %d, 期待 400", name, w.Code)
+		}
+	}
+}
+
+// 標準の行き先（store.DefaultLinks）が、画面から追加するときと同じ検査を
+// 通ること。リンクを足すときは links.ts の ICONS・parts.go の linkIcons・
+// store の既定の 3 か所を揃える必要があり、どれか 1 つを忘れやすい。
+// ここで本物の検査に通すことで、忘れたらテストが落ちる。
+func TestDefaultLinksPassLinkCheck(t *testing.T) {
+	seen := map[string]bool{}
+	for _, l := range store.DefaultLinks() {
+		if seen[l.Key] {
+			t.Errorf("キーが重複しています: %s", l.Key)
+		}
+		seen[l.Key] = true
+
+		body := linkBody{Name: l.Name, URL: l.URL, Icon: l.Icon}
+		if err := body.check(); err != nil {
+			t.Errorf("%s: %v", l.Name, err)
+		}
+		if !strings.HasPrefix(l.URL, "https://") {
+			t.Errorf("%s: URL が https で始まっていません: %s", l.Name, l.URL)
 		}
 	}
 }
