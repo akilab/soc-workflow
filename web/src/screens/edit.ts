@@ -232,13 +232,40 @@ export class EditScreen {
     });
   }
 
+  /**
+   * アウトラインの並べ替え。落とした行の仲間になる。
+   *
+   * キャンバスで枝の列へ落とすのと同じ規則にする。片方だけが枝を変えられると、
+   * 同じ操作が画面によって違う意味を持ってしまう。並びの上で枝が交互に
+   * なるのも、ここで揃えておけば起きにくい。
+   */
   private async move(fromId: string, beforeId: string | null): Promise<void> {
     const evt = this.evt;
     if (!evt) return;
+    const st = evt.steps.find((s) => s.id === fromId);
+    if (!st) return;
+
+    // 落とした行が属する枝。条件の無い行へ落としたなら、枝から抜ける。
+    const target = beforeId ? evt.steps.find((s) => s.id === beforeId) : undefined;
+    const cond = (target?.conditions ?? [])[0];
+    if (cond && st.decision?.key === cond.key) {
+      toast("この判断は、自分が分けている枝の中には置けません", true);
+      return;
+    }
+
+    const conds = branchConditions(st, cond);
+    const ids = reorderedIds(evt, fromId, beforeId);
+
+    await this.inspector.flush();
     try {
-      await this.api.orderSteps(this.eventKey, reorderedIds(evt, fromId, beforeId));
+      if (conds) {
+        st.conditions = conds;
+        await this.api.updateStep(evt.key, fromId, stepInput(st), { quiet: true });
+      }
+      await this.api.orderSteps(this.eventKey, ids);
     } catch (e) {
       this.fail(e, "手順の並べ替え");
+      await this.api.load();
     }
   }
 
@@ -682,7 +709,7 @@ export class EditScreen {
     if (to > from) to -= 1;
 
     const laneChanged = st.lane !== spot.lane;
-    const conds = branchConditions(st, spot);
+    const conds = branchConditions(st, spot.cond);
     const condChanged = conds !== null;
     const moved = to !== from;
     if (!laneChanged && !condChanged && !moved) return; // 同じ場所に戻しただけ
@@ -840,9 +867,8 @@ function saveWidths(w: PaneWidths): void {
  *
  * 判断そのものを自分の枝へ入れる場合は、ここまで来ない（moveStep が断る）。
  */
-function branchConditions(st: Step, spot: DropSpot): Condition[] | null {
+function branchConditions(st: Step, c: Condition | undefined): Condition[] | null {
   const now = st.conditions ?? [];
-  const c = spot.cond;
 
   if (c) {
     if (now[0]?.key === c.key && now[0]?.value === c.value) return null;

@@ -81,8 +81,13 @@ export interface FlowLayout {
   pairs: [Placed, Placed][];
 }
 
-/** 手順の並びをかたまりに分ける。条件を持つ手順が続くあいだが 1 つの分岐。 */
-function blocksOf(evt: EventFlow, lanes: Lane[]): Block[] {
+/**
+ * 手順の並びをかたまりに分ける。条件を持つ手順が続くあいだが 1 つの分岐。
+ *
+ * アウトラインも同じ分け方を使う（branch.ts の outlineRows）。図と一覧で
+ * 枝の切れ目や並び順が違うと、同じデータが 2 通りに見える。
+ */
+export function blocksOf(evt: EventFlow, lanes: Lane[]): Block[] {
   const laneIndex: Record<string, number> = {};
   lanes.forEach((l, i) => (laneIndex[l.key] = i));
 
