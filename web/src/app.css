@@ -26,7 +26,12 @@ body{margin:0;overflow:hidden}
 
 .app-top{height:var(--top-h);background:var(--panel);border-bottom:1px solid var(--line);
   display:flex;align-items:center;gap:12px;padding:0 10px;position:relative;z-index:40}
-.app-name{margin:0;font-size:var(--t6);font-weight:600;white-space:nowrap;letter-spacing:.01em}
+.app-name{margin:0;font-size:var(--t6);font-weight:600;white-space:nowrap;letter-spacing:.01em;
+  display:flex;align-items:center}
+.app-name button{font:inherit;color:inherit;letter-spacing:inherit;background:none;border:none;
+  padding:3px 7px;margin-left:-7px;border-radius:var(--r2);cursor:pointer}
+.app-name button:hover{background:var(--panel2)}
+.app-name button:focus-visible{outline:2px solid var(--cur);outline-offset:-2px}
 .app-name b{color:var(--cur)}
 .app-name span{color:var(--faint);font-weight:400;font-size:var(--t4);margin-left:10px;
   padding-left:10px;border-left:1px solid var(--line)}

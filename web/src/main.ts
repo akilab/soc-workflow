@@ -142,6 +142,8 @@ class App {
     for (const b of document.querySelectorAll<HTMLElement>("#appRail button")) {
       b.addEventListener("click", () => this.show(b.dataset.nav as Screen));
     }
+    // 題名を押したらフロー一覧へ。左の帯の「フロー」と同じ行き先。
+    $("appHome").addEventListener("click", () => this.show("events"));
     $("ewPhases").addEventListener("click", () => this.settings.openPhases());
     $("ewLanes").addEventListener("click", () => this.settings.openLanes());
     $("ewSLAs").addEventListener("click", () => this.slas.open());
