@@ -122,9 +122,15 @@
 
   <div class="ed-body" id="edBody">
 
-    <div class="pane">
-      <h3>手順アウトライン <span id="olCount"></span></h3>
+    <div class="pane" id="paneLeft">
+      <h3>手順アウトライン <span id="olCount"></span>
+        <button class="fold" id="olFold" type="button" title="手順アウトラインを畳む">
+          <svg class="ic"><use href="#ic-chev-r"/></svg></button>
+      </h3>
       <div class="scroll" id="olList"></div>
+      <!-- 畳んだときの背表紙。しまった場所にそのまま戻り口を残す。 -->
+      <button class="pane-spine" id="olUnfold" type="button" title="手順アウトラインを開く">
+        <svg class="ic"><use href="#ic-chev-r"/></svg>手順アウトライン</button>
     </div>
 
     <div class="split" data-target="left"></div>

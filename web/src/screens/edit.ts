@@ -48,6 +48,8 @@ type Mode = "edit" | "run";
 interface PaneWidths {
   left: number;
   right: number;
+  /** 手順アウトラインを畳んでいるか。 */
+  foldLeft: boolean;
 }
 
 const WIDTH_KEY = "soc-flow-panes";
@@ -81,7 +83,7 @@ const PANE_LIMITS = {
   right: { min: 300, max: 560 },
 };
 
-const DEFAULT_WIDTHS: PaneWidths = { left: 460, right: 324 };
+const DEFAULT_WIDTHS: PaneWidths = { left: 460, right: 324, foldLeft: false };
 
 export interface EditScreenDeps {
   api: Api;
@@ -587,6 +589,7 @@ export class EditScreen {
 
     this.bindDrop();
     this.bindSplitters();
+    this.bindFold();
     this.bindZoom();
 
     // 窓の大きさが変わると座標が変わる。線を引き直す。
@@ -741,6 +744,11 @@ export class EditScreen {
    * 手順名は長さがまちまちで、分岐が深いと横にも伸びる。
    * どこを広げたいかは作業のフェーズで変わるので、固定にしない。
    */
+  private bindFold(): void {
+    $("olFold").addEventListener("click", () => this.toggleFold(true));
+    $("olUnfold").addEventListener("click", () => this.toggleFold(false));
+  }
+
   private bindSplitters(): void {
     for (const sp of document.querySelectorAll<HTMLElement>(".split")) {
       sp.addEventListener("mousedown", (e) => {
@@ -791,6 +799,25 @@ export class EditScreen {
     const b = $("edBody");
     b.style.setProperty("--wl", `${this.widths.left}px`);
     b.style.setProperty("--wr", `${this.widths.right}px`);
+    b.classList.toggle("fold-left", this.widths.foldLeft);
+  }
+
+  /**
+   * 手順アウトラインを畳む・開く。
+   *
+   * 図の幅は残りの取り合いで決まる。左のペインは下限 460px と広いので、
+   * 畳めばその分そのまま図が伸びる。畳んだ状態は端末ごとの好みなので、
+   * ペインの幅と同じところに置く。
+   *
+   * 畳んだら図を描き直す。線は DOM を測ってから引くので、幅が変わったまま
+   * では前の幅で引いた線が残る。
+   */
+  private toggleFold(fold: boolean): void {
+    if (this.widths.foldLeft === fold) return;
+    this.widths.foldLeft = fold;
+    this.applyWidths();
+    saveWidths(this.widths);
+    this.render();
   }
 
   private fail(e: unknown, context: string): void {
@@ -837,6 +864,7 @@ function loadWidths(): PaneWidths {
       return {
         left: clampPane("left", Number(v.left) || DEFAULT_WIDTHS.left),
         right: clampPane("right", Number(v.right) || DEFAULT_WIDTHS.right),
+        foldLeft: v.foldLeft === true,
       };
     }
   } catch {
