@@ -47,6 +47,8 @@ export interface CanvasDeps {
   /** 選ばれている手順 ID。 */
   selected: string[];
   onPick: (id: string, e: MouseEvent) => void;
+  /** 移り先の札を押したとき。そのフローを開く。 */
+  onGoto: (eventKey: string) => void;
 }
 
 let chips: Chip[] = [];
@@ -218,7 +220,15 @@ export function renderCanvas(deps: CanvasDeps): void {
     }
     el.innerHTML = nodeHTML(db, evt, st, i, phase?.name ?? "", lanes[li]?.name ?? "", p.value);
 
-    el.addEventListener("click", (e) => deps.onPick(st.id, e));
+    el.addEventListener("click", (e) => {
+      const go = (e.target as HTMLElement | null)?.closest<HTMLElement>(".f-goto");
+      if (go && !go.classList.contains("dead")) {
+        e.stopPropagation();
+        deps.onGoto(go.dataset.goto ?? "");
+        return;
+      }
+      deps.onPick(st.id, e);
+    });
     // 選ばなくても辿れるように、ホバー中はその手順に繋がる線だけを強調する。
     el.addEventListener("mouseenter", () => hotWires([st.id]));
     el.addEventListener("mouseleave", () => hotWires(deps.selected));
@@ -330,6 +340,16 @@ function nodeHTML(
   if (st.sla) flags += `<span class="f-sla">${esc(st.sla)}</span>`;
   // 約束の到達点。判定はしない——「ここまでが約束の範囲」と示すだけ。
   flags += milestoneTag(db, evt, st);
+  // 移り先。この経路はここで終わり、続きは相手のフロー。
+  // 「終了」と並べても意味が競合しないので、消さずに両方出す。
+  if (st.goto) {
+    const to = evt.key === st.goto ? null : db.events.find((e) => e.key === st.goto);
+    flags +=
+      `<span class="f-goto${to ? "" : " dead"}" data-goto="${esc(st.goto)}"` +
+      ` title="${esc(to ? `この手順のあと「${to.title}」へ移ります` : `移り先のフローが見つかりません: ${st.goto}`)}">` +
+      `&#8594; ${esc(to ? to.title : "移り先が見つかりません")}</span>`;
+  }
+
   const kind = taskOf(db, st.task)?.kind;
   if (kind === "close") {
     flags += '<span class="f-fin" title="この経路はここで終わります">終了</span>';

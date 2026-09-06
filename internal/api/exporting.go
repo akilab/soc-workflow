@@ -25,7 +25,9 @@ func (s *Server) exportOne(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		title = ev.Title + " — SOC 対応フロー"
-		out, err = export.HTML(db, []*model.Event{ev}, title)
+		// 移り先のフローも一緒に入れる。1 本だけ出すと、移り先が入らず
+		// 配布物が行き止まりになる。何が入ったかは画面に出す（events.ts）。
+		out, err = export.HTML(db, export.WithLinked(db, []*model.Event{ev}), title)
 	})
 	if err != nil {
 		writeErr(w, err)

@@ -48,6 +48,75 @@ type payload struct {
 	// やらなければならないか」なので、配る HTML にこそ要る。
 	SLAs   []*model.SLA   `json:"slas"`
 	Events []*model.Event `json:"events"`
+	// GotoNames は、同梱していない移り先のフローの名前。
+	//
+	// 移り先が入っていないとき、札にキー（"ransom"）が出るのでは読めない。
+	// 名前だけを持たせて「あちらへ移るが、このファイルには入っていない」と
+	// 言えるようにする。中身は入れないので、書き出す範囲は広がらない。
+	GotoNames map[string]string `json:"gotoNames,omitempty"`
+}
+
+// WithLinked は events に、そこから移れるフローを足したものを返す。
+//
+// 1 フローだけ書き出すと、移り先が入らず配布物が行き止まりになる。
+// 移り先は「調べたら別の事象だった」ときに実際に開くものなので、
+// 手元に無ければ意味がない。A→B→C と続くこともあるので、たどれる範囲を
+// 全部たどる。
+//
+// 呼ぶ側は、足したことを画面に出すこと。書き出す範囲が増えるということは、
+// 「どこを見ているか」の情報がそれだけ多く出ていくということでもある。
+func WithLinked(db *model.DB, events []*model.Event) []*model.Event {
+	seen := map[string]bool{}
+	out := make([]*model.Event, 0, len(events))
+	queue := make([]*model.Event, 0, len(events))
+
+	for _, ev := range events {
+		if ev != nil && !seen[ev.Key] {
+			seen[ev.Key] = true
+			out = append(out, ev)
+			queue = append(queue, ev)
+		}
+	}
+	for len(queue) > 0 {
+		ev := queue[0]
+		queue = queue[1:]
+		for _, st := range ev.Steps {
+			if st.Goto == "" || seen[st.Goto] {
+				continue
+			}
+			next := db.Event(st.Goto)
+			if next == nil {
+				continue // 消えている移り先。検証が別に知らせる
+			}
+			seen[st.Goto] = true
+			out = append(out, next)
+			queue = append(queue, next)
+		}
+	}
+	return out
+}
+
+// gotoNames は、events に入っていない移り先の名前を集める。
+func gotoNames(db *model.DB, events []*model.Event) map[string]string {
+	in := map[string]bool{}
+	for _, ev := range events {
+		in[ev.Key] = true
+	}
+	out := map[string]string{}
+	for _, ev := range events {
+		for _, st := range ev.Steps {
+			if st.Goto == "" || in[st.Goto] {
+				continue
+			}
+			if to := db.Event(st.Goto); to != nil {
+				out[st.Goto] = to.Title
+			}
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // HTML は events を収めた単一 HTML を返す。
@@ -62,6 +131,7 @@ func HTML(db *model.DB, events []*model.Event, title string) ([]byte, error) {
 		ContactGroups: db.ContactGroups,
 		SLAs:          db.SLAs,
 		Events:        events,
+		GotoNames:     gotoNames(db, events),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("データを書き出せません: %w", err)

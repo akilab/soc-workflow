@@ -129,6 +129,7 @@ export function stepInput(st: Step): StepInput {
     escalate: st.escalate,
     contacts: st.contacts ?? [],
     conditions: st.conditions ?? [],
+    goto: st.goto ?? "",
     decision: st.decision ?? null,
   };
 }
@@ -159,6 +160,8 @@ export interface StepInput {
   escalate: boolean;
   contacts: string[];
   conditions: Condition[];
+  /** 移る先のフローのキー。空なら移らない。 */
+  goto: string;
   decision: Decision | null;
 }
 

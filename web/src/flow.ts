@@ -42,6 +42,30 @@ export interface Validation {
   handoffs: number;
 }
 
+/**
+ * そのフローを書き出すと、実際には何が入るか。
+ *
+ * 1 本だけ書き出しても、移り先のフローは一緒に入る（入らないと配った HTML の
+ * 中で札が押せず、行き止まりになる）。A→B→C と続けばそこまで辿る。
+ *
+ * **同じ規則が Go 側（export.WithLinked）にもある。**片方を直したら
+ * もう片方も直すこと。ここは「何が入るか」を人に見せるためだけに使う。
+ */
+export function exportedFlows(db: DB, evt: EventFlow): EventFlow[] {
+  const seen = new Set<string>([evt.key]);
+  const out = [evt];
+  for (let i = 0; i < out.length; i++) {
+    for (const st of out[i].steps) {
+      if (!st.goto || seen.has(st.goto)) continue;
+      const next = db.events.find((e) => e.key === st.goto);
+      if (!next) continue; // 消えている移り先。検証が別に知らせる
+      seen.add(next.key);
+      out.push(next);
+    }
+  }
+  return out;
+}
+
 /** 担当が切り替わる回数を数える。 */
 export function countHandoffs(evt: EventFlow): number {
   let n = 0;
@@ -254,11 +278,36 @@ export function validate(db: DB, evt: EventFlow): Validation {
     }
   }
 
+  // 3b. 移り先が生きているか。指した先が消えていると、その手順は黙って
+  //     行き止まりになる。図の上では何も起きていないように見える。
+  evt.steps.forEach((st, i) => {
+    if (!st.goto) return;
+    if (st.goto === evt.key) {
+      issues.push({
+        lv: "err",
+        t: `手順 ${i + 1}「${st.title}」が自分自身のフローを指しています`,
+        d: "「ここで終わって、ここから続く」になり、どこへも進みません。移り先を選び直してください。",
+      });
+      return;
+    }
+    if (!db.events.some((e) => e.key === st.goto)) {
+      issues.push({
+        lv: "err",
+        t: `手順 ${i + 1}「${st.title}」の移り先のフローがありません`,
+        d: `指しているキー: ${st.goto}。移り先を選び直すか、外してください。`,
+      });
+    }
+  });
+
   // 4. 終了より後ろに、同じ経路で実施される手順が残っていないか。
   //    残っていると、対応者は終了を押したあとに「まだ何かある」と迷う。
   //    設計する側としては、終了は経路の最後に置きたい。
+  //    移り先を持つ手順も同じ。そこで経路は終わるので、後ろに残っていれば
+  //    「移ったのに、まだこちらに作業がある」ことになる。
   evt.steps.forEach((st, i) => {
-    if (taskOf(db, st.task)?.kind !== "close") return;
+    const ends = taskOf(db, st.task)?.kind === "close" || !!st.goto;
+    if (!ends) return;
+    const word = st.goto ? "移り先があります" : "終了です";
     const after = evt.steps.slice(i + 1).filter((x) => {
       // 終了と両立しない条件が付いていれば、同じ経路には乗らない
       const cs = x.conditions ?? [];
@@ -270,10 +319,10 @@ export function validate(db: DB, evt: EventFlow): Validation {
     if (after.length) {
       issues.push({
         lv: "wrn",
-        t: `手順 ${i + 1}「${st.title}」は終了ですが、後ろに ${after.length} 手順あります`,
+        t: `手順 ${i + 1}「${st.title}」は${word}が、後ろに ${after.length} 手順あります`,
         d:
-          "終了を完了させると、以降は対象外になります。同じ経路で実施したい手順は" +
-          "終了より前に置くか、後ろの手順に別の条件を付けてください。",
+          "そこでこの経路は終わります。同じ経路で実施したい手順は" +
+          "この手順より前に置くか、後ろの手順に別の条件を付けてください。",
       });
     }
   });

@@ -88,6 +88,17 @@ func (s *Server) deleteEvent(w http.ResponseWriter, r *http.Request) {
 		if ev == nil {
 			return nil, notFound("フロー", key)
 		}
+		// このフローへ移る手順があるなら消せない。消すと、その手順は
+		// 行き先を失って黙って行き止まりになる。図の上では何も起きて
+		// いないように見えるので、消す前に止める。
+		if u := stepsGotoEvent(db, key); len(u) > 0 {
+			return nil, &apiErr{
+				code: http.StatusConflict,
+				msg: fmt.Sprintf("「%s」へ移る手順が %d か所あります。先に移り先を外してください",
+					ev.Title, len(u)),
+				usage: u,
+			}
+		}
 		// これを元にしたフローがあるなら消せない。消すと派生側が
 		// 「何と比べればよいのか」を失い、違いを見せられなくなる。
 		if d := db.Derived(key); len(d) > 0 {
@@ -395,6 +406,7 @@ type stepBody struct {
 	Escalate   bool              `json:"escalate"`
 	Contacts   []string          `json:"contacts"`
 	Conditions []model.Condition `json:"conditions"`
+	Goto       string            `json:"goto"`
 	Decision   *model.Decision   `json:"decision"`
 	Milestone  string            `json:"milestone"`
 }
@@ -422,6 +434,7 @@ func (s *Server) updateStep(w http.ResponseWriter, r *http.Request) {
 		st.LaneKey, st.Escalate = in.LaneKey, in.Escalate
 		st.Contacts = strs(in.Contacts)
 		st.Conditions = conds(in.Conditions)
+		st.Goto = in.Goto
 		st.Decision = in.Decision
 		st.Milestone = in.Milestone
 		touch(ev)
@@ -445,6 +458,16 @@ func checkStep(db *model.DB, ev *model.Event, cur *model.Step, in stepBody) erro
 	// 到達点の印。実在する SLA だけを指せる。
 	if in.Milestone != "" && db.SLA(in.Milestone) == nil {
 		return errf(http.StatusBadRequest, "知らない SLA です: %s", in.Milestone)
+	}
+	// 移り先。実在するフローで、自分自身ではないこと。自分を指すと
+	// 「ここで終わって、ここから続く」になり、どこへも進まない。
+	if in.Goto != "" {
+		if db.Event(in.Goto) == nil {
+			return errf(http.StatusBadRequest, "知らないフローです: %s", in.Goto)
+		}
+		if in.Goto == ev.Key {
+			return errf(http.StatusBadRequest, "自分自身のフローへは移れません")
+		}
 	}
 	// 担当は図のどの列に座るかを決める。空だと行き場が無いので必須。
 	if db.Lane(in.LaneKey) == nil {

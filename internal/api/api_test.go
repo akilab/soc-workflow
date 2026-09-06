@@ -1266,3 +1266,69 @@ func TestDefaultLinksPassLinkCheck(t *testing.T) {
 		}
 	}
 }
+
+// 移り先に指されているフローは消せないこと。
+//
+// 消せてしまうと、指していた手順は行き先を失って黙って行き止まりになる。
+// 図の上では何も起きていないように見えるので、消す前に止める。
+func TestDeleteEventRefusedWhenLinked(t *testing.T) {
+	_, h := newTestServer(t)
+
+	db := readDB(t, h)
+	if len(db.Events) < 2 {
+		t.Skip("種データのフローが足りません")
+	}
+	from, to := db.Events[0], db.Events[1]
+	st := from.Steps[len(from.Steps)-1]
+
+	in := stepBody{
+		TaskKey: st.TaskKey, LaneKey: st.LaneKey, Title: st.Title,
+		Detail: st.Detail, SLA: st.SLA, Escalate: st.Escalate,
+		Contacts: st.Contacts, Conditions: st.Conditions,
+		Goto: to.Key, Decision: st.Decision, Milestone: st.Milestone,
+	}
+	mustDo(t, h, "PUT", "/api/events/"+from.Key+"/steps/"+st.ID, in)
+
+	w := do(t, h, "DELETE", "/api/events/"+to.Key, nil)
+	if w.Code != http.StatusConflict {
+		t.Fatalf("消せてしまいました: %d — %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "移る手順") {
+		t.Errorf("理由が伝わりません: %s", w.Body.String())
+	}
+
+	// 移り先を外せば消せること。止めたまま戻せないのでは困る。
+	in.Goto = ""
+	mustDo(t, h, "PUT", "/api/events/"+from.Key+"/steps/"+st.ID, in)
+	mustDo(t, h, "DELETE", "/api/events/"+to.Key, nil)
+}
+
+// 移り先は実在するフローで、自分自身ではないこと。
+func TestStepGotoIsChecked(t *testing.T) {
+	_, h := newTestServer(t)
+
+	db := readDB(t, h)
+	ev := db.Events[0]
+	st := ev.Steps[0]
+	base := stepBody{
+		TaskKey: st.TaskKey, LaneKey: st.LaneKey, Title: st.Title,
+		Detail: st.Detail, SLA: st.SLA, Escalate: st.Escalate,
+		Contacts: st.Contacts, Conditions: st.Conditions,
+		Decision: st.Decision, Milestone: st.Milestone,
+	}
+
+	for _, c := range []struct {
+		name  string
+		goto_ string
+	}{
+		{"知らないフロー", "no-such-flow"},
+		{"自分自身", ev.Key},
+	} {
+		in := base
+		in.Goto = c.goto_
+		w := do(t, h, "PUT", "/api/events/"+ev.Key+"/steps/"+st.ID, in)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("%s: 通ってしまいました: %d — %s", c.name, w.Code, w.Body.String())
+		}
+	}
+}

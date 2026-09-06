@@ -26,14 +26,14 @@ import { SLASettings } from "../sla";
 import { changedDetail, diffFrom, diffSummary } from "../derive";
 import type { StepDiff } from "../derive";
 import { $, $as, esc } from "../dom";
-import { eventLanes, eventOf, validate } from "../flow";
+import { eventLanes, eventOf, exportedFlows, validate } from "../flow";
 import { Inspector } from "../inspector";
 import { renderOutline, reorderedIds } from "../outline";
 import { Palette } from "../palette";
 import { Selection } from "../select";
 import { EventLaneSettings } from "../settings";
 import type { DropSpot } from "../canvas";
-import type { Condition, EventFlow, Step } from "../types";
+import type { Condition, DB, EventFlow, Step } from "../types";
 import {
   closeModal,
   openModal,
@@ -141,6 +141,24 @@ export class EditScreen {
   }
 
   /**
+   * 移り先のフローを開く。
+   *
+   * 打ちかけの入力を送りきってから移る。開いたまま移ると、あとから届いた
+   * 入力が「いま開いているフローのもの」に見えて、どちらを直したのか
+   * 分からなくなる。
+   */
+  private async goto(key: string): Promise<void> {
+    if (!key || key === this.eventKey) return;
+    if (!this.api.db.events.some((e) => e.key === key)) {
+      toast("移り先のフローが見つかりません", true);
+      return;
+    }
+    await this.inspector.flush();
+    this.open(key);
+    this.render();
+  }
+
+  /**
    * 保存待ちの入力を送りきる。
    *
    * 取り消しの前に必ず呼ぶ。入力は 400ms 止まってから送られるので、
@@ -192,6 +210,7 @@ export class EditScreen {
       evt,
       selected: this.sel.ids,
       onPick: (id, e) => this.pick(id, e, false),
+      onGoto: (key) => void this.goto(key),
     });
 
     this.renderCheckBadge(evt);
@@ -544,6 +563,7 @@ export class EditScreen {
       evt.title,
       '<p class="ins hint" style="margin:0 0 12px">下のプレビューは、実際に書き出される HTML を' +
         "そのまま表示しています。外部依存はありません。ファイルをコピーするだけで配れます。</p>" +
+        exportScopeHTML(this.api.db, evt) +
         `<iframe class="frame" src="${esc(this.api.exportUrl(this.eventKey))}"></iframe>`,
       `<a class="ed-tool pri" href="${esc(this.api.downloadUrl(this.eventKey))}" download>保存する</a>` +
         '<button class="ed-tool" data-x="close">閉じる</button>',
@@ -907,4 +927,27 @@ function branchConditions(st: Step, c: Condition | undefined): Condition[] | nul
   // 帯の外へ出した。図の上でその枝から離れたのだから、条件も外す。
   // 残したままだと、離れた場所にその手順ひとつだけの帯ができる。
   return now.filter((x) => x.key !== now[0].key);
+}
+
+/**
+ * 書き出しに何が入るかの断り書き。
+ *
+ * 移り先のフローは自動で一緒に入る。入れないと配った HTML の中で札が押せず、
+ * 配布物が行き止まりになるため。ただし**書き出す範囲が増えるということは、
+ * 「どこを見ているか」の情報がそれだけ多く出ていく**ということでもある。
+ * 黙って増やさず、何が入ったかを必ず出す。
+ */
+function exportScopeHTML(db: DB, evt: EventFlow): string {
+  const all = exportedFlows(db, evt);
+  if (all.length < 2) return "";
+  const names = all
+    .slice(1)
+    .map((e) => `<b>${esc(e.title)}</b>`)
+    .join("、");
+  return (
+    '<p class="ins hint warn" style="margin:0 0 12px">' +
+    `移り先のフローも一緒に入ります（全 ${all.length} フロー）: ${names}<br>` +
+    "入れないと、配った先で移り先の札を押せません。" +
+    "その分だけ、外に出る情報が増えることにご注意ください。</p>"
+  );
 }

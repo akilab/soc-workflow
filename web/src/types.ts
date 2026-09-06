@@ -222,6 +222,13 @@ export interface Step {
   contacts: string[];
   /** 表示条件。複数あれば AND。空なら常に表示。 */
   conditions: Condition[];
+  /**
+   * この手順のあとに移る先のフローのキー。空なら移らない。
+   *
+   * そこでこの経路は終わり、続きは相手のフロー。行き止まりの「終了」と違い、
+   * 行き先を言う終わりになる。
+   */
+  goto?: string;
   /** あればこの手順は判断ステップになる。 */
   decision?: Decision | null;
   /**

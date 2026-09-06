@@ -436,6 +436,19 @@ body.dragging .clane:not(.drop){opacity:.6}
   border-color:color-mix(in srgb, var(--ok) 42%, transparent)}
 .ol-row .fin{color:var(--okFg);background:color-mix(in srgb, var(--ok) 20%, transparent);
   border-color:color-mix(in srgb, var(--ok) 42%, transparent)}
+/* 移り先。ここで経路が終わり、続きは別のフロー。
+   終了（緑）と同じ「終わり」でも、行き先があることを色で分ける。
+   図の札は押せるので、下線と指差しで押せることを見せる。 */
+.cnode .f-goto,.ol-row .go{color:var(--decFg);
+  background:color-mix(in srgb, var(--dec) 18%, transparent);
+  border-color:color-mix(in srgb, var(--dec) 42%, transparent)}
+.cnode .f-goto{cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.cnode .f-goto:hover{background:color-mix(in srgb, var(--dec) 34%, transparent)}
+/* 指した先が消えている場合。黙って別のフローに見せない。 */
+.cnode .f-goto.dead,.ol-row .go.dead{color:var(--s1Fg);
+  background:color-mix(in srgb, var(--s1) 18%, transparent);
+  border-color:color-mix(in srgb, var(--s1) 42%, transparent)}
+.cnode .f-goto.dead{cursor:default;text-decoration:none}
 /* 待ち。自分たちの作業ではないので、破線で「動いていない」ことを示す。 */
 .cnode.wait{border-style:dashed}
 .cnode .f-wait{color:var(--dim);background:var(--panel3);border:1px dashed var(--line-2)}
@@ -503,7 +516,7 @@ body.dragging .clane:not(.drop){opacity:.6}
 .cnode .cls .ph{font-style:normal;font-size:var(--t2);font-weight:600;color:var(--pc)}
 /* ボックスの中の印も、アウトラインと同じ形にそろえる（面＋面より明るい字）。
    同じものを指す印が画面ごとに違う見た目だと、対応が付かない。 */
-.cnode .cls .who,.cnode .f-esc,.cnode .f-fin,.cnode .f-wait{
+.cnode .cls .who,.cnode .f-esc,.cnode .f-fin,.cnode .f-wait,.cnode .f-goto{
   font-style:normal;font-family:var(--sans);font-size:var(--t2);font-weight:600;
   letter-spacing:0;height:18px;line-height:16px;padding:0 6px;
   border:1px solid transparent;border-radius:var(--r2);
@@ -893,6 +906,11 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
   transition:opacity .18s,transform .18s;pointer-events:none;max-width:80vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.warn{border-color:var(--s2);color:var(--s2)}
+/* 断り書きのうち、読み飛ばしてほしくないもの。
+   書き出しに何が同梱されるかは、外に出る情報の量そのものなので目立たせる。 */
+.ins.hint.warn{color:var(--fg);border-left:3px solid var(--s2);
+  background:color-mix(in srgb, var(--s2) 10%, transparent);
+  padding:8px 10px;border-radius:var(--r2)}
 
 /* 対応管理画面のツールバー */
 .tk-bar{display:flex;gap:8px;align-items:center;margin:0 0 16px}
@@ -1176,6 +1194,8 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
   border:1px solid color-mix(in srgb, var(--cur) 40%, transparent)}
 .ins .sect.ms{border-left-color:var(--cur)}
 .ins .sect.ms>h4{color:var(--cur)}
+.ins .sect.go{border-left-color:var(--dec)}
+.ins .sect.go>h4{color:var(--dec)}
 
 /* 分岐の帯。どこからどこまでが 1 つの分かれ道かを地色で示す。
    枝を横に並べたので、帯が無いと「どこまでが分かれ道か」が読めない。 */

@@ -415,6 +415,20 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
   color:var(--cur);background:color-mix(in srgb, var(--cur) 16%, transparent);
   border:1px solid color-mix(in srgb, var(--cur) 40%, transparent)}
 
+/* 移り先。ここでこの経路は終わり、続きは別のフロー。
+   このファイルに相手が入っていれば押して移れるので、下線で押せると見せる。
+   入っていなければ押せない札にして、色を落として「ここでは辿れない」と示す。 */
+.v-node .go{display:block;margin-top:5px;padding:2px 6px;border-radius:var(--r2);
+  font-size:var(--t2);font-weight:600;line-height:1.4;cursor:pointer;
+  text-decoration:underline;text-underline-offset:2px;
+  color:var(--decFg);background:color-mix(in srgb, var(--dec) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--dec) 42%, transparent)}
+.v-node .go:hover{background:color-mix(in srgb, var(--dec) 34%, transparent)}
+.v-node .go.out{cursor:default;text-decoration:none;
+  color:var(--dim);background:color-mix(in srgb, var(--skip) 18%, transparent);
+  border-color:color-mix(in srgb, var(--skip) 42%, transparent)}
+.v-node .go.out i{display:block;font-style:normal;font-weight:400;font-size:var(--t1)}
+
 /* 分岐の帯。枝を横に並べたので、どこからどこまでが分かれ道かを地色で示す。
    エディタ側（app.css の .cband）と同じ見た目にする。 */
 .v-band{z-index:0;border-radius:var(--r3);pointer-events:none;

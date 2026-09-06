@@ -240,6 +240,31 @@ function mountViewer(root, DATA, opt){
   }
   function findEvent(k){ for(var i=0;i<events.length;i++) if(events[i].key===k) return events[i]; return null; }
 
+  /* 移り先の札。ここでこの経路は終わり、続きは相手のフロー。
+
+     相手がこのファイルに入っていれば押して移れる。入っていなければ
+     押せない札にして、そう書く。黙って何も起きない札にすると、
+     押した人は「壊れている」と受け取る——実際には配るときに選ばなかった
+     だけなので、そう言う。 */
+  function gotoTag(st){
+    if(!st.goto) return "";
+    var to = findEvent(st.goto);
+    if(to) return '<span class="go" data-go="' + esc(st.goto) + '" title="'
+      + esc("この手順のあと「" + to.title + "」へ移ります") + '">&#8594; '
+      + esc(to.title) + '</span>';
+
+    /* 名前だけ控えてあるなら、選ばれなかっただけ。控えも無いなら、
+       指した先そのものが見つからない。同じ札で済ませると、
+       配り方の問題と、直すべき間違いとが区別できない。 */
+    var name = (DATA.gotoNames || {})[st.goto];
+    return '<span class="go out" title="'
+      + esc(name ? "移り先のフローは、このファイルには含まれていません"
+                 : "移り先のフローが見つかりません: " + st.goto) + '">&#8594; '
+      + esc(name || "移り先が見つかりません")
+      + '<i>' + (name ? "このファイルには含まれていません"
+                      : esc("指し先: " + st.goto)) + '</i></span>';
+  }
+
   /* ---- フローリスト ---- */
   var evlist = $("evlist");
   events.forEach(function(ev){
@@ -444,12 +469,22 @@ function mountViewer(root, DATA, opt){
         + (st.decision ? '<span class="dec">&#9670;</span>' : '')
         + (isClose(st) ? '<span class="fin">終了</span>' : '')
         + (isWait(st) ? '<span class="wt">待ち</span>' : '')
+        + gotoTag(st)
         + (function(){
             var m = milestoneOf(ev, st);
             return m ? '<span class="v-ms">&#9873; ' + esc(m.name)
                      + ' ' + esc(fmtMin(m.mins)) + '以内</span>' : '';
           })();
-      el.addEventListener("click", function(){
+      el.addEventListener("click", function(e){
+        /* 移り先の札を押したら、そのフローへ移る。ボックスを押したときの
+           「手順の説明まで送る」とは別の動きなので、先に見る。 */
+        var go = e.target && e.target.closest ? e.target.closest(".go[data-go]") : null;
+        if(go){
+          e.stopPropagation();
+          select(go.getAttribute("data-go"));
+          window.scrollTo({top:0, behavior:"smooth"});
+          return;
+        }
         var rows = $("slist").querySelectorAll(".v-s");
         if(rows[i]) rows[i].scrollIntoView({behavior:"smooth", block:"center"});
       });

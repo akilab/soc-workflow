@@ -237,3 +237,51 @@ func between(s, a, b string) string {
 	}
 	return rest[:j]
 }
+
+// 1 フローだけ書き出しても、移り先のフローが一緒に入ること。
+//
+// 入らないと、配った HTML の中でその札が押せず、配布物が行き止まりになる。
+// 移り先は「調べたら別の事象だった」ときに実際に開くものなので、
+// 手元に無ければ意味がない。
+func TestWithLinkedPullsInTargets(t *testing.T) {
+	db := seedDB(t)
+	if len(db.Events) < 3 {
+		t.Skip("種データのフローが足りません")
+	}
+	a, b, c := db.Events[0], db.Events[1], db.Events[2]
+	if len(a.Steps) == 0 || len(b.Steps) == 0 {
+		t.Skip("手順の無いフローがあります")
+	}
+	// a → b → c と辿れるようにする
+	a.Steps[len(a.Steps)-1].Goto = b.Key
+	b.Steps[len(b.Steps)-1].Goto = c.Key
+
+	got := WithLinked(db, []*model.Event{a})
+	keys := make([]string, 0, len(got))
+	for _, e := range got {
+		keys = append(keys, e.Key)
+	}
+	want := []string{a.Key, b.Key, c.Key}
+	if len(keys) != len(want) {
+		t.Fatalf("同梱 %v、期待 %v", keys, want)
+	}
+	for i := range want {
+		if keys[i] != want[i] {
+			t.Errorf("%d 番目 = %s、期待 %s", i, keys[i], want[i])
+		}
+	}
+}
+
+// 輪になっていても止まること。a → b → a は実務では起きにくいが、
+// 止まらなければブラウザごと固まる。
+func TestWithLinkedStopsOnCycle(t *testing.T) {
+	db := seedDB(t)
+	a, b := db.Events[0], db.Events[1]
+	a.Steps[len(a.Steps)-1].Goto = b.Key
+	b.Steps[len(b.Steps)-1].Goto = a.Key
+
+	got := WithLinked(db, []*model.Event{a})
+	if len(got) != 2 {
+		t.Fatalf("同梱 %d 件、期待 2 件", len(got))
+	}
+}

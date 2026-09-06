@@ -145,6 +145,11 @@ func uniqueKey(prefix string, taken func(string) bool) string {
 	}
 }
 
+// stepsGotoEvent は、そのフローへ移る手順を返す。
+func stepsGotoEvent(db *model.DB, eventKey string) []Usage {
+	return collectSteps(db, func(s *model.Step) bool { return s.Goto == eventKey })
+}
+
 // stepsUsingSLA は、その SLA を到達点にしている手順を返す。
 func stepsUsingSLA(db *model.DB, slaKey string) []Usage {
 	return collectSteps(db, func(s *model.Step) bool { return s.Milestone == slaKey })

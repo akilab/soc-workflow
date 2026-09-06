@@ -419,6 +419,7 @@ export class Inspector {
       this.contactsHTML(st) +
       this.conditionsHTML(evt, st) +
       this.decisionHTML(st) +
+      this.gotoHTML(evt, st) +
       milestoneField(this.db, st) +
       '<button class="del" id="s_dup">この手順を複製する</button>' +
       '<button class="del" id="s_del">この手順を削除する</button>';
@@ -441,6 +442,23 @@ export class Inspector {
 
     // --- 選び直し。すぐ送る ---
     // 到達点の印。押したときに付き、× で外す（判断ステップと同じ形）。
+    on<HTMLElement>("s_gotoAdd", "click", () => {
+      const first = this.db.events.find((e) => e.key !== evt.key);
+      if (!first) return;
+      this.apply(evt.key, st, () => {
+        st.goto = first.key;
+      });
+    });
+    on<HTMLElement>("s_gotoDel", "click", () => {
+      this.apply(evt.key, st, () => {
+        st.goto = "";
+      });
+    });
+    on<HTMLSelectElement>("s_goto", "change", (el) => {
+      this.apply(evt.key, st, () => {
+        st.goto = el.value;
+      });
+    });
     on<HTMLElement>("s_msAdd", "click", () => {
       const first = (this.db.slas ?? [])[0];
       if (!first) return;
@@ -609,6 +627,42 @@ export class Inspector {
       .slice(0, at)
       .map((s) => s.decision)
       .filter((d): d is Decision => !!d);
+  }
+
+  /**
+   * 移り先のフロー。
+   *
+   * 調べて分かった時点で別の事象になることがある。そこでこの経路は終わり、
+   * 続きは相手のフローになる。ほとんどの手順には要らないので、
+   * SLA の到達点と同じく、付けるまでは 1 行のボタンだけにしておく。
+   */
+  private gotoHTML(evt: EventFlow, st: Step): string {
+    const others = this.db.events.filter((e) => e.key !== evt.key);
+    if (!others.length) return ""; // 移り先になれるフローが無い
+
+    if (!st.goto) {
+      return (
+        '<button class="mini" id="s_gotoAdd" style="margin-top:13px">' +
+        "&#8594; この手順のあと、別のフローへ移る</button>"
+      );
+    }
+
+    const opts = others
+      .map(
+        (e) =>
+          `<option value="${esc(e.key)}"${e.key === st.goto ? " selected" : ""}>` +
+          `${esc(e.title)}</option>`,
+      )
+      .join("");
+    // 指している先が消えている場合も、黙って別のフローに見せない。
+    const dead = !others.some((e) => e.key === st.goto);
+    return (
+      '<div class="sect go"><h4>移り先のフロー ' +
+      '<button class="x" id="s_gotoDel" title="外す">&times;</button></h4>' +
+      `<select id="s_goto">${dead ? `<option value="${esc(st.goto)}" selected>（見つかりません: ${esc(st.goto)}）</option>` : ""}${opts}</select>` +
+      '<p class="hint">この手順でこの経路は終わり、続きは移り先のフローになります。' +
+      "図とアウトライン、配る HTML に出ます。</p></div>"
+    );
   }
 
   private conditionsHTML(evt: EventFlow, st: Step): string {

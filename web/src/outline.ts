@@ -183,6 +183,13 @@ function stepEl(
         ` title="この判断を参照している手順が ${n} 件あります">${n}分岐</span>`;
     }
   }
+  if (st.goto) {
+    const to = db.events.find((e) => e.key === st.goto);
+    q +=
+      `<span class="go${to ? "" : " dead"}"` +
+      ` title="${esc(to ? `この手順のあと「${to.title}」へ移ります` : `移り先のフローが見つかりません: ${st.goto}`)}">` +
+      `&#8594; ${esc(to ? to.title : "移り先が見つかりません")}</span>`;
+  }
   if (st.sla) q += `<span class="sla">${esc(st.sla)}</span>`;
 
   // ラベル。そのフローで使うものだけ列を確保し、使わない行には空の枠を置く。
