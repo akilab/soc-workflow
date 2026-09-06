@@ -133,12 +133,19 @@ export function stepInput(st: Step): StepInput {
   };
 }
 
-/** 手順をどこへ置くか。どちらも省略できる。 */
+/** 手順をどこへ置くか。どれも省略できる。 */
 export interface StepPlacement {
   /** 挿入位置。省略すると末尾。 */
   index?: number;
   /** 担当。省略すると対応の既定値。 */
   lane?: string;
+  /**
+   * 分岐の枝。分かれ道の帯の中へ落としたときに、その枝の条件を付ける。
+   *
+   * 置いてから条件を入力し直させない。落とした場所が枝を指しているのだから、
+   * それをそのまま手順の条件にする。
+   */
+  cond?: Condition;
 }
 
 /** 手順の中身。更新のときに丸ごと置き換える。 */
@@ -255,9 +262,12 @@ export class Api {
    * キャンバスへ落としたときは、落とした列がそのまま担当になる。
    */
   createStep(eventKey: string, task: string, at?: StepPlacement) {
-    const body: { task: string; index?: number; lane?: string } = { task };
+    const body: { task: string; index?: number; lane?: string; cond?: Condition } = {
+      task,
+    };
     if (at?.index !== undefined) body.index = at.index;
     if (at?.lane) body.lane = at.lane;
+    if (at?.cond?.key) body.cond = at.cond;
     return this.write<Step>("POST", `/api/events/${enc(eventKey)}/steps`, body);
   }
 

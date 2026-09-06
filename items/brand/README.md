@@ -22,11 +22,14 @@ UI アイコン（`items/fluent`）とは扱いが違うので、置き場所を
 
 ## いま置いてあるもの
 
-`defender` `intune` `teams` `outlook` `copilot` `azure` `m365`
+`defender` `intune` `teams` `outlook` `copilot` `azure` `m365` `entra`
 
-[homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons)（Apache-2.0）
-から取得した。**足りていないもの**: Entra ID、Sentinel、Logic Apps。
-[msicons.com](https://msicons.com/) などから SVG を落として、ここへ置けば増やせる。
+`entra` 以外は
+[homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons)（Apache-2.0）から。
+`entra` は [msicons.com](https://msicons.com/microsoft-entra-id-color-icon) から。
+
+**足りていないもの**: Sentinel、Logic Apps。同じように SVG を落として
+ここへ置けば増やせる。
 
 ## 扱いの注意
 

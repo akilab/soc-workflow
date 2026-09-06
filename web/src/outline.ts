@@ -63,7 +63,7 @@ export function renderOutline(deps: OutlineDeps): void {
 
   const cols = markColumns(deps.db, evt);
 
-  for (const r of outlineRows(evt)) {
+  for (const r of outlineRows(evt, eventLanes(deps.db, evt))) {
     if (r.type === "block") {
       const bl = document.createElement("div");
       bl.className = "ol-branch";

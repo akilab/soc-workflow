@@ -26,7 +26,12 @@ body{margin:0;overflow:hidden}
 
 .app-top{height:var(--top-h);background:var(--panel);border-bottom:1px solid var(--line);
   display:flex;align-items:center;gap:12px;padding:0 10px;position:relative;z-index:40}
-.app-name{margin:0;font-size:var(--t6);font-weight:600;white-space:nowrap;letter-spacing:.01em}
+.app-name{margin:0;font-size:var(--t6);font-weight:600;white-space:nowrap;letter-spacing:.01em;
+  display:flex;align-items:center}
+.app-name button{font:inherit;color:inherit;letter-spacing:inherit;background:none;border:none;
+  padding:3px 7px;margin-left:-7px;border-radius:var(--r2);cursor:pointer}
+.app-name button:hover{background:var(--panel2)}
+.app-name button:focus-visible{outline:2px solid var(--cur);outline-offset:-2px}
 .app-name b{color:var(--cur)}
 .app-name span{color:var(--faint);font-weight:400;font-size:var(--t4);margin-left:10px;
   padding-left:10px;border-left:1px solid var(--line)}
@@ -272,6 +277,26 @@ body.resizing{cursor:col-resize;user-select:none}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pane .scroll{overflow:auto;flex:1;padding:10px 12px 16px;min-height:0}
 
+/* 手順アウトラインを畳む。
+   図を広く使いたいときのため。左のペインは下限 460px と広く、畳めば図が
+   その分だけ伸びる。畳んだ先は背表紙にする——しまった場所にそのまま戻り口が
+   あれば、どこから戻すのかを探さずに済む。 */
+.pane>h3 .fold{background:none;border:none;color:var(--dim);cursor:pointer;flex:none;
+  padding:2px 4px;border-radius:var(--r2);display:flex;align-items:center}
+.pane>h3 .fold:hover{background:var(--panel2);color:var(--fg)}
+.pane>h3 .fold:focus-visible{outline:2px solid var(--cur);outline-offset:-2px}
+.pane>h3 .fold .ic{transform:rotate(180deg)}
+#olCount{margin-right:auto}
+.pane-spine{display:none;writing-mode:vertical-rl;align-items:center;justify-content:flex-start;
+  gap:10px;width:100%;height:100%;background:none;border:none;color:var(--dim);cursor:pointer;
+  font-family:var(--sans);font-size:var(--t3);font-weight:600;padding:12px 0;letter-spacing:.04em}
+.pane-spine:hover{background:var(--panel2);color:var(--fg)}
+.pane-spine:focus-visible{outline:2px solid var(--cur);outline-offset:-2px}
+.ed-body.fold-left{grid-template-columns:34px 0 minmax(0,1fr) 7px var(--wr,324px)}
+.ed-body.fold-left .split[data-target="left"]{visibility:hidden;pointer-events:none}
+.ed-body.fold-left #paneLeft>h3,.ed-body.fold-left #olList{display:none}
+.ed-body.fold-left .pane-spine{display:flex}
+
 /* 図の縮尺。見出しの右端に、小さくまとめて置く。
    図を見ている最中に使うものなので、操作の帯（上段）ではなく図の枠に付ける。 */
 .zoom{display:flex;align-items:center;gap:1px;flex:none;overflow:visible}
@@ -438,6 +463,19 @@ body.dragging .clane:not(.drop){opacity:.6}
   background:var(--cur);color:var(--onCur);font-size:var(--t2);font-weight:600;
   padding:2px 8px;border-radius:var(--r2);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;display:block;box-shadow:0 2px 6px var(--shadow)}
+/* 分かれ道の帯の中へ落とすときは、線をその枝の色にして、どの枝に加わるかを
+   書き添える。線の幅も枝の列に合わせてあるので、色と幅と字の三つで同じことを指す。 */
+/* 枝の列は担当の列より狭い。札を線の幅に合わせると「誤検知 の…」で切れて
+   肝心のところが読めないので、枝のときだけ札は線からはみ出してよいことにする。 */
+.cdrop.br b,.cdrop.br u{width:max-content;max-width:240px}
+.cdrop.br{background:var(--brc);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--brc) 55%, transparent)}
+.cdrop.br::before,.cdrop.br::after{background:var(--brc)}
+.cdrop u{position:absolute;left:0;top:6px;max-width:100%;box-sizing:border-box;
+  background:var(--brc);color:#fff;font-size:var(--t3);font-weight:600;
+  text-decoration:none;padding:1px 7px;border-radius:var(--r2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;display:block;
+  box-shadow:0 2px 6px var(--shadow)}
 
 /* 連絡の相手。矢印の行き先に置く札。
    手順のボックスは角のある四角にしたので、こちらは丸くしておく。
@@ -1138,3 +1176,14 @@ body.screen-run #runWrap{display:block}   /* これが無く、テストモー�
   border:1px solid color-mix(in srgb, var(--cur) 40%, transparent)}
 .ins .sect.ms{border-left-color:var(--cur)}
 .ins .sect.ms>h4{color:var(--cur)}
+
+/* 分岐の帯。どこからどこまでが 1 つの分かれ道かを地色で示す。
+   枝を横に並べたので、帯が無いと「どこまでが分かれ道か」が読めない。 */
+.cband{z-index:0;border-radius:var(--r3);pointer-events:none;
+  background:color-mix(in srgb, var(--dec) 7%, transparent);
+  outline:1px dashed color-mix(in srgb, var(--dec) 35%, transparent);outline-offset:-1px}
+/* 枝の答え。どの分かれ道のどちら側かを、ボックス自身に持たせる。 */
+.cnode .cls .ans{font-style:normal;display:inline-flex;align-items:center;height:18px;
+  padding:0 6px;font-size:var(--t2);font-weight:600;border-radius:var(--r2);
+  color:var(--bc);background:color-mix(in srgb, var(--bc) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--bc) 42%, transparent)}

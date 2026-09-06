@@ -109,6 +109,13 @@ func (s *JSONStore) load(seed []byte) error {
 		return fmt.Errorf("JSON として読めません（%s）: %w", s.path, err)
 	}
 	normalize(&db)
+
+	// リンク集を一度も持っていないファイルには、標準の行き先を入れる。
+	// 空の配列（自分で全部消した）とは区別する。消したものが起動のたびに
+	// 戻ってくるのでは、消せたことにならない。
+	if db.Links == nil {
+		db.Links = DefaultLinks()
+	}
 	s.db = &db
 
 	// ファイルが無かった場合はここで作っておく。

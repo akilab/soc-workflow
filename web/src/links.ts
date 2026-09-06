@@ -44,7 +44,7 @@ export const ICONS: { v: string; l: string; icon: string; brand?: string }[] = [
   { v: "copilot", l: "Copilot", icon: "sparkle", brand: "copilot" },
   { v: "azure", l: "Azure", icon: "cloud", brand: "azure" },
   { v: "m365", l: "Microsoft 365", icon: "grid", brand: "m365" },
-  { v: "entra", l: "Entra ID / 認証", icon: "key" },
+  { v: "entra", l: "Entra ID / 認証", icon: "key", brand: "entra" },
   { v: "sentinel", l: "Sentinel / SIEM", icon: "alert" },
   { v: "logicapps", l: "Logic Apps / 自動化", icon: "flowchart" },
   { v: "ticket", l: "チケット", icon: "ticket" },

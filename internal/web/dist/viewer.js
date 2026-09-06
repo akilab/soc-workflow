@@ -86,6 +86,8 @@ function mountViewer(root, DATA, opt){
   ensureViaSprite();
   var uid = "v" + Math.floor(Math.random()*1e9).toString(36);
   var phaseByKey = {}, taskByKey = {}, groupByKey = {}, laneByKey = {}, laneIndex = {};
+  /* 直近に決めた置き方（layoutOf の結果）。線を引くときに使う。 */
+  var LAY = null;
   /* フローごとの担当を解決する。指定が無ければ全体をそのまま使う。
      呼び名だけを差し替えた複製を返す。全体のものを書き換えると、
      1 つのフローの呼び名が他のフローへ漏れる。 */
@@ -249,6 +251,118 @@ function mountViewer(root, DATA, opt){
     evlist.appendChild(b);
   });
 
+
+  /* ---- 置き方 ----
+     エディタ（web/src/layout.ts）と同じ規則。分岐の枝を横に並べる。
+
+     列は担当。同じ担当に枝が 2 本以上並ぶときは、その担当の列を割る。
+     行は枝の中での順。枝を置く順は「その枝がいちばん左で使う担当の順」——
+     選択肢の順に置くと、担当をまたいで左へ戻る枝の横線が短い枝の下りる線と
+     交わることがある。
+
+     同じ図を 2 か所で描くので、規則も 2 か所に書くことになる。ここを直したら
+     layout.ts も直すこと。 */
+  function layoutOf(ev){
+    var steps = ev.steps, blocks = [], i = 0;
+    while(i < steps.length){
+      var cs = steps[i].conditions || [];
+      if(!cs.length){ blocks.push({ type:"step", step:steps[i], index:i }); i++; continue; }
+      var key = cs[0].key, order = [], byVal = {};
+      while(i < steps.length){
+        var c = (steps[i].conditions || [])[0];
+        if(!c || c.key !== key) break;
+        if(!byVal[c.value]){ byVal[c.value] = []; order.push(c.value); }
+        byVal[c.value].push({ step:steps[i], index:i });
+        i++;
+      }
+      order.sort(function(a, b){ return leftmost(byVal[a]) - leftmost(byVal[b]); });
+      blocks.push({ type:"branch", key:key, order:order, byVal:byVal });
+    }
+
+    var need = {}, base = {}, cols = 0;
+    lanes.forEach(function(l){ need[l.key] = 1; });
+    blocks.forEach(function(b){
+      if(b.type !== "branch") return;
+      var used = {};
+      b.order.forEach(function(v){
+        var seen = {};
+        b.byVal[v].forEach(function(x){ seen[x.step.lane] = 1; });
+        Object.keys(seen).forEach(function(lk){ used[lk] = (used[lk] || 0) + 1; });
+      });
+      Object.keys(used).forEach(function(lk){ if(used[lk] > (need[lk] || 1)) need[lk] = used[lk]; });
+    });
+    lanes.forEach(function(l){ base[l.key] = cols; cols += need[l.key]; });
+
+    var placed = [], bands = [], row = 2;
+    blocks.forEach(function(b){
+      if(b.type === "step"){
+        var lk = b.step.lane;
+        placed.push({ step:b.step, index:b.index, row:row, col:(base[lk]||0),
+          span:(need[lk]||1), entry:true, exit:true, block:b });
+        row++;
+        return;
+      }
+      var slot = {}, counter = {};
+      b.order.forEach(function(v){
+        slot[v] = {};
+        var seen = {};
+        b.byVal[v].forEach(function(x){ seen[x.step.lane] = 1; });
+        Object.keys(seen).forEach(function(lk){
+          var n = counter[lk] || 0;
+          slot[v][lk] = Math.min(n, (need[lk] || 1) - 1);
+          counter[lk] = n + 1;
+        });
+      });
+      var start = row, height = 0;
+      b.order.forEach(function(v){
+        var list = b.byVal[v];
+        if(list.length > height) height = list.length;
+        list.forEach(function(x, k){
+          var lk = x.step.lane;
+          placed.push({ step:x.step, index:x.index, row:start + k,
+            col:(base[lk]||0) + (slot[v][lk] || 0), span:1,
+            entry:k === 0, exit:k === list.length - 1, value:v, block:b });
+        });
+      });
+      bands.push({ from:start, to:start + height - 1 });
+      row = start + height;
+    });
+
+    return { blocks:blocks, need:need, base:base, cols:cols, placed:placed,
+             rows:row - 1, bands:bands, pairs:pairsOf(blocks, placed) };
+  }
+
+  function leftmost(list){
+    var m = 1e9;
+    list.forEach(function(x){
+      var n = laneIndex[x.step.lane];
+      if(n === undefined) n = 0;
+      if(n < m) m = n;
+    });
+    return m;
+  }
+
+  /* かたまりどうしは「前の出口 → 次の入口」で繋ぐ。分岐へ入るときは枝の数だけ
+     分かれ、出るときは枝の数だけ戻る。枝の中は順に繋ぐ。 */
+  function pairsOf(blocks, placed){
+    var out = [], prev = null;
+    blocks.forEach(function(b){
+      var mine = placed.filter(function(p){ return p.block === b; });
+      var entries = mine.filter(function(p){ return p.entry; });
+      var exits = mine.filter(function(p){ return p.exit; });
+      if(prev) prev.forEach(function(a){ entries.forEach(function(z){ out.push([a, z]); }); });
+      prev = exits;
+      if(b.type === "branch"){
+        b.order.forEach(function(v){
+          var list = mine.filter(function(p){ return p.value === v; })
+            .sort(function(x, y){ return x.row - y.row; });
+          for(var k = 0; k + 1 < list.length; k++) out.push([list[k], list[k + 1]]);
+        });
+      }
+    });
+    return out;
+  }
+
   /* ---- キャンバス ----
      列は担当（レーン）、行は手順の順番。手順 1 つにつきボックス 1 つ。
      フェーズは列ではなく、ボックスの左のバーとラベルで表す。 */
@@ -256,28 +370,40 @@ function mountViewer(root, DATA, opt){
     useLanes(ev);
     grid.innerHTML = "";
     nodes = []; chips = [];
-    grid.style.gridTemplateColumns = "repeat(" + Math.max(lanes.length, 1) + ", minmax(148px, 1fr))";
+    LAY = layoutOf(ev);
+    grid.style.gridTemplateColumns = "repeat(" + Math.max(LAY.cols, 1) + ", minmax(148px, 1fr))";
 
     lanes.forEach(function(l, li){
+      var span = LAY.need[l.key] || 1;
       var bg = document.createElement("div");
       bg.className = "v-lane" + (li === lanes.length - 1 ? " last" : "");
       bg.style.setProperty("--lc", l.color);
-      bg.style.gridColumn = (li + 1);
+      bg.style.gridColumn = ((LAY.base[l.key] || 0) + 1) + " / span " + span;
       /* 1/-1 は使えない。-1 は「明示的に定義された行」の終端を指すが、
          grid-template-rows を書いていないので全部が暗黙行になり、
          見出し行で止まってしまう。終端を数えて入れる。 */
-      bg.style.gridRow = "1 / " + (ev.steps.length + 2);
+      bg.style.gridRow = "1 / " + (LAY.rows + 2);
       grid.appendChild(bg);
 
       var h = document.createElement("div");
       h.className = "v-lane-h";
       h.style.setProperty("--lc", l.color);
-      h.style.gridColumn = (li + 1);
+      h.style.gridColumn = ((LAY.base[l.key] || 0) + 1) + " / span " + span;
       h.textContent = l.name;
       grid.appendChild(h);
     });
 
-    ev.steps.forEach(function(st, i){
+    /* 分岐の帯。どこからどこまでが 1 つの分かれ道かを地色で示す。 */
+    LAY.bands.forEach(function(b){
+      var band = document.createElement("div");
+      band.className = "v-band";
+      band.style.gridColumn = "1 / span " + Math.max(LAY.cols, 1);
+      band.style.gridRow = b.from + " / " + (b.to + 1);
+      grid.appendChild(band);
+    });
+
+    LAY.placed.forEach(function(p){
+      var st = p.step, i = p.index;
       var li = laneIndex[st.lane];
       if(li === undefined) li = 0;
       var tk = taskByKey[st.task], ph = tk ? phaseByKey[tk.phase] : null;
@@ -289,12 +415,18 @@ function mountViewer(root, DATA, opt){
       if(isWait(st)) el.dataset.wait = "1";
       el.style.setProperty("--pc", ph ? ph.color : "var(--line)");
       el.style.setProperty("--lc", ln ? ln.color : "var(--line)");
-      el.style.gridColumn = (li + 1);
-      el.style.gridRow = (i + 2);
+      el.style.gridColumn = (p.col + 1) + " / span " + p.span;
+      el.style.gridRow = p.row;
       /* 分類（フェーズ・担当）はタイトルの上。列が担当を表してはいるが、
          縦に長いフローでは列見出しがページと一緒にスクロールして見えなくなる。 */
+      /* 枝の答え。列は担当のままなので、どの分かれ道のどちら側かは
+         ボックス自身に持たせる。 */
+      var ans = p.value
+        ? '<i class="ans">' + esc(condLabel(ev, { key:p.block.key, value:p.value })) + '</i>'
+        : '';
       el.innerHTML = '<span class="mk"></span>'
         + '<span class="cls">'
+        + ans
         + (ph ? '<i class="ph">' + esc(ph.name) + '</i>' : '')
         + (ln ? '<i class="who">' + esc(ln.name) + '</i>' : '')
         + '</span>'
@@ -337,8 +469,8 @@ function mountViewer(root, DATA, opt){
         var chip = document.createElement("div");
         chip.className = "v-ct";
         chip.style.setProperty("--lc", laneByKey[lk].color);
-        chip.style.gridColumn = (laneIndex[lk] + 1);
-        chip.style.gridRow = (i + 2);
+        chip.style.gridColumn = ((LAY.base[lk] || 0) + 1);
+        chip.style.gridRow = p.row;
         chip.innerHTML = byLane[lk].map(function(g){ return esc(g.name); }).join("<br>");
         grid.appendChild(chip);
         chips.push({i:i, el:chip, color:laneByKey[lk].color});
@@ -400,38 +532,47 @@ function mountViewer(root, DATA, opt){
       + '<marker id="ahp_'+uid+'" viewBox="0 0 10 8" refX="9.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="6.5" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="var(--faint)"/></marker>'
       + '</defs>';
 
-    for(var k=0;k<seq.length-1;k++){
-      var a = seq[k], b = seq[k+1];
-      var ra = a.el.getBoundingClientRect(), rb = b.el.getBoundingClientRect();
+    /* 繋ぐ組は置き方が決める（エディタと同じ）。分岐へ入るときは枝の数だけ
+       分かれ、出るときは枝の数だけ戻る。番号は「辿る順」なので、いま通る
+       見込みのある線にだけ振る——対象外の枝に番号が付くと数え方が狂う。 */
+    var st8 = {};
+    seq.forEach(function(x){ st8[x.i] = x; });
+    var no = 1;
+    (LAY ? LAY.pairs : []).forEach(function(pr){
+      var a = nodes[pr[0].index], b = nodes[pr[1].index];
+      if(!a || !b) return;
+      var A = st8[pr[0].index], B = st8[pr[1].index];
+      var skip = !A || !B;                    /* どちらかが対象外 */
+      var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
       /* 規則: 下から出て、上から入る */
       var ax = ra.left - box.left + ra.width/2, ay = ra.bottom - box.top;
       var bx = rb.left - box.left + rb.width/2, by = rb.top - box.top - HEAD;
       var d;
-
       if(Math.abs(ax - bx) < 2){
         d = "M " + ax + " " + ay + " L " + bx + " " + by;      /* 同じ列。まっすぐ下へ */
-      }else if(b.i === a.i + 1){
-        var my = (ay + by) / 2;                                 /* 隣り合う行。行間で横へ移る */
-        d = ortho([[ax,ay],[ax,my],[bx,my],[bx,by]], 10);
       }else{
-        /* あいだに対象外の手順がある。真下を通ると重なるので、
-           ボックスの脇（レーンの余白）を降りる。横へ移るのは行間だけ。 */
-        var gx = Math.min(grid.clientWidth - 5, ra.right - box.left + 8);
-        d = ortho([[ax,ay],[ax,ay+9],[gx,ay+9],[gx,by-9],[bx,by-9],[bx,by]], 8);
+        /* 横へ移るのは行と行のあいだだけ。同じ帯に何本も入るときも高さを
+           共有する——ずらすと線が何本にも見え、交差も増えた。 */
+        var my = (ay + by) / 2;
+        d = ortho([[ax,ay],[ax,my],[bx,my],[bx,by]], 10);
       }
 
       /* 状態は色と線種の両方で示す（色だけに頼らない） */
-      var st2 = a.done && b.done ? "done" : (a.known && b.known ? "" : "pend");
+      var st2 = skip ? "pend"
+        : (A.done && B.done ? "done" : (A.known && B.known ? "" : "pend"));
       var mk2 = st2==="done" ? "ahd_"+uid : (st2==="pend" ? "ahp_"+uid : "ah_"+uid);
-      out += '<path class="w ' + st2 + '" d="' + d + '" marker-end="url(#' + mk2 + ')" />';
+      out += '<path class="w ' + st2 + (skip ? " skip" : "") + '" d="' + d
+           + '" marker-end="url(#' + mk2 + ')" />';
 
+      if(skip) return;                        /* 通らない線に番号は振らない */
       var probe = document.createElementNS("http://www.w3.org/2000/svg","path");
       probe.setAttribute("d", d); wires.appendChild(probe);
       var pt = probe.getPointAtLength(probe.getTotalLength()/2);
       wires.removeChild(probe);
+      no++;
       out += '<circle class="' + st2 + '" cx="' + pt.x + '" cy="' + pt.y + '" r="10" />'
-           + '<text class="' + st2 + '" x="' + pt.x + '" y="' + pt.y + '">' + (k+2) + '</text>';
-    }
+           + '<text class="' + st2 + '" x="' + pt.x + '" y="' + pt.y + '">' + no + '</text>';
+    });
 
     /* 連絡の矢印。手順の座っている行の中を横切るだけなので、
        行と行のあいだを通る手順の線とはぶつからない。 */

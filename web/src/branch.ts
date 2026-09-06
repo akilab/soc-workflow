@@ -6,7 +6,8 @@
  * その下に属する手順（縦線で囲われた範囲）。ここはその材料を作る。
  */
 
-import type { Condition, Decision, EventFlow, Step } from "./types";
+import { blocksOf } from "./layout";
+import type { Condition, Decision, EventFlow, Lane, Step } from "./types";
 
 /** 答えの色。判断ごとにずらして使うので、同じ画面で色が重なりにくい。 */
 export const OPTION_COLORS = [
@@ -117,34 +118,46 @@ export type OutlineRow = StepRow | BlockRow;
 /**
  * アウトラインの行を組み立てる。
  *
- * 同じ判断に依存する手順が続いている間は 1 つの塊にまとめ、
- * 答えが変わるところで見出しを挟む。条件の無い手順が来たら塊を閉じる。
+ * 塊の切れ目と枝の並び順はフロー図と同じもの（layout.ts の blocksOf）を使う。
+ * 枝の中では、答えごとにまとめて見出しを 1 つだけ置く。
+ *
+ * 以前は「前の行と答えが変わったら見出しを挟む」で作っていた。並びの上で
+ * 枝が交互になっていると（外部要請 → 復旧 → 無効化 → 確認）、同じ答えの
+ * 見出しが 2 度 3 度と出て、分かれ道が 2 つあるように見えていた。図のほうは
+ * 答えごとに列へまとめているので、同じデータが 2 通りに見えていたことになる。
+ *
+ * 入れ子（同じ枝の中で、さらに別の判断にも依存する手順）は、答えの中で
+ * 条件の組み合わせごとに分ける。組み合わせは 1 つにつき 1 度しか出ないので、
+ * 見出しが重なることはない。
  */
-export function outlineRows(evt: EventFlow): OutlineRow[] {
+export function outlineRows(evt: EventFlow, lanes: Lane[]): OutlineRow[] {
   const rows: OutlineRow[] = [];
-  let block: BlockRow | null = null;
-  let prevCond = "";
 
-  evt.steps.forEach((st, i) => {
-    const k = condKey(st);
-    if (!k) {
-      block = null;
-      prevCond = "";
-      rows.push({ type: "step", st, i, deep: false });
-      return;
+  for (const b of blocksOf(evt, lanes)) {
+    if (b.type === "step" && b.step) {
+      rows.push({ type: "step", st: b.step, i: b.index ?? 0, deep: false });
+      continue;
     }
-    const keys = decKeys(st);
-    if (!block || block.keys !== keys) {
-      block = { type: "block", keys, rows: [] };
-      rows.push(block);
-      prevCond = "";
+
+    const block: BlockRow = { type: "block", keys: b.key ?? "", rows: [] };
+    for (const v of b.order ?? []) {
+      // 同じ答えの中を、条件の組み合わせごとにまとめる。出てきた順に置く。
+      const byComb = new Map<string, { step: Step; index: number }[]>();
+      for (const x of b.byVal?.[v] ?? []) {
+        const k = condKey(x.step);
+        const list = byComb.get(k);
+        if (list) list.push(x);
+        else byComb.set(k, [x]);
+      }
+      for (const list of byComb.values()) {
+        block.rows.push({ type: "grp", conds: [...(list[0].step.conditions ?? [])] });
+        for (const x of list) {
+          block.rows.push({ type: "step", st: x.step, i: x.index, deep: true });
+        }
+      }
     }
-    if (k !== prevCond) {
-      block.rows.push({ type: "grp", conds: [...(st.conditions ?? [])] });
-      prevCond = k;
-    }
-    block.rows.push({ type: "step", st, i, deep: true });
-  });
+    rows.push(block);
+  }
 
   return rows;
 }

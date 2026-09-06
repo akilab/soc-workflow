@@ -21,7 +21,10 @@
     <div class="lc-head" id="launchHead"></div>
     <div class="lc-grid" id="launchBody"></div>
   </div>
-  <h1 class="app-name">SOC <b>Workflow</b><span>対応フローの設計</span></h1>
+  <!-- 題名はフロー一覧への戻り口。ここを押せば元の場所へ戻る、というのは
+       どの画面でも身についている動きなので、そのとおりに動くようにする。 -->
+  <h1 class="app-name"><button type="button" id="appHome"
+    title="フロー一覧へ戻る">SOC <b>Workflow</b></button><span>対応フローの設計</span></h1>
   <div class="ed-spacer"></div>
   <button class="app-ico" data-th type="button"></button>
 </header>
@@ -119,9 +122,15 @@
 
   <div class="ed-body" id="edBody">
 
-    <div class="pane">
-      <h3>手順アウトライン <span id="olCount"></span></h3>
+    <div class="pane" id="paneLeft">
+      <h3>手順アウトライン <span id="olCount"></span>
+        <button class="fold" id="olFold" type="button" title="手順アウトラインを畳む">
+          <svg class="ic"><use href="#ic-chev-r"/></svg></button>
+      </h3>
       <div class="scroll" id="olList"></div>
+      <!-- 畳んだときの背表紙。しまった場所にそのまま戻り口を残す。 -->
+      <button class="pane-spine" id="olUnfold" type="button" title="手順アウトラインを開く">
+        <svg class="ic"><use href="#ic-chev-r"/></svg>手順アウトライン</button>
     </div>
 
     <div class="split" data-target="left"></div>

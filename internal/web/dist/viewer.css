@@ -414,3 +414,16 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:var(
   font-size:var(--t2);font-weight:600;line-height:1.4;
   color:var(--cur);background:color-mix(in srgb, var(--cur) 16%, transparent);
   border:1px solid color-mix(in srgb, var(--cur) 40%, transparent)}
+
+/* 分岐の帯。枝を横に並べたので、どこからどこまでが分かれ道かを地色で示す。
+   エディタ側（app.css の .cband）と同じ見た目にする。 */
+.v-band{z-index:0;border-radius:var(--r3);pointer-events:none;
+  background:color-mix(in srgb, var(--dec) 7%, transparent);
+  outline:1px dashed color-mix(in srgb, var(--dec) 35%, transparent);outline-offset:-1px}
+/* 枝の答え。列は担当のままなので、どちら側かはボックス自身に持たせる。 */
+.v-node .cls .ans{font-style:normal;display:inline-flex;align-items:center;height:18px;
+  padding:0 6px;font-size:var(--t2);font-weight:600;border-radius:var(--r2);
+  color:var(--decFg);background:color-mix(in srgb, var(--dec) 18%, transparent);
+  border:1px solid color-mix(in srgb, var(--dec) 42%, transparent)}
+/* 通らない枝へ向かう線。細く薄くして、辿る線と見分ける。 */
+.v-wires path.w.skip{opacity:.28;stroke-dasharray:3 5}
